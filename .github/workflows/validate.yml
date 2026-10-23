@@ -1,0 +1,85 @@
+name: Validate plugin
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+      - name: PHP syntax
+        run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+      - name: JavaScript syntax
+        run: node --check assets/js/admin.js && node --check assets/js/frontend.js
+      - name: Package
+        if: matrix.php == '8.2'
+        run: bash scripts/package.sh
+      - uses: WordPress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e
+        if: matrix.php == '8.2'
+        with:
+          build-dir: release/ashbi-testimonials
+          slug: ashbi-testimonials
+      - uses: actions/upload-artifact@v4
+        if: matrix.php == '8.2'
+        with:
+          name: plugin-release-candidate
+          path: dist/*.zip
+  wordpress:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: minimum (WordPress 6.6, PHP 8.2)
+            core: '"https://wordpress.org/wordpress-6.6.zip"'
+            php: '8.2'
+          - label: latest (PHP 8.4)
+            core: 'null'
+            php: '8.4'
+    name: WordPress ${{ matrix.label }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install -g @wordpress/env
+      - name: Start disposable WordPress
+        run: |
+          echo '{"core":${{ matrix.core }},"phpVersion":"${{ matrix.php }}","plugins":["."],"config":{"WP_DEBUG":true,"WP_DEBUG_LOG":"/var/www/html/wp-content/debug.log","WP_DEBUG_DISPLAY":false}}' > .wp-env.json
+          wp-env start
+          wp-env run cli wp plugin activate ashbi-testimonials
+          wp-env run cli wp core version
+      - name: Database smoke test
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-smoke.php
+      - name: Uninstall test
+        run: wp-env run cli env ABT_DISPOSABLE_TEST=1 wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-uninstall.php
+      - name: No PHP notices from the plugin
+        run: |
+          wp-env run cli sh -c 'touch wp-content/debug.log; cat wp-content/debug.log' > debug.log
+          if grep -iE 'ashbi-testimonials|abt_' debug.log; then echo 'Plugin logged PHP notices'; exit 1; fi
+  multisite-uninstall:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install -g @wordpress/env
+      - name: Start disposable WordPress multisite with PHP 8.2
+        run: |
+          echo '{"phpVersion":"8.2","multisite":true,"plugins":["."]}' > .wp-env.json
+          wp-env start
+          wp-env run cli wp plugin activate ashbi-testimonials --network
+      - name: Verify every site is cleaned on uninstall
+        run: wp-env run cli env ABT_DISPOSABLE_TEST=1 wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-uninstall.php
