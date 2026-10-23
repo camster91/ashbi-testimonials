@@ -1,6 +1,17 @@
 # Proposed delivery backlog: Ashbi Testimonials — fully free
 
-Draft, 23 October 2026. No GitHub issues have been created from this list. Cameron has confirmed that all features are free and the product should build Ashbi credibility. Module boundaries in `plan.md` still need technical review before module specifications and implementation. An unchecked item is proposed work, not an accepted commitment or evidence that it has begun.
+Draft, 23 October 2026. No GitHub issues have been created from this list. Cameron has confirmed that all features are free and the product should build Ashbi credibility. Module boundaries in `plan.md` still need technical review before module specifications and implementation. An unchecked item has not completed its full acceptance and release process; implementation in review is tracked below.
+
+## Current implementation
+
+[PR #4](https://github.com/camster91/ashbi-testimonials/pull/4), stacked on #3, implements the first trust slice specified in `SPEC-trust-controls.md`:
+
+- T03: native email-scoped personal data export, including historical revisions and all review states.
+- T04: bounded permanent review erasure, retry/failure handling, cache invalidation and shared-media disclosure.
+- T05: default retention and explicit per-site cleanup, including mixed multisite preferences.
+- T07: fixes silent loss of valid immediate submissions. Remaining hostile-input, concurrency, retry and browser recovery work is still open.
+
+The PR carries verification results and review status. This work is not part of the published v1.0.0 download until a subsequent release is approved and published. The broader roadmap remains unfinished; passing integration tests does not establish million-site readiness.
 
 ## Shared verification
 
