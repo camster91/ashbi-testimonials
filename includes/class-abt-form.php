@@ -252,7 +252,8 @@ class ABT_Form {
 		$fields['status']      = 'pending';
 		$fields['product_id']  = $product_id;
 		$fields['collections'] = array( $term_id );
-		$fields['source']      = __( 'Website', 'ashbi-testimonials' );
+		$fields['source']      = 'Website';
+		$fields['origin']      = 'direct';
 
 		$result = $this->persist( $fields, $ip_key );
 		if ( is_wp_error( $result ) ) {

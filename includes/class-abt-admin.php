@@ -14,7 +14,7 @@ class ABT_Admin {
 	const SLUG = 'ashbi-testimonials';
 
 	/** CSV columns, in export order. */
-	const CSV_COLUMNS = array( 'author', 'content', 'rating', 'headline', 'role', 'company', 'location', 'email', 'avatar_url', 'product_id', 'subject', 'source', 'source_url', 'verified', 'featured', 'status', 'date', 'collections' );
+	const CSV_COLUMNS = array( 'author', 'content', 'rating', 'headline', 'role', 'company', 'location', 'email', 'avatar_url', 'product_id', 'subject', 'source', 'source_url', 'verified', 'featured', 'status', 'date', 'collections', 'origin' );
 
 	/**
 	 * @var ABT_Admin|null
@@ -371,6 +371,7 @@ class ABT_Admin {
 		if ( $collection ) {
 			$ids[] = absint( $collection );
 		}
+		$row['origin'] = 'imported';
 		$row['collections'] = array_values( array_unique( $ids ) );
 		return ABT_Data::instance()->save( $row );
 	}

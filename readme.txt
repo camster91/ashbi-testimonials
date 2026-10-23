@@ -54,7 +54,7 @@ Yes. Attach each review to its product, then use product="current" on your produ
 Yes. It uses a signed target-bound token without a time expiry instead of a nonce, a hidden honeypot field and a limit of five submissions per hour per visitor. Every submission is held as pending.
 
 = Will it add star ratings in search results? =
-For products and software it can add AggregateRating structured data. It never adds review markup for your own business, which search engines ignore. When the WooCommerce testimonials tab is enabled, its ratings are combined with native ratings in the existing Product schema. Whether stars appear is decided by the search engine.
+For directly collected product/software reviews, it can add AggregateRating structured data when the aggregate is visible and the view is not curated. Existing/manual/CSV reviews stay visible but require a manager to confirm direct provenance. External source links/platform reviews are excluded; a mixed-provenance view adds no Ashbi aggregate. It never adds review markup for your own business, which search engines ignore. When the WooCommerce testimonials tab is enabled, eligible directly collected ratings are combined with native ratings in the existing Product schema. Whether stars appear is decided by the search engine.
 
 = What happens when I delete the plugin? =
 Deactivation and deletion keep reviews, collections and settings by default, including on existing installations. An administrator can enable permanent deletion in Testimonials > Settings before deleting the plugin. This preference applies separately to each multisite site. Media Library files are kept. Export a CSV backup before enabling deletion.

@@ -74,6 +74,7 @@ class ABT_Privacy {
 			'avatar_url' => __( 'Avatar URL', 'ashbi-testimonials' ),
 			'product_id' => __( 'Associated product or page ID', 'ashbi-testimonials' ),
 			'subject' => __( 'Subject', 'ashbi-testimonials' ),
+			'origin' => __( 'Collection provenance', 'ashbi-testimonials' ),
 			'source' => __( 'Source', 'ashbi-testimonials' ),
 			'source_url' => __( 'Source URL', 'ashbi-testimonials' ),
 			'verified' => __( 'Verified flag', 'ashbi-testimonials' ),

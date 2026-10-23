@@ -249,6 +249,15 @@ $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yel
 							<input type="date" id="abt-e-date" name="date" />
 						</div>
 					</div>
+					<div class="abt-field">
+						<label for="abt-e-origin"><?php esc_html_e( 'Review provenance', 'ashbi-testimonials' ); ?></label>
+						<select id="abt-e-origin" name="origin">
+							<option value="manual"><?php esc_html_e( 'Manually entered / not confirmed', 'ashbi-testimonials' ); ?></option>
+							<option value="direct"><?php esc_html_e( 'Collected directly from the reviewer', 'ashbi-testimonials' ); ?></option>
+							<option value="imported"><?php esc_html_e( 'Imported from another source', 'ashbi-testimonials' ); ?></option>
+						</select>
+						<p class="description"><?php esc_html_e( 'Confirm direct collection only for original reviews you received yourself. External source links and platform ratings remain excluded from review schema.', 'ashbi-testimonials' ); ?></p>
+					</div>
 					<div class="abt-toggles">
 						<label class="abt-toggle"><input type="checkbox" name="verified" value="1" /> <span><?php esc_html_e( 'Verified customer', 'ashbi-testimonials' ); ?></span></label>
 						<label class="abt-toggle"><input type="checkbox" name="featured" value="1" /> <span><?php esc_html_e( 'Featured', 'ashbi-testimonials' ); ?></span></label>

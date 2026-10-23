@@ -689,6 +689,7 @@
 		[ 'author', 'headline', 'role', 'company', 'location', 'email', 'subject', 'source', 'source_url', 'avatar_url' ].forEach( ( k ) => ( els[ k ].value = data[ k ] || '' ) );
 		els.content.value = data.content || '';
 		els.avatar_id.value = data.avatar_id || 0;
+		els.origin.value = data.origin || 'manual';
 		els.status.value = data.status || 'publish';
 		els.date.value = data.date || today();
 		els.verified.checked = !! data.verified;
@@ -729,6 +730,7 @@
 			avatar_url: els.avatar_url.value,
 			product_id: els.product_id.value,
 			subject: els.subject.value,
+			origin: els.origin.value,
 			source: els.source.value,
 			source_url: els.source_url.value,
 			status: els.status.value,

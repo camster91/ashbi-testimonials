@@ -177,7 +177,7 @@ class ABT_Shortcode {
 			$more = array( 'atts' => $atts, 'page' => 2 );
 		}
 
-		if ( '0' !== $atts['schema'] ) {
+		if ( '0' !== $atts['schema'] && '1' === $atts['summary'] ) {
 			$this->schema( $parsed, $stats ?? $data->stats( $parsed['query'] ), $result['items'] );
 		}
 
@@ -226,6 +226,9 @@ class ABT_Shortcode {
 
 	/** Queue structured data for products and software only. */
 	private function schema( array $parsed, array $stats, array $items ) {
+		if ( ( $stats['ineligible'] ?? $stats['rated'] ) || $parsed['query']['ids'] || $parsed['query']['subject'] || $parsed['query']['min_rating'] || $parsed['query']['featured'] || $parsed['query']['verified'] || 'random' === $parsed['query']['orderby'] ) {
+			return;
+		}
 		$first = $parsed['collections'] ? ABT_Data::instance()->collection_to_array( $parsed['collections'][0] ) : null;
 		$type  = ABT_Data::types()[ $first['type'] ?? 'general' ]['schema'];
 		$name  = $parsed['atts']['schema_name'];
@@ -239,7 +242,7 @@ class ABT_Shortcode {
 			$type = $type ?: 'Product';
 			$name = $name ?: get_the_title( $parsed['query']['product_id'] );
 			$url  = (string) get_permalink( $parsed['query']['product_id'] );
-		} elseif ( 'Product' === $type && '' === $name ) {
+		} elseif ( 'Product' === $type || count( $parsed['collections'] ) > 1 ) {
 			// A collection spanning many products is not one product.
 			return;
 		} elseif ( '' === $name && $first ) {

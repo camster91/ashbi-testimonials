@@ -59,7 +59,7 @@ abt_assert( ! isset( $woo->tab( array() )['abt_testimonials'] ), 'no tab without
 /* Reviews attached to the product add a counted tab. */
 $col = ABT_Data::instance()->save_collection( array( 'name' => 'Mug reviews', 'type' => 'product' ) );
 foreach ( array( 5, 4, 3 ) as $i => $rating ) {
-	ABT_Data::instance()->save( array( 'author' => 'Buyer ' . $i, 'content' => 'Nice mug ' . $i, 'rating' => $rating, 'product_id' => $product_id, 'collections' => array( $col['id'] ) ) );
+	ABT_Data::instance()->save( array( 'origin' => 'direct', 'author' => 'Buyer ' . $i, 'content' => 'Nice mug ' . $i, 'rating' => $rating, 'product_id' => $product_id, 'collections' => array( $col['id'] ) ) );
 }
 ABT_Data::instance()->save( array( 'author' => 'Other', 'content' => 'Different product', 'rating' => 1, 'collections' => array( $col['id'] ) ) );
 
@@ -93,7 +93,7 @@ abt_assert( isset( $woo->tab( array() )['abt_testimonials'] ), 'form-only tab ap
 wp_reset_postdata();
 
 /* Structured data for a product shortcode outside product pages names the product. */
-do_shortcode( '[ashbi_testimonials collection="mug-reviews" product="' . $product_id . '"]' );
+do_shortcode( '[ashbi_testimonials summary="1" collection="mug-reviews" product="' . $product_id . '"]' );
 ob_start();
 ABT_Render::instance()->print_schema();
 $schema = ob_get_clean();
@@ -115,6 +115,13 @@ $combined_schema->generate_product_data( $product );
 $nodes = $combined_schema->get_data();
 $node = end( $nodes );
 abt_assert( 5 === (int) $node['aggregateRating']['reviewCount'] && 4.4 === (float) $node['aggregateRating']['ratingValue'], 'native and Ashbi ratings are combined with a weighted average' );
+$external = ABT_Data::instance()->save( array( 'author' => 'External review', 'rating' => 1, 'origin' => 'imported', 'source' => 'Google', 'product_id' => $product_id, 'collections' => array( $col['id'] ) ) );
+$external_schema = new WC_Structured_Data();
+$external_schema->generate_product_data( $product );
+$nodes = $external_schema->get_data();
+$node = end( $nodes );
+abt_assert( 2 === (int) $node['aggregateRating']['reviewCount'], 'mixed external reviews leave native WooCommerce aggregate unchanged' );
+wp_delete_post( $external, true );
 update_option( ABT_SETTINGS_OPTION, array( 'schema' => '0', 'woo_tab' => '1' ) );
 $disabled_schema = new WC_Structured_Data();
 $disabled_schema->generate_product_data( $product );

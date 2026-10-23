@@ -32,6 +32,7 @@ class ABT_Data {
 		'avatar_url' => '_abt_avatar_url',
 		'product_id' => '_abt_product_id',
 		'subject'    => '_abt_subject',
+		'origin'     => '_abt_origin',
 		'source'     => '_abt_source',
 		'source_url' => '_abt_source_url',
 		'verified'   => '_abt_verified',
@@ -350,6 +351,7 @@ class ABT_Data {
 			'avatar_url'  => esc_url_raw( (string) ( $in['avatar_url'] ?? '' ) ),
 			'product_id'  => absint( $in['product_id'] ?? 0 ),
 			'subject'     => sanitize_text_field( (string) ( $in['subject'] ?? '' ) ),
+			'origin'      => in_array( $in['origin'] ?? '', array( 'direct', 'manual', 'imported' ), true ) ? $in['origin'] : 'manual',
 			'source'      => sanitize_text_field( (string) ( $in['source'] ?? '' ) ),
 			'source_url'  => esc_url_raw( (string) ( $in['source_url'] ?? '' ) ),
 			'verified'    => ! empty( $in['verified'] ) && '0' !== (string) $in['verified'] ? 1 : 0,
@@ -368,6 +370,9 @@ class ABT_Data {
 	 * @return int|WP_Error Post ID.
 	 */
 	public function save( array $raw, $id = 0 ) {
+		if ( $id && ! array_key_exists( 'origin', $raw ) ) {
+			$raw['origin'] = get_post_meta( $id, self::META['origin'], true );
+		}
 		$data = $this->sanitize( $raw );
 		if ( '' === $data['author'] ) {
 			return new WP_Error( 'abt_author', __( 'Add the reviewer’s name.', 'ashbi-testimonials' ) );
@@ -589,7 +594,7 @@ class ABT_Data {
 		$ids        = array_map( 'absint', (array) ( $args['ids'] ?? array() ) );
 		sort( $ids );
 
-		$key    = 'abt_stats_' . md5( wp_json_encode( array( $collections, $product_id, $subject, $rating, $min_rating, $featured, $verified, $ids, get_option( ABT_CACHE_OPTION, 1 ) ) ) );
+		$key    = 'abt_stats_' . md5( wp_json_encode( array( 'eligibility-v1', $collections, $product_id, $subject, $rating, $min_rating, $featured, $verified, $ids, get_option( ABT_CACHE_OPTION, 1 ) ) ) );
 		$cached = get_transient( $key );
 		if ( is_array( $cached ) ) {
 			return $cached;
@@ -627,6 +632,10 @@ class ABT_Data {
 				$params[] = self::META[ $field ];
 			}
 		}
+		foreach ( array( 'origin' => 'po', 'source' => 'psource', 'source_url' => 'purl' ) as $field => $alias ) {
+			$joins .= " LEFT JOIN {$wpdb->postmeta} {$alias} ON {$alias}.post_id = p.ID AND {$alias}.meta_key = %s";
+			$params[] = self::META[ $field ];
+		}
 		$params[] = self::POST_TYPE;
 		$where = '';
 		if ( $rating > 0 ) {
@@ -641,7 +650,10 @@ class ABT_Data {
 		}
 
 		// Integer IDs are cast above; every other value is a placeholder.
-		$sql  = "SELECT CAST(pm.meta_value AS UNSIGNED) AS rating, COUNT(DISTINCT p.ID) AS n FROM {$wpdb->posts} p
+		$sql  = "SELECT CAST(pm.meta_value AS UNSIGNED) AS rating, COUNT(DISTINCT p.ID) AS n,
+			COUNT(DISTINCT CASE WHEN CAST(pm.meta_value AS UNSIGNED) BETWEEN 1 AND 5 AND
+			( COALESCE(po.meta_value, '') <> 'direct' OR COALESCE(purl.meta_value, '') <> '' OR
+			LOWER(TRIM(COALESCE(psource.meta_value, ''))) NOT IN ('', 'website', 'email', 'survey') ) THEN p.ID END) AS ineligible FROM {$wpdb->posts} p
 			LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key = %s
 			{$joins}
 			WHERE p.post_type = %s AND p.post_status = 'publish' {$where}
@@ -651,10 +663,12 @@ class ABT_Data {
 		$breakdown = array( 5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0 );
 		$count     = 0;
 		$sum       = 0;
+		$ineligible = 0;
 		foreach ( (array) $rows as $row ) {
 			$rating = (int) $row->rating;
 			$n      = (int) $row->n;
 			$count += $n;
+			$ineligible += (int) $row->ineligible;
 			if ( $rating >= 1 && $rating <= 5 ) {
 				$breakdown[ $rating ] += $n;
 				$sum                  += $rating * $n;
@@ -666,6 +680,7 @@ class ABT_Data {
 			'rated'     => $rated,
 			'average'   => $rated ? round( $sum / $rated, 2 ) : 0.0,
 			'breakdown' => $breakdown,
+			'ineligible' => $ineligible,
 		);
 		set_transient( $key, $result, DAY_IN_SECONDS );
 		return $result;

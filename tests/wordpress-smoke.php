@@ -41,6 +41,7 @@ $ids     = array();
 foreach ( range( 0, 29 ) as $i ) {
 	$ids[] = $data->save(
 		array(
+			'origin'      => 'direct',
 			'author'      => 'Reviewer ' . $i,
 			'content'     => 'Review body ' . $i,
 			'rating'      => $ratings[ $i % 10 ],
@@ -128,7 +129,7 @@ $parsed['query']['page'] = 2;
 abt_assert( 10 === count( $data->query( $parsed['query'] )['items'] ), 'load more page two' );
 
 /* Structured data only for products and software, one entity per item. */
-do_shortcode( '[ashbi_testimonials collection="ci-software" product="' . $page . '"]' );
+do_shortcode( '[ashbi_testimonials summary="1" collection="ci-software" product="' . $page . '"]' );
 do_shortcode( '[ashbi_rating product="' . $page . '"]' );
 ob_start();
 ABT_Render::instance()->print_schema();

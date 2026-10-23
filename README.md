@@ -14,6 +14,8 @@ A WordPress plugin for testimonials and reviews that scales from a handful of cl
 - **CSV import/export**: the browser sends large files in batches of 100 rows. Exports include collection names, slugs and display settings; imports restore missing collections by slug and keep existing settings. A selected import collection is added alongside the restored groups.
 - **Structured data** for products and software only; optional **WooCommerce tab**. When the tab and schema are enabled, its ratings are combined with native WooCommerce ratings in the existing Product entity.
 
+Schema is conservative: existing/manual/CSV reviews remain visible but need confirmed direct provenance before they can contribute to Ashbi aggregate markup. Public forms record direct collection; CSV files cannot grant that status automatically. Managers can confirm provenance in the review editor. External source links and sources other than Website/Email/Survey remain ineligible. A mixed-provenance view emits no Ashbi aggregate; WooCommerce retains its native aggregate. Shortcode markup requires a visible summary and an uncurated, item-specific view. IDs, minimum-rating, featured/verified filters, subject subsets and random showcases do not emit aggregates. Search engines decide eligibility and display.
+
 ## Free by design
 
 All plugin features are free under GPL-2.0-or-later. No paid edition, license key, mandatory account or forced attribution. The [professional product roadmap](tasks/plan.md) tracks the work toward broad adoption.

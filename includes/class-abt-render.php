@@ -308,7 +308,7 @@ class ABT_Render {
 	 * @param string $url     Item URL.
 	 */
 	public function queue_schema( $type, $name, array $stats, array $reviews = array(), $url = '' ) {
-		if ( '1' !== abt_settings()['schema'] || ! $stats['rated'] || '' === $name || ! in_array( $type, array( 'Product', 'SoftwareApplication' ), true ) ) {
+		if ( '1' !== abt_settings()['schema'] || ( $stats['ineligible'] ?? $stats['rated'] ) || ! $stats['rated'] || '' === $name || ! in_array( $type, array( 'Product', 'SoftwareApplication' ), true ) ) {
 			return;
 		}
 		// WooCommerce already prints Product markup on its product pages.
