@@ -295,6 +295,9 @@ class ABT_Admin {
 
 		$out = array();
 		foreach ( get_posts( $args ) as $post ) {
+			if ( ! current_user_can( 'edit_post', $post->ID ) && ( ! is_post_publicly_viewable( $post ) || post_password_required( $post ) ) ) {
+				continue;
+			}
 			$type  = get_post_type_object( $post->post_type );
 			$out[] = array(
 				'id'    => $post->ID,
