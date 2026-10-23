@@ -197,6 +197,9 @@ class ABT_Shortcode {
 		unset( $atts['breakdown'], $atts['style'] );
 
 		$parsed = $this->parse( $atts );
+		if ( '' !== $parsed['atts']['collection'] && ! $parsed['collections'] ) {
+			return current_user_can( abt_capability() ) ? '<p class="abt-notice">' . esc_html__( 'Ashbi Testimonials: that collection was not found. Check the shortcode.', 'ashbi-testimonials' ) . '</p>' : '';
+		}
 		$stats  = ABT_Data::instance()->stats( $parsed['query'] );
 		if ( ! $stats['rated'] ) {
 			return '';
@@ -229,6 +232,10 @@ class ABT_Shortcode {
 		$url   = '';
 
 		if ( $parsed['query']['product_id'] ) {
+			// Structured data is public even when an editor is previewing a page.
+			if ( ! is_post_publicly_viewable( $parsed['query']['product_id'] ) || post_password_required( $parsed['query']['product_id'] ) ) {
+				return;
+			}
 			$type = $type ?: 'Product';
 			$name = $name ?: get_the_title( $parsed['query']['product_id'] );
 			$url  = (string) get_permalink( $parsed['query']['product_id'] );
@@ -286,3 +293,4 @@ function abt_get_testimonials( $atts = array() ) {
 function abt_render_testimonials( $atts = array() ) {
 	echo abt_get_testimonials( $atts ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 }
+

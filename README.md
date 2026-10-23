@@ -10,7 +10,7 @@ A WordPress plugin for testimonials and reviews that scales from a handful of cl
 - **Six layouts**: grid, masonry, slider (scroll-snap, works without JS), list, spotlight, compact. Light, dark or auto theme.
 - **Shortcode builder** with live preview.
 - **Rating summary** with average, count and per-star breakdown, or an inline badge.
-- **Review form** with moderation, honeypot, signed cache-safe token and rate limiting.
+- **Review form** with moderation, honeypot, signed cache-safe token and rate limiting. Tokens are bound to the collection and product without a time expiry; submissions always require moderation. Purge page caches after rotating WordPress salts.
 - **CSV import/export**: the browser sends large files in batches of 100 rows.
 - **Structured data** for products and software only; optional **WooCommerce tab**.
 
@@ -41,3 +41,4 @@ Testimonials are a private post type (`abt_testimonial`) grouped by a private ta
 ## Requirements
 
 WordPress 6.6+, PHP 8.2+. WooCommerce is optional.
+
