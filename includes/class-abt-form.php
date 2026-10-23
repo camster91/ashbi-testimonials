@@ -19,6 +19,7 @@ class ABT_Form {
 	 * @var ABT_Form|null
 	 */
 	private static $instance = null;
+	private $form_counts = array();
 
 	/**
 	 * @return ABT_Form
@@ -72,6 +73,8 @@ class ABT_Form {
 		$target     = $term->term_id . ':' . $product_id;
 		$fields     = array_map( 'trim', explode( ',', (string) $atts['fields'] ) );
 		$form_id    = 'abt-form-' . $term->term_id . ( $product_id ? '-' . $product_id : '' );
+		$this->form_counts[ $form_id ] = ( $this->form_counts[ $form_id ] ?? 0 ) + 1;
+		$form_id .= $this->form_counts[ $form_id ] > 1 ? '-' . $this->form_counts[ $form_id ] : '';
 		ABT_Render::instance()->enqueue();
 
 		$status = isset( $_GET['abt_status'], $_GET['abt_form'] ) && $form_id === sanitize_key( wp_unslash( $_GET['abt_form'] ) ) ? sanitize_key( wp_unslash( $_GET['abt_status'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only status flag.

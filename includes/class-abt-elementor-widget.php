@@ -27,6 +27,9 @@ class ABT_Elementor_Widget extends \Elementor\Widget_Base {
 		$kind = $settings['kind'] ?? 'testimonials';
 		foreach ( array( 'summary', 'load_more' ) as $key ) { $settings[ $key ] = '1' === ( $settings[ $key ] ?? '' ) ? '1' : '0'; }
 		$html = ABT_Editors::render( $kind, $settings );
+		if ( 'review-form' === $kind && ( \Elementor\Plugin::$instance->editor->is_edit_mode() || \Elementor\Plugin::$instance->preview->is_preview_mode() ) ) {
+			$html = '<div inert>' . $html . '</div>';
+		}
 		if ( ! $html && \Elementor\Plugin::$instance->editor->is_edit_mode() ) {
 			$html = '<p>' . esc_html__( 'Choose a collection to display its approved reviews.', 'ashbi-testimonials' ) . '</p>';
 		}

@@ -47,6 +47,14 @@ class ABT_Render {
 			'abtFrontend',
 			array(
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'form' => array(
+					'thanks' => __( 'Thank you! Your review was received and will appear once approved.', 'ashbi-testimonials' ),
+					'invalid' => __( 'Check the required fields, rating and consent before trying again.', 'ashbi-testimonials' ),
+					'expired' => __( 'The form could not be verified. Reload the page before trying again; copy your review first.', 'ashbi-testimonials' ),
+					'busy' => __( 'Another review is being processed from your connection. Try again in a moment.', 'ashbi-testimonials' ),
+					'limit' => __( 'Too many reviews were sent from your connection. Try again later.', 'ashbi-testimonials' ),
+					'error' => __( 'Your review could not be saved. Your text is still here; please try again.', 'ashbi-testimonials' ),
+				),
 				'i18n'    => array(
 					'more'    => __( 'Read more', 'ashbi-testimonials' ),
 					'less'    => __( 'Show less', 'ashbi-testimonials' ),
