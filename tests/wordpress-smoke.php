@@ -116,9 +116,11 @@ abt_assert( false !== strpos( do_shortcode( '[ashbi_rating collection="ci-softwa
 abt_assert( false !== strpos( do_shortcode( '[ashbi_rating collection="ci-software" style="inline"]' ), 'abt-inline-rating' ), 'inline rating renders' );
 abt_assert( false !== strpos( do_shortcode( '[ashbi_testimonial_form collection="ci-software"]' ), 'name="abt_token"' ), 'form renders with a token' );
 
-$xss = $data->save( array( 'author' => '<img src=x onerror=alert(1)>', 'headline' => '"><svg onload=1>', 'content' => 'x', 'rating' => 4, 'collections' => array( $col['id'] ) ) );
+abt_assert( is_wp_error( $data->save( array( 'author' => '<img src=x onerror=alert(1)>', 'content' => 'x' ) ) ), 'a name that is only markup is rejected' );
+$xss = $data->save( array( 'author' => 'Tom "T" <b>&</b> Co', 'headline' => '"><svg onload=1>Great', 'content' => 'x', 'rating' => 4, 'collections' => array( $col['id'] ) ) );
+abt_assert( is_int( $xss ), 'special-character testimonial saves' );
 $out = do_shortcode( '[ashbi_testimonials ids="' . $xss . '" show="headline"]' );
-abt_assert( false === strpos( $out, '<img src=x' ) && false === strpos( $out, '<svg onload' ), 'author and headline are escaped' );
+abt_assert( false === strpos( $out, '<svg' ) && false === strpos( $out, '"T"' ) && false !== strpos( $out, '&quot;T&quot;' ), 'author and headline are escaped' );
 
 /* Load-more page 2 uses the same filters. */
 $parsed                  = ABT_Shortcode::instance()->parse( array( 'collection' => 'ci-software', 'limit' => '10' ) );
