@@ -379,6 +379,10 @@ class ABT_Data {
 			return new WP_Error( 'abt_missing', __( 'That testimonial no longer exists.', 'ashbi-testimonials' ) );
 		}
 
+		if ( $data['date'] && ( ! wp_checkdate( (int) substr( $data['date'], 5, 2 ), (int) substr( $data['date'], 8, 2 ), (int) substr( $data['date'], 0, 4 ), $data['date'] ) || $data['date'] > current_time( 'Y-m-d' ) ) ) {
+			return new WP_Error( 'abt_date', __( 'Choose a valid review date that is today or earlier.', 'ashbi-testimonials' ) );
+		}
+
 		$post = array(
 			'post_type'    => self::POST_TYPE,
 			'post_title'   => $data['author'],
@@ -389,7 +393,7 @@ class ABT_Data {
 			$post['ID'] = (int) $id;
 		}
 		if ( $data['date'] ) {
-			$post['post_date']     = $data['date'] . ' 12:00:00';
+			$post['post_date']     = $data['date'] . ' 00:00:00';
 			$post['post_date_gmt'] = get_gmt_from_date( $post['post_date'] );
 			$post['edit_date']     = true;
 		}
@@ -568,7 +572,7 @@ class ABT_Data {
 	 * Rating summary for published testimonials. Computed with one grouped
 	 * query so it stays fast with tens of thousands of reviews, then cached.
 	 *
-	 * @param array $args collection, product_id, subject.
+	 * @param array $args Collection, product, subject, IDs, rating, minimum rating, featured and verified filters.
 	 * @return array{count: int, rated: int, average: float, breakdown: array<int,int>}
 	 */
 	public function stats( array $args ) {
@@ -578,7 +582,14 @@ class ABT_Data {
 		$product_id  = absint( $args['product_id'] ?? 0 );
 		$subject     = (string) ( $args['subject'] ?? '' );
 
-		$key    = 'abt_stats_' . md5( wp_json_encode( array( $collections, $product_id, $subject, get_option( ABT_CACHE_OPTION, 1 ) ) ) );
+		$rating     = max( 0, (int) ( $args['rating'] ?? 0 ) );
+		$min_rating = max( 0, (int) ( $args['min_rating'] ?? 0 ) );
+		$featured   = ! empty( $args['featured'] );
+		$verified   = ! empty( $args['verified'] );
+		$ids        = array_map( 'absint', (array) ( $args['ids'] ?? array() ) );
+		sort( $ids );
+
+		$key    = 'abt_stats_' . md5( wp_json_encode( array( $collections, $product_id, $subject, $rating, $min_rating, $featured, $verified, $ids, get_option( ABT_CACHE_OPTION, 1 ) ) ) );
 		$cached = get_transient( $key );
 		if ( is_array( $cached ) ) {
 			return $cached;
@@ -609,13 +620,31 @@ class ABT_Data {
 			$params[] = self::META['subject'];
 			$params[] = $subject;
 		}
+		foreach ( array( 'featured' => $featured, 'verified' => $verified ) as $field => $enabled ) {
+			if ( $enabled ) {
+				$alias = 'p_' . $field;
+				$joins .= " INNER JOIN {$wpdb->postmeta} {$alias} ON {$alias}.post_id = p.ID AND {$alias}.meta_key = %s AND {$alias}.meta_value = '1'";
+				$params[] = self::META[ $field ];
+			}
+		}
 		$params[] = self::POST_TYPE;
+		$where = '';
+		if ( $rating > 0 ) {
+			$where .= ' AND CAST(pm.meta_value AS UNSIGNED) = %d';
+			$params[] = $rating;
+		} elseif ( $min_rating > 0 ) {
+			$where .= ' AND CAST(pm.meta_value AS UNSIGNED) >= %d';
+			$params[] = $min_rating;
+		}
+		if ( $ids ) {
+			$where .= ' AND p.ID IN (' . implode( ',', $ids ) . ')';
+		}
 
 		// Integer IDs are cast above; every other value is a placeholder.
 		$sql  = "SELECT CAST(pm.meta_value AS UNSIGNED) AS rating, COUNT(DISTINCT p.ID) AS n FROM {$wpdb->posts} p
 			LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key = %s
 			{$joins}
-			WHERE p.post_type = %s AND p.post_status = 'publish'
+			WHERE p.post_type = %s AND p.post_status = 'publish' {$where}
 			GROUP BY rating";
 		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Cached in a versioned transient; dynamic parts are cast integers and core table names.
 

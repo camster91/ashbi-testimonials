@@ -23,6 +23,7 @@ function abt_assert( $condition, $message ) {
 /** Rebuild the singleton so it re-reads settings, as it would on the next request. */
 function abt_reload_woocommerce() {
 	remove_all_filters( 'woocommerce_product_tabs' );
+	remove_filter( 'woocommerce_structured_data_product', array( ABT_WooCommerce::instance(), 'schema' ), 20 );
 	$prop = new ReflectionProperty( 'ABT_WooCommerce', 'instance' );
 	$prop->setAccessible( true );
 	$prop->setValue( null, null );
@@ -97,5 +98,28 @@ ob_start();
 ABT_Render::instance()->print_schema();
 $schema = ob_get_clean();
 abt_assert( false !== strpos( $schema, '"Product"' ) && false !== strpos( $schema, 'CI Mug' ), 'product structured data names the product' );
+
+
+/* Ashbi ratings merge into the existing WooCommerce Product entity. */
+$native_schema = new WC_Structured_Data();
+$native_schema->generate_product_data( $product );
+$nodes = $native_schema->get_data();
+$node = end( $nodes );
+abt_assert( isset( $node['aggregateRating'] ) && 3 === (int) $node['aggregateRating']['reviewCount'] && 4.0 === (float) $node['aggregateRating']['ratingValue'], 'Ashbi-only product reviews are included in WooCommerce schema' );
+$product->set_rating_counts( array( 5 => 2 ) );
+$product->set_average_rating( '5' );
+$product->set_review_count( 2 );
+$product->save();
+$combined_schema = new WC_Structured_Data();
+$combined_schema->generate_product_data( $product );
+$nodes = $combined_schema->get_data();
+$node = end( $nodes );
+abt_assert( 5 === (int) $node['aggregateRating']['reviewCount'] && 4.4 === (float) $node['aggregateRating']['ratingValue'], 'native and Ashbi ratings are combined with a weighted average' );
+update_option( ABT_SETTINGS_OPTION, array( 'schema' => '0', 'woo_tab' => '1' ) );
+$disabled_schema = new WC_Structured_Data();
+$disabled_schema->generate_product_data( $product );
+$nodes = $disabled_schema->get_data();
+$node = end( $nodes );
+abt_assert( 2 === (int) $node['aggregateRating']['reviewCount'], 'schema opt-out leaves native WooCommerce ratings unchanged' );
 
 fwrite( STDOUT, 'OK: ' . $GLOBALS['abt_checks'] . " WooCommerce checks passed\n" );

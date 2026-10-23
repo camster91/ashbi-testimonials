@@ -27,9 +27,50 @@ class ABT_WooCommerce {
 	}
 
 	private function __construct() {
-		if ( class_exists( 'WooCommerce' ) && '1' === abt_settings()['woo_tab'] ) {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return;
+		}
+		add_filter( 'woocommerce_structured_data_product', array( $this, 'schema' ), 20, 2 );
+		if ( '1' === abt_settings()['woo_tab'] ) {
 			add_filter( 'woocommerce_product_tabs', array( $this, 'tab' ), 25 );
 		}
+	}
+
+	/** Add visible Ashbi product-tab ratings to WooCommerce's existing entity. */
+	public function schema( $markup, $product ) {
+		$settings = abt_settings();
+		if ( '1' !== $settings['schema'] || '1' !== $settings['woo_tab'] || ! $product instanceof WC_Product || ! is_post_publicly_viewable( $product->get_id() ) || post_password_required( $product->get_id() ) ) {
+			return $markup;
+		}
+		$stats = ABT_Data::instance()->stats( array( 'product_id' => $product->get_id() ) );
+		if ( ! $stats['rated'] ) {
+			return $markup;
+		}
+		// Use each star count rather than a rounded native average.
+		$count = $stats['rated'];
+		$sum   = 0;
+		foreach ( $stats['breakdown'] as $star => $number ) {
+			$sum += $star * $number;
+		}
+		$native_reviews = 0;
+		if ( wc_review_ratings_enabled() ) {
+			foreach ( $product->get_rating_counts() as $star => $number ) {
+				if ( (int) $star >= 1 && (int) $star <= 5 ) {
+					$count += (int) $number;
+					$sum += (int) $star * (int) $number;
+				}
+			}
+			$native_reviews = (int) $product->get_review_count();
+		}
+		$markup['aggregateRating'] = array(
+			'@type'       => 'AggregateRating',
+			'ratingValue' => round( $sum / $count, 2 ),
+			'ratingCount' => $count,
+			'reviewCount' => $native_reviews + $stats['count'],
+			'bestRating'  => 5,
+			'worstRating' => 1,
+		);
+		return $markup;
 	}
 
 	public static function active() {
