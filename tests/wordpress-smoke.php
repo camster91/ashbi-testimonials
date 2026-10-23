@@ -11,10 +11,10 @@ if ( ! defined( 'ABSPATH' ) || ! class_exists( 'ABT_Data' ) ) {
 	exit( 1 );
 }
 
-$abt_checks = 0;
+// wp eval-file runs this file inside a function, so the counter lives in $GLOBALS.
+$GLOBALS['abt_checks'] = 0;
 function abt_assert( $condition, $message ) {
-	global $abt_checks;
-	++$abt_checks;
+	++$GLOBALS['abt_checks'];
 	if ( ! $condition ) {
 		throw new RuntimeException( 'FAILED: ' . $message );
 	}
