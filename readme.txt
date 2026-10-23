@@ -57,7 +57,10 @@ Yes. It uses a signed target-bound token without a time expiry instead of a nonc
 For products and software it can add AggregateRating structured data. It never adds review markup for your own business, which search engines ignore. When the WooCommerce testimonials tab is enabled, its ratings are combined with native ratings in the existing Product schema. Whether stars appear is decided by the search engine.
 
 = What happens when I delete the plugin? =
-Deactivation keeps everything. Deleting the plugin removes all testimonials, collections and settings. Export a CSV first.
+Deactivation and deletion keep reviews, collections and settings by default, including on existing installations. An administrator can enable permanent deletion in Testimonials > Settings before deleting the plugin. This preference applies separately to each multisite site. Media Library files are kept. Export a CSV backup before enabling deletion.
+
+= How do privacy requests work? =
+Use WordPress Tools > Export Personal Data or Erase Personal Data with the email stored on the review. Published, pending, draft and trashed matching reviews are included. Erasure permanently removes entire matching reviews and their metadata. Media Library files, backups and external copies need separate review. The plugin adds suggested text to the WordPress privacy policy guide for administrators to adapt.
 
 == Changelog ==
 

@@ -450,6 +450,7 @@ class ABT_Admin {
 			'notify_email'   => isset( $_POST['notify_email'] ) ? sanitize_email( wp_unslash( $_POST['notify_email'] ) ) : '',
 			'accent'         => isset( $_POST['accent'] ) ? ( sanitize_hex_color( wp_unslash( $_POST['accent'] ) ) ?: '#2457ff' ) : '#2457ff',
 			'date_format'    => isset( $_POST['date_format'] ) ? sanitize_text_field( wp_unslash( $_POST['date_format'] ) ) : '',
+			'delete_on_uninstall' => isset( $_POST['delete_on_uninstall'] ) && '1' === $_POST['delete_on_uninstall'] ? '1' : '0',
 		);
 		// phpcs:enable
 		update_option( ABT_SETTINGS_OPTION, $settings, false );

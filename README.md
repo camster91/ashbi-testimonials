@@ -14,6 +14,16 @@ A WordPress plugin for testimonials and reviews that scales from a handful of cl
 - **CSV import/export**: the browser sends large files in batches of 100 rows. Exports include collection names, slugs and display settings; imports restore missing collections by slug and keep existing settings. A selected import collection is added alongside the restored groups.
 - **Structured data** for products and software only; optional **WooCommerce tab**. When the tab and schema are enabled, its ratings are combined with native WooCommerce ratings in the existing Product entity.
 
+## Free by design
+
+All plugin features are free under GPL-2.0-or-later. No paid edition, license key, mandatory account or forced attribution. The [professional product roadmap](tasks/plan.md) tracks the work toward broad adoption.
+
+## Privacy and retention
+
+WordPress **Tools → Export Personal Data / Erase Personal Data** includes reviews matching the request email, including unpublished and trashed reviews. Requests use the native WordPress verification workflow. Erasure permanently deletes whole matching reviews and their metadata in batches of 100. Records without a matching email need manual review. Shared Media Library files are retained and reported for separate review; backups and external copies are outside this tool. Adapt the suggested privacy policy text to the site’s actual practices.
+
+Deleting or deactivating the plugin keeps data by default, including for existing installations. Administrators may explicitly enable **Permanently delete this site’s plugin data** in Settings before deleting the plugin. Cleanup applies independently to each site on multisite and preserves Media Library files. Export a backup before enabling deletion.
+
 ## Shortcodes
 
 ```text
