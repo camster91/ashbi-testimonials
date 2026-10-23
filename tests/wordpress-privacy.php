@@ -23,6 +23,9 @@ foreach ( range( 0, 104 ) as $i ) {
 	}
 	$ids[] = $id;
 }
+// Revisions contain personal text too and must disappear with their parent.
+$revision = _wp_put_post_revision( $ids[1] );
+$check( is_int( $revision ) && $revision > 0, 'personal revision fixture created' );
 $other = $data->save( array( 'author' => 'Unrelated reviewer', 'content' => 'UNRELATED PRIVATE TEXT', 'email' => 'other@example.test', 'rating' => 1, 'collections' => array( $col['id'] ) ) );
 $unrelated = wp_insert_post( array( 'post_type' => 'post', 'post_title' => 'Unrelated post', 'post_status' => 'draft' ) );
 update_post_meta( $unrelated, '_abt_email', 'privacy@example.test' );
@@ -43,6 +46,7 @@ $check( $result['items_removed'] && $result['done'], 'second erase batch does no
 foreach ( $ids as $id ) {
 	$check( null === get_post( $id ) && array() === get_post_meta( $id ), 'review and its metadata are removed' );
 }
+$check( null === get_post( $revision ), 'personal review revisions are removed' );
 $check( get_post( $other ) && get_post( $unrelated ), 'other reviewers and post types survive' );
 $after = $data->stats( array( 'collection' => $col['id'] ) );
 $check( $before['count'] > $after['count'] && 1 === $after['count'], 'erasure invalidates published rating caches' );
@@ -57,4 +61,9 @@ $failed = call_user_func( $erase, 'blocked@example.test', 1 );
 remove_filter( 'pre_delete_post', $block, 10 );
 $check( $failed['items_retained'] && $failed['done'] && $failed['messages'] && get_post( $blocked ), 'deletion failure is explicit and cannot cause an infinite loop' );
 call_user_func( $erase, 'blocked@example.test', 2 );
+$attachment = wp_insert_attachment( array( 'post_title' => 'Shared personal media', 'post_status' => 'inherit' ) );
+$media_review = $data->save( array( 'author' => 'Media reviewer', 'email' => 'media@example.test', 'rating' => 5, 'avatar_id' => $attachment ) );
+$media_result = call_user_func( $erase, 'media@example.test', 1 );
+$check( ! get_post( $media_review ) && get_post( $attachment ) && $media_result['items_retained'] && $media_result['messages'], 'shared media is preserved and disclosed' );
+wp_delete_attachment( $attachment, true );
 fwrite( STDOUT, "OK: WordPress privacy export and erasure passed\n" );

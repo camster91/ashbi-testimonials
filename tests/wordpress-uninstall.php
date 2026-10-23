@@ -3,7 +3,7 @@
  * Uninstall test. Destructive: only for a disposable site.
  *   ABT_DISPOSABLE_TEST=1 wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-uninstall.php
  *
- * On multisite it seeds every site, runs uninstall once and checks every site is clean.
+ * Checks default retention, site-specific cleanup and complete opt-in cleanup.
  *
  * @package Ashbi_Testimonials
  */
@@ -68,8 +68,24 @@ foreach ( $sites as $site ) {
 		throw new RuntimeException( 'FAILED: default uninstall removed data on site ' . $site );
 	}
 	$settings = get_option( ABT_SETTINGS_OPTION, array() );
-	$settings['delete_on_uninstall'] = '1';
+	$settings['delete_on_uninstall'] = $site === $sites[0] ? '1' : '0';
 	update_option( ABT_SETTINGS_OPTION, $settings );
+	if ( $site ) {
+		restore_current_blog();
+	}
+}
+include ABT_PLUGIN_DIR . 'uninstall.php';
+
+// One site's opt-in must not authorize deleting another site's data.
+foreach ( $sites as $site ) {
+	if ( $site ) {
+		switch_to_blog( $site );
+	}
+	$actual = $state();
+	if ( $site === $sites[0] ? (bool) array_sum( $actual ) : ( ! $actual['posts'] || ! $actual['meta'] || ! $actual['terms'] || ! $actual['options'] ) ) {
+		throw new RuntimeException( 'FAILED: site-specific cleanup preference on site ' . $site );
+	}
+	update_option( ABT_SETTINGS_OPTION, array( 'delete_on_uninstall' => '1' ) );
 	if ( $site ) {
 		restore_current_blog();
 	}

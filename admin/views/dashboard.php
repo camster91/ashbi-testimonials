@@ -167,6 +167,10 @@ $abt_render = ABT_Render::instance();
 						</select>
 					</div>
 				<?php endif; ?>
+				<div class="abt-field abt-field--check">
+					<label><input type="checkbox" name="delete_on_uninstall" value="1" <?php checked( '1', $settings['delete_on_uninstall'] ); ?> /> <?php esc_html_e( 'Permanently delete this site’s plugin data when deleting the plugin', 'ashbi-testimonials' ); ?></label>
+					<p class="description"><?php esc_html_e( 'Off by default. Deleting the plugin will otherwise keep your reviews, collections and settings for reinstallation. When enabled, deletion removes them permanently. Export a backup first. Media Library files are kept.', 'ashbi-testimonials' ); ?></p>
+				</div>
 				<p><button type="submit" class="button button-primary"><?php esc_html_e( 'Save settings', 'ashbi-testimonials' ); ?></button></p>
 			</form>
 		<?php else : ?>

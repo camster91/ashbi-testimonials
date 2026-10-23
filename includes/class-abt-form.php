@@ -164,9 +164,6 @@ class ABT_Form {
 		if ( ! preg_match( '/^\d+:\d+$/', $target ) || ! hash_equals( $this->token( $time, $target ), $token ) ) {
 			$go( 'expired' );
 		}
-		if ( time() - $time < 3 ) {
-			$go( 'thanks' );
-		}
 
 		$ip_key = 'abt_rate_' . substr( wp_hash( (string) ( $_SERVER['REMOTE_ADDR'] ?? '' ) ), 0, 16 ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Hashed only, never stored raw.
 		$sent   = (int) get_transient( $ip_key );

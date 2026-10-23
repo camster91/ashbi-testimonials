@@ -1,6 +1,6 @@
 <?php
 /**
- * Fired when the plugin is deleted. Removes testimonials, collections and settings.
+ * Fired when the plugin is deleted. Cleanup requires each site's explicit opt-in.
  *
  * @package Ashbi_Testimonials
  */
@@ -15,6 +15,10 @@ if ( ! current_user_can( 'activate_plugins' ) ) {
 
 $abt_cleanup_site = static function () {
 	global $wpdb;
+	$abt_settings = get_option( 'abt_settings', array() );
+	if ( ! is_array( $abt_settings ) || '1' !== ( $abt_settings['delete_on_uninstall'] ?? '0' ) ) {
+		return;
+	}
 
 	// Posts with their meta, revisions and term relationships.
 	$abt_ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time uninstall enumeration.
