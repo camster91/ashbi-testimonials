@@ -1,0 +1,7 @@
+# display: native editing surfaces
+
+Implements T12/T13/T19 using the existing six-layout visual system and native WordPress/Elementor controls. Add server-rendered Testimonials, Rating Summary and Review Form blocks, plus a free Elementor widget switching among the same three renderers. Keep shortcodes compatible and reuse their sanitized model. No build/runtime dependency or paid Elementor requirement.
+
+Controls: collection (chooser for managers, slug input for other authors), optional product/current context, layout, columns, theme, accent, review limit, summary, load-more. Empty configuration has an instructional editor state and renders nothing publicly. Previews cannot submit live reviews. Native controls retain keyboard labels/focus; use the current frontend responsive layout rules. No assets enqueue on unrelated pages, and missing Elementor is harmless.
+
+Tests: blocks register on WordPress 6.6/latest; render matches canonical shortcode HTML; empty selection is empty, context product resolves, form always pending, private metadata is absent. Elementor registration/render is tested with the real free plugin. Editor JS syntax and shared model tests run in CI; browser flows must cover 375/768/1440 widths, keyboard operation, forms and existing moderation/import/export. Use standard controls rather than a separate proprietary design framework. Existing design-system approval is not represented as a new Figma approval.

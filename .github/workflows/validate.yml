@@ -70,6 +70,8 @@ jobs:
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-review-regressions.php
       - name: Deeper review regressions
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-deeper-review.php
+      - name: Native editor rendering
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-editors.php
       - name: Review schema eligibility
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-schema-eligibility.php
       - name: Public form validation and retries
