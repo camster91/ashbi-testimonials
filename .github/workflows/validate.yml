@@ -149,3 +149,25 @@ jobs:
         run: |
           wp-env run cli sh -c 'touch wp-content/debug.log; cat wp-content/debug.log' > debug.log
           if grep -iE 'ashbi-testimonials|abt_' debug.log; then echo 'Plugin logged PHP notices'; exit 1; fi
+
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save --ignore-scripts @wordpress/env playwright@1.61.0 @axe-core/playwright@4.14.0
+      - run: npx playwright install --with-deps chromium
+      - name: Start disposable browser fixture
+        run: |
+          echo '{"phpVersion":"8.3","testsEnvironment":false,"plugins":["."]}' > .wp-env.json
+          npx wp-env start
+          npx wp-env run cli env ABT_DISPOSABLE_TEST=1 wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-browser-fixture.php > browser-fixture.log
+      - name: Responsive and accessibility browser flows
+        run: node tests/browser-flows.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-screenshots
+          path: browser-results/

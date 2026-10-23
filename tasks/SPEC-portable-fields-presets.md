@@ -1,0 +1,7 @@
+# review-core / display: portable fields and presets
+
+Continue T16/T17. Custom collection fields are bounded definitions in term metadata; each has a stable slug, label, type (text, textarea, select, checkbox or URL), required/public flags and bounded select options. A small manager UI adds/removes fields without writing JSON. Public forms validate against the selected collection and store label/type/value/public snapshots with the review. Unknown/malformed fields are rejected; maximum 10 fields and bounded values. Public fields are clearly disclosed in consent. Private fields never enter cards. Editor changes preserve existing custom values. Privacy export and erasure include every stored value, and CSV restores data and collection definitions without executable content.
+
+Presets are site-local settings: name plus allowlisted layout, columns, theme and accent. Administrators can save/delete/export/import the preset set, and block/Elementor/shortcode renderers select a preset by slug. JSON transfer is versioned and size-limited; unknown versions/fields fail safely, no arbitrary CSS/HTML/PHP or secret/email settings are imported. Existing shortcodes, collection layouts and data remain compatible. Prefer native controls and the existing design system.
+
+Tests: required/select/type/length validation, stored-XSS boundaries, public/private separation, custom fields privacy/CSV round trip, preset cross-site round trip, unknown version handling and malicious import fields. No external account, licence, payment or forced attribution.
