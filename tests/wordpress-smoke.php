@@ -144,4 +144,4 @@ wp_set_current_user( $admins[0]->ID );
 $data->delete_collection( $bad['id'] );
 abt_assert( null === $data->find_collection( $bad['id'] ), 'collection deletes' );
 
-fwrite( STDOUT, "OK: {$abt_checks} checks passed\n" );
+fwrite( STDOUT, 'OK: ' . $GLOBALS['abt_checks'] . " checks passed\n" );
