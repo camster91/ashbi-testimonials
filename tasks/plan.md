@@ -14,7 +14,7 @@ The ambition is broad adoption. Millions of installations remains an adoption go
 
 - Repository: https://github.com/camster91/ashbi-testimonials
 - Main at inspection: `af84ef7f8cde07d7d37baeb5a246687e9c64bf8b`; the four first-review fixes are merged.
-- PR #3 contains six additional fixes and regression coverage. It remains open, with all six CI jobs passed on `b3a2157ce5b6dd50792cf243fa61da03180919ec`: https://github.com/camster91/ashbi-testimonials/pull/3
+- PR #3 (six deeper-review fixes) and PR #4 (privacy/retention foundation) were merged with Cameron’s approval on 23 October 2026. All six CI jobs passed on each reviewed head. Main after both merges: `4f6a096209213e6bf69effb9498c427eca331a87`.
 - Published release remains v1.0.0. Merged changes and the PR do not replace that download automatically.
 - Existing functionality: collections; six layouts; shortcodes; public moderated forms; CSV import/export; rating summaries; optional WooCommerce tab; product/software structured data.
 - Existing storage: a private custom post type, collection taxonomy and post metadata. PHP minimum is currently 8.2; WordPress minimum is 6.6.

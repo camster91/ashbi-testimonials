@@ -4,14 +4,14 @@ Draft, 23 October 2026. No GitHub issues have been created from this list. Camer
 
 ## Current implementation
 
-[PR #4](https://github.com/camster91/ashbi-testimonials/pull/4), stacked on #3, implements the first trust slice specified in `SPEC-trust-controls.md`:
+[PR #4](https://github.com/camster91/ashbi-testimonials/pull/4) and its prerequisite #3 are merged into main after passing all six CI jobs. They implement the first trust slice specified in `SPEC-trust-controls.md`:
 
 - T03: native email-scoped personal data export, including historical revisions and all review states.
 - T04: bounded permanent review erasure, retry/failure handling, cache invalidation and shared-media disclosure.
 - T05: default retention and explicit per-site cleanup, including mixed multisite preferences.
 - T07: fixes silent loss of valid immediate submissions. Remaining hostile-input, concurrency, retry and browser recovery work is still open.
 
-The PR carries verification results and review status. This work is not part of the published v1.0.0 download until a subsequent release is approved and published. The broader roadmap remains unfinished; passing integration tests does not establish million-site readiness.
+The PRs carry verification results and review status. PR #5 continues T06 with management/nonce regression coverage and private-page picker permissions. This work is not part of the published v1.0.0 download until a subsequent release is approved and published. The broader roadmap remains unfinished; passing integration tests does not establish million-site readiness.
 
 ## Shared verification
 

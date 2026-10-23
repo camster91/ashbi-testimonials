@@ -9,7 +9,7 @@ if ( ! defined( 'DOING_AJAX' ) ) {
 class ABT_Permissions_Response extends RuntimeException {}
 $die_handler = static function () {
 	return static function ( $message = '' ) {
-		throw new ABT_Permissions_Response( (string) $message );
+		throw new ABT_Permissions_Response( is_wp_error( $message ) ? $message->get_error_message() : (string) $message );
 	};
 };
 add_filter( 'wp_die_ajax_handler', $die_handler );
