@@ -16,12 +16,12 @@ wp_set_current_user( $admins[0]->ID );
 $collection = $data->save_collection( array( 'name' => 'Review regressions', 'type' => 'product' ) );
 $review = $data->save( array( 'author' => 'Alice Example', 'content' => 'A helpful product.', 'rating' => 5, 'collections' => array( $collection['id'] ) ) );
 
-// Render an avatar with mb_strtoupper disabled in this PHP process.
+// Avatar initials continue to render in WordPress.
 try {
 	$html = do_shortcode( '[ashbi_testimonials ids="' . $review . '"]' );
-	$check( false !== strpos( $html, '>AE</span>' ), 'initials render without mb_strtoupper' );
+	$check( false !== strpos( $html, '>AE</span>' ), 'initials render in WordPress' );
 } catch ( Throwable $error ) {
-	$failures[] = 'initials render without mb_strtoupper: ' . $error->getMessage();
+	$failures[] = 'initials render in WordPress: ' . $error->getMessage();
 }
 
 foreach ( array( 'draft', 'private', 'password', 'publish' ) as $visibility ) {
@@ -58,7 +58,7 @@ $old_server = $_SERVER;
 $old_settings = get_option( ABT_SETTINGS_OPTION );
 update_option( ABT_SETTINGS_OPTION, array( 'notify_email' => '' ) );
 wp_set_current_user( 0 );
-add_filter( 'wp_redirect', $redirect );
+add_filter( 'wp_redirect', $redirect, 1 );
 $rate_key = 'abt_rate_' . substr( wp_hash( '192.0.2.123' ), 0, 16 );
 delete_transient( $rate_key );
 try {
@@ -80,7 +80,7 @@ try {
 	$check( 1 === $data->query( array( 'search' => 'Cached form reviewer', 'status' => 'pending' ) )['total'], 'cached submission is saved once and held for moderation' );
 	$check( 0 === $data->query( array( 'search' => 'Cached form reviewer' ) )['total'], 'cached submission is never auto-published' );
 } finally {
-	remove_filter( 'wp_redirect', $redirect );
+	remove_filter( 'wp_redirect', $redirect, 1 );
 	$_POST = $old_post;
 	$_SERVER = $old_server;
 	update_option( ABT_SETTINGS_OPTION, $old_settings );

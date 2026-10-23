@@ -20,6 +20,8 @@ jobs:
           tools: none
       - name: PHP syntax
         run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+      - name: Avatar without mbstring uppercase support
+        run: php -d disable_functions=mb_strtoupper tests/avatar-without-mbstring.php
       - name: JavaScript syntax
         run: node --check assets/js/admin.js && node --check assets/js/frontend.js
       - name: Package
@@ -62,8 +64,8 @@ jobs:
           wp-env run cli wp core version
       - name: Database smoke test
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-smoke.php
-      - name: Release review regressions without mb_strtoupper
-        run: wp-env run cli php -d disable_functions=mb_strtoupper /usr/local/bin/wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-review-regressions.php
+      - name: Release review regressions
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-review-regressions.php
       - name: Uninstall test
         run: wp-env run cli env ABT_DISPOSABLE_TEST=1 wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-uninstall.php
       - name: No PHP notices from the plugin
