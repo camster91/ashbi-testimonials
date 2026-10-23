@@ -70,6 +70,8 @@ jobs:
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-review-regressions.php
       - name: Deeper review regressions
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-deeper-review.php
+      - name: Public form validation and retries
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-form-safety.php
       - name: Management permissions and public data boundaries
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-permissions.php
       - name: WordPress privacy export and erasure
