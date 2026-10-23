@@ -68,6 +68,27 @@ jobs:
         run: |
           wp-env run cli sh -c 'touch wp-content/debug.log; cat wp-content/debug.log' > debug.log
           if grep -iE 'ashbi-testimonials|abt_' debug.log; then echo 'Plugin logged PHP notices'; exit 1; fi
+  woocommerce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install -g @wordpress/env
+      - name: Start disposable WordPress with WooCommerce and PHP 8.3
+        run: |
+          echo '{"phpVersion":"8.3","testsEnvironment":false,"plugins":["."],"config":{"WP_DEBUG":true,"WP_DEBUG_LOG":"/var/www/html/wp-content/debug.log","WP_DEBUG_DISPLAY":false}}' > .wp-env.json
+          wp-env start
+          wp-env run cli wp plugin install woocommerce --activate
+          wp-env run cli wp plugin activate ashbi-testimonials
+          wp-env run cli wp plugin list --status=active
+      - name: WooCommerce product tab test
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-woocommerce.php
+      - name: No PHP notices from the plugin
+        run: |
+          wp-env run cli sh -c 'touch wp-content/debug.log; cat wp-content/debug.log' > debug.log
+          if grep -iE 'ashbi-testimonials|abt_' debug.log; then echo 'Plugin logged PHP notices'; exit 1; fi
   multisite-uninstall:
     runs-on: ubuntu-latest
     steps:
