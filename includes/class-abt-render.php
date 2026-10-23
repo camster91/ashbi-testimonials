@@ -100,7 +100,8 @@ class ABT_Render {
 		$words    = preg_split( '/\s+/u', trim( (string) $item['author'] ) );
 		$initials = '';
 		foreach ( array_slice( array_filter( (array) $words ), 0, 2 ) as $word ) {
-			$initials .= mb_strtoupper( mb_substr( $word, 0, 1 ) );
+			$initial   = mb_substr( $word, 0, 1 );
+			$initials .= function_exists( 'mb_strtoupper' ) ? mb_strtoupper( $initial ) : strtoupper( $initial );
 		}
 		$hue = hexdec( substr( md5( (string) $item['author'] ), 0, 2 ) ) * 360 / 255;
 		return sprintf( '<span class="abt-avatar abt-avatar--initials" style="--abt-hue:%d" aria-hidden="true">%s</span>', (int) $hue, esc_html( $initials ?: '?' ) );
@@ -361,3 +362,4 @@ class ABT_Render {
 		}
 	}
 }
+

@@ -36,8 +36,9 @@ class ABT_Form {
 	}
 
 	/**
-	 * Signed render token. Works on cached pages (unlike a nonce for logged-out
-	 * visitors) and lets the handler reject instant bot submissions.
+	 * Signed render token, bound to the collection and product. It has no time
+	 * expiry because page caches may retain forms indefinitely. It is public
+	 * proof of form provenance, not permission to publish or edit a review.
 	 */
 	private function token( $time, $target ) {
 		return $time . '.' . substr( wp_hash( 'abt_form|' . $time . '|' . $target ), 0, 20 );
@@ -143,7 +144,7 @@ class ABT_Form {
 
 	/** Process a submission and redirect back to the form. */
 	public function handle() {
-		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Anonymous form verified by a signed, time-limited token below.
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Anonymous form verified by a signed target-bound token below.
 		$form_id = isset( $_POST['abt_form'] ) ? sanitize_key( wp_unslash( $_POST['abt_form'] ) ) : '';
 		$back    = wp_get_referer() ?: home_url( '/' );
 		$back    = remove_query_arg( array( 'abt_status', 'abt_form' ), $back );
@@ -160,7 +161,7 @@ class ABT_Form {
 		$target = isset( $_POST['abt_target'] ) ? sanitize_text_field( wp_unslash( $_POST['abt_target'] ) ) : '';
 		$token  = isset( $_POST['abt_token'] ) ? sanitize_text_field( wp_unslash( $_POST['abt_token'] ) ) : '';
 		$time   = (int) strtok( $token, '.' );
-		if ( ! preg_match( '/^\d+:\d+$/', $target ) || ! hash_equals( $this->token( $time, $target ), $token ) || time() - $time > 2 * DAY_IN_SECONDS ) {
+		if ( ! preg_match( '/^\d+:\d+$/', $target ) || ! hash_equals( $this->token( $time, $target ), $token ) ) {
 			$go( 'expired' );
 		}
 		if ( time() - $time < 3 ) {
@@ -219,3 +220,4 @@ class ABT_Form {
 		$go( 'thanks' );
 	}
 }
+

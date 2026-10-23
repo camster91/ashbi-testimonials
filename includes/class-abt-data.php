@@ -442,7 +442,8 @@ class ABT_Data {
 
 		$item['product_title'] = '';
 		$item['product_url']   = '';
-		if ( $item['product_id'] && get_post_status( $item['product_id'] ) ) {
+		if ( $item['product_id'] && get_post_status( $item['product_id'] ) &&
+			( ( is_post_publicly_viewable( $item['product_id'] ) && ! post_password_required( $item['product_id'] ) ) || current_user_can( 'edit_post', $item['product_id'] ) ) ) {
 			$item['product_title'] = get_the_title( $item['product_id'] );
 			$item['product_url']   = (string) get_permalink( $item['product_id'] );
 		}
@@ -641,3 +642,4 @@ class ABT_Data {
 		return $result;
 	}
 }
+
