@@ -58,6 +58,24 @@ foreach ( $sites as $site ) {
 define( 'WP_UNINSTALL_PLUGIN', 'ashbi-testimonials/ashbi-testimonials.php' );
 include ABT_PLUGIN_DIR . 'uninstall.php';
 
+// Existing sites without a deletion preference must retain all plugin data.
+foreach ( $sites as $site ) {
+	if ( $site ) {
+		switch_to_blog( $site );
+	}
+	$kept = $state();
+	if ( ! $kept['posts'] || ! $kept['meta'] || ! $kept['terms'] || ! $kept['options'] ) {
+		throw new RuntimeException( 'FAILED: default uninstall removed data on site ' . $site );
+	}
+	$settings = get_option( ABT_SETTINGS_OPTION, array() );
+	$settings['delete_on_uninstall'] = '1';
+	update_option( ABT_SETTINGS_OPTION, $settings );
+	if ( $site ) {
+		restore_current_blog();
+	}
+}
+include ABT_PLUGIN_DIR . 'uninstall.php';
+
 foreach ( $sites as $site ) {
 	if ( $site ) {
 		switch_to_blog( $site );
@@ -73,4 +91,4 @@ foreach ( $sites as $site ) {
 	}
 }
 
-fwrite( STDOUT, 'OK: uninstall removed everything on ' . count( $sites ) . " site(s)\n" );
+fwrite( STDOUT, 'OK: uninstall retained by default and explicitly removed data on ' . count( $sites ) . " site(s)\n" );

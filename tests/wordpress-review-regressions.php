@@ -79,6 +79,17 @@ try {
 	}
 	$check( 1 === $data->query( array( 'search' => 'Cached form reviewer', 'status' => 'pending' ) )['total'], 'cached submission is saved once and held for moderation' );
 	$check( 0 === $data->query( array( 'search' => 'Cached form reviewer' ) )['total'], 'cached submission is never auto-published' );
+	$time = time();
+	$_POST['abt_target'] = $target;
+	$_POST['abt_token'] = $time . '.' . substr( wp_hash( 'abt_form|' . $time . '|' . $target ), 0, 20 );
+	$_POST['author'] = 'Fast form reviewer';
+	try {
+		ABT_Form::instance()->handle();
+	} catch ( ABT_Regression_Redirect $result ) {
+		$check( false !== strpos( $result->getMessage(), 'abt_status=thanks' ), 'valid fast form submission is accepted' );
+	}
+	$check( 1 === $data->query( array( 'search' => 'Fast form reviewer', 'status' => 'pending' ) )['total'], 'a success notice for a fast submission requires a saved pending review' );
+
 } finally {
 	remove_filter( 'wp_redirect', $redirect, 1 );
 	$_POST = $old_post;

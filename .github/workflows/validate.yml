@@ -70,6 +70,8 @@ jobs:
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-review-regressions.php
       - name: Deeper review regressions
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-deeper-review.php
+      - name: WordPress privacy export and erasure
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-privacy.php
       - name: Uninstall test
         run: wp-env run cli env ABT_DISPOSABLE_TEST=1 wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-uninstall.php
       - name: No PHP notices from the plugin

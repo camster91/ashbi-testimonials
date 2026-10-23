@@ -1,0 +1,60 @@
+<?php
+/** Native privacy integration tests. Run on disposable WordPress with wp eval-file. */
+if ( ! defined( 'ABSPATH' ) || ! class_exists( 'ABT_Data' ) ) {
+	exit( 1 );
+}
+$exporters = apply_filters( 'wp_privacy_personal_data_exporters', array() );
+$erasers = apply_filters( 'wp_privacy_personal_data_erasers', array() );
+$check = static function ( $condition, $message ) {
+	if ( ! $condition ) {
+		throw new RuntimeException( 'Privacy: ' . $message );
+	}
+};
+$check( isset( $exporters['ashbi-testimonials'], $erasers['ashbi-testimonials'] ), 'exporter and eraser are registered' );
+$export = $exporters['ashbi-testimonials']['callback'];
+$erase = $erasers['ashbi-testimonials']['callback'];
+$data = ABT_Data::instance();
+$col = $data->save_collection( array( 'name' => 'Privacy fixtures' ) );
+$ids = array();
+foreach ( range( 0, 104 ) as $i ) {
+	$id = $data->save( array( 'author' => 'Private Reviewer ' . $i, 'content' => 'Personal text ' . $i, 'email' => 'privacy@example.test', 'company' => 'Personal company', 'rating' => 4, 'status' => array( 'publish', 'pending', 'draft' )[ $i % 3 ], 'collections' => array( $col['id'] ) ) );
+	if ( 0 === $i % 7 ) {
+		wp_trash_post( $id );
+	}
+	$ids[] = $id;
+}
+$other = $data->save( array( 'author' => 'Unrelated reviewer', 'content' => 'UNRELATED PRIVATE TEXT', 'email' => 'other@example.test', 'rating' => 1, 'collections' => array( $col['id'] ) ) );
+$unrelated = wp_insert_post( array( 'post_type' => 'post', 'post_title' => 'Unrelated post', 'post_status' => 'draft' ) );
+update_post_meta( $unrelated, '_abt_email', 'privacy@example.test' );
+$first = call_user_func( $export, 'privacy@example.test', 1 );
+$second = call_user_func( $export, 'privacy@example.test', 2 );
+$check( 100 === count( $first['data'] ) && ! $first['done'] && 5 === count( $second['data'] ) && $second['done'], 'exports paginate through all review states' );
+$all = array_merge( $first['data'], $second['data'] );
+$check( 105 === count( array_unique( array_column( $all, 'item_id' ) ) ), 'export pages have no duplicates or missing items' );
+$json = wp_json_encode( $all );
+$check( false !== strpos( $json, 'Personal company' ) && false !== strpos( $json, 'Personal text' ) && false === strpos( $json, 'UNRELATED PRIVATE TEXT' ), 'export includes personal fields and isolates reviewers' );
+$check( array() === call_user_func( $export, '', 1 )['data'], 'empty email never exports unassigned reviews' );
+$check( call_user_func( $erase, 'invalid-email', 1 )['done'] && get_post( $ids[0] ), 'invalid email cannot erase reviews' );
+$before = $data->stats( array( 'collection' => $col['id'] ) );
+$result = call_user_func( $erase, 'privacy@example.test', 1 );
+$check( $result['items_removed'] && ! $result['done'], 'first erase batch is bounded' );
+$result = call_user_func( $erase, 'privacy@example.test', 2 );
+$check( $result['items_removed'] && $result['done'], 'second erase batch does not skip records after deletion' );
+foreach ( $ids as $id ) {
+	$check( null === get_post( $id ) && array() === get_post_meta( $id ), 'review and its metadata are removed' );
+}
+$check( get_post( $other ) && get_post( $unrelated ), 'other reviewers and post types survive' );
+$after = $data->stats( array( 'collection' => $col['id'] ) );
+$check( $before['count'] > $after['count'] && 1 === $after['count'], 'erasure invalidates published rating caches' );
+$repeat = call_user_func( $erase, 'privacy@example.test', 3 );
+$check( ! $repeat['items_removed'] && $repeat['done'], 'erasure retries are idempotent' );
+$blocked = $data->save( array( 'author' => 'Blocked', 'email' => 'blocked@example.test', 'rating' => 3 ) );
+$block = static function ( $delete, $post ) use ( $blocked ) {
+	return $post->ID === $blocked ? false : $delete;
+};
+add_filter( 'pre_delete_post', $block, 10, 2 );
+$failed = call_user_func( $erase, 'blocked@example.test', 1 );
+remove_filter( 'pre_delete_post', $block, 10 );
+$check( $failed['items_retained'] && $failed['done'] && $failed['messages'] && get_post( $blocked ), 'deletion failure is explicit and cannot cause an infinite loop' );
+call_user_func( $erase, 'blocked@example.test', 2 );
+fwrite( STDOUT, "OK: WordPress privacy export and erasure passed\n" );
