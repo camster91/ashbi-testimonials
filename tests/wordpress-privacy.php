@@ -91,4 +91,6 @@ $media_review = $data->save( array( 'author' => 'Media reviewer', 'email' => 'me
 $media_result = call_user_func( $erase, 'media@example.test', 1 );
 $check( ! get_post( $media_review ) && get_post( $attachment ) && $media_result['items_retained'] && $media_result['messages'], 'shared media is preserved and disclosed' );
 wp_delete_attachment( $attachment, true );
+// This deliberately foreign _abt_email fixture must not pollute later uninstall counts.
+wp_delete_post( $unrelated, true );
 fwrite( STDOUT, "OK: WordPress privacy export and erasure passed\n" );
