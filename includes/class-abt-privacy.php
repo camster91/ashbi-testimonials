@@ -93,6 +93,13 @@ class ABT_Privacy {
 					$data[] = array( 'name' => $label, 'value' => (string) $value );
 				}
 			}
+			// Historical author/text values are personal data too.
+			foreach ( wp_get_post_revisions( $id ) as $revision ) {
+				$data[] = array(
+					'name' => __( 'Review revision', 'ashbi-testimonials' ),
+					'value' => $revision->post_date . "\n" . $revision->post_title . "\n" . $revision->post_content,
+				);
+			}
 			$terms = wp_get_object_terms( $id, ABT_Data::TAXONOMY, array( 'fields' => 'names' ) );
 			if ( ! is_wp_error( $terms ) && $terms ) {
 				$data[] = array( 'name' => __( 'Collections', 'ashbi-testimonials' ), 'value' => implode( ', ', $terms ) );

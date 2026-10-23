@@ -14,6 +14,24 @@ $check( isset( $exporters['ashbi-testimonials'], $erasers['ashbi-testimonials'] 
 $export = $exporters['ashbi-testimonials']['callback'];
 $erase = $erasers['ashbi-testimonials']['callback'];
 $data = ABT_Data::instance();
+$other_site = 0;
+$other_site_review = 0;
+if ( is_multisite() ) {
+	$current_site = get_current_blog_id();
+	foreach ( get_sites( array( 'fields' => 'ids' ) ) as $site_id ) {
+		if ( (int) $site_id !== $current_site ) {
+			$other_site = (int) $site_id;
+			break;
+		}
+	}
+	if ( ! $other_site ) {
+		$other_site = wpmu_create_blog( wp_parse_url( home_url(), PHP_URL_HOST ), '/privacy-sibling/', 'Privacy sibling', 1 );
+	}
+	$check( is_numeric( $other_site ) && $other_site > 0, 'sibling site fixture created' );
+	switch_to_blog( $other_site );
+	$other_site_review = $data->save( array( 'author' => 'SIBLING PRIVATE REVIEWER', 'content' => 'SIBLING PRIVATE TEXT', 'email' => 'privacy@example.test', 'rating' => 5 ) );
+	restore_current_blog();
+}
 $col = $data->save_collection( array( 'name' => 'Privacy fixtures' ) );
 $ids = array();
 foreach ( range( 0, 104 ) as $i ) {
@@ -26,6 +44,7 @@ foreach ( range( 0, 104 ) as $i ) {
 // Revisions contain personal text too and must disappear with their parent.
 $revision = _wp_put_post_revision( $ids[1] );
 $check( is_int( $revision ) && $revision > 0, 'personal revision fixture created' );
+wp_update_post( array( 'ID' => $revision, 'post_content' => 'Historical personal review text' ) );
 $other = $data->save( array( 'author' => 'Unrelated reviewer', 'content' => 'UNRELATED PRIVATE TEXT', 'email' => 'other@example.test', 'rating' => 1, 'collections' => array( $col['id'] ) ) );
 $unrelated = wp_insert_post( array( 'post_type' => 'post', 'post_title' => 'Unrelated post', 'post_status' => 'draft' ) );
 update_post_meta( $unrelated, '_abt_email', 'privacy@example.test' );
@@ -35,7 +54,7 @@ $check( 100 === count( $first['data'] ) && ! $first['done'] && 5 === count( $sec
 $all = array_merge( $first['data'], $second['data'] );
 $check( 105 === count( array_unique( array_column( $all, 'item_id' ) ) ), 'export pages have no duplicates or missing items' );
 $json = wp_json_encode( $all );
-$check( false !== strpos( $json, 'Personal company' ) && false !== strpos( $json, 'Personal text' ) && false === strpos( $json, 'UNRELATED PRIVATE TEXT' ), 'export includes personal fields and isolates reviewers' );
+$check( false !== strpos( $json, 'Historical personal review text' ) && false !== strpos( $json, 'Personal company' ) && false !== strpos( $json, 'Personal text' ) && false === strpos( $json, 'UNRELATED PRIVATE TEXT' ) && false === strpos( $json, 'SIBLING PRIVATE TEXT' ), 'export includes personal fields and isolates reviewers' );
 $check( array() === call_user_func( $export, '', 1 )['data'], 'empty email never exports unassigned reviews' );
 $check( call_user_func( $erase, 'invalid-email', 1 )['done'] && get_post( $ids[0] ), 'invalid email cannot erase reviews' );
 $before = $data->stats( array( 'collection' => $col['id'] ) );
@@ -50,6 +69,12 @@ $check( null === get_post( $revision ), 'personal review revisions are removed' 
 $check( get_post( $other ) && get_post( $unrelated ), 'other reviewers and post types survive' );
 $after = $data->stats( array( 'collection' => $col['id'] ) );
 $check( $before['count'] > $after['count'] && 1 === $after['count'], 'erasure invalidates published rating caches' );
+if ( $other_site ) {
+	switch_to_blog( $other_site );
+	$check( null !== get_post( $other_site_review ), 'erasure never touches another site with the same reviewer email' );
+	wp_delete_post( $other_site_review, true );
+	restore_current_blog();
+}
 $repeat = call_user_func( $erase, 'privacy@example.test', 3 );
 $check( ! $repeat['items_removed'] && $repeat['done'], 'erasure retries are idempotent' );
 $blocked = $data->save( array( 'author' => 'Blocked', 'email' => 'blocked@example.test', 'rating' => 3 ) );

@@ -112,6 +112,8 @@ jobs:
           echo '{"phpVersion":"8.2","multisite":true,"plugins":["."]}' > .wp-env.json
           wp-env start
           wp-env run cli wp plugin activate ashbi-testimonials --network
-      - name: Verify every site is cleaned on uninstall
+      - name: Verify privacy requests stay within one site
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-privacy.php
+      - name: Verify per-site uninstall retention and cleanup
         run: wp-env run cli env ABT_DISPOSABLE_TEST=1 wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-uninstall.php
 
