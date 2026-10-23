@@ -52,6 +52,20 @@ try {
 	$check( 'limit' === $send( array( 'content' => 'Sixth new review' ) ), 'sixth new review is rejected' );
 	$check( 'thanks' === $send( array() ), 'retry stays successful after rate budget is exhausted' );
 	$check( 5 === $data->query( array( 'collection' => $col['id'], 'status' => 'pending' ) )['total'], 'only five distinct reviews were stored' );
+	$ip = '192.0.2.202';
+	$lock = 'abt_submit_lock_' . substr( wp_hash( $ip ), 0, 16 );
+	add_option( $lock, ( time() + 30 ) . ':another-worker', '', false );
+	$check( 'busy' === $send( array( 'content' => 'Contended review' ), $ip ), 'contended request gives an honest retry response' );
+	delete_option( $lock );
+	add_option( $lock, ( time() - 60 ) . ':expired-worker', '', false );
+	$check( 'thanks' === $send( array( 'content' => 'Recovered review' ), $ip ), 'expired lease recovers' );
+	$check( false === get_option( $lock ), 'lease is removed after saving' );
+	$block_save = static fn() => true;
+	add_filter( 'wp_insert_post_empty_content', $block_save );
+	$check( 'error' === $send( array( 'content' => 'Temporarily failed review' ), $ip ), 'save failure is reported without success' );
+	remove_filter( 'wp_insert_post_empty_content', $block_save );
+	$check( false === get_option( $lock ), 'save failure releases its lease' );
+	$check( 'thanks' === $send( array( 'content' => 'Temporarily failed review' ), $ip ), 'failed save can be retried successfully' );
 } finally {
 	remove_filter( 'wp_redirect', $redirect, 1 );
 	update_option( ABT_SETTINGS_OPTION, $old_settings );

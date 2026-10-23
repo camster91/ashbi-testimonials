@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ABT_Form {
 
 	const MAX_PER_HOUR = 5;
+	const FIELD_LIMITS = array( 'author' => 120, 'email' => 190, 'role' => 120, 'company' => 120, 'location' => 120, 'headline' => 160, 'content' => 5000, 'rating' => 1, 'consent' => 1, 'abt_form' => 100, 'abt_target' => 40, 'abt_token' => 128, 'abt_website' => 200 );
 
 	/**
 	 * @var ABT_Form|null
@@ -137,21 +138,86 @@ class ABT_Form {
 			'invalid' => __( 'Please fill in your name, email and review, and accept the consent box.', 'ashbi-testimonials' ),
 			'expired' => __( 'The form expired. Please reload the page and try again.', 'ashbi-testimonials' ),
 			'limit'   => __( 'Too many reviews were sent from your connection. Please try again later.', 'ashbi-testimonials' ),
+			'busy'    => __( 'Another review is being processed from your connection. Please try again in a moment.', 'ashbi-testimonials' ),
 			'error'   => __( 'Your review could not be saved. Please try again.', 'ashbi-testimonials' ),
 		);
 		return $messages[ $code ] ?? $messages['error'];
 	}
 
+	/** Remove only our own lease, including when another worker has replaced an expired lease. */
+	private function release( $key, $owner ) {
+		global $wpdb;
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name = %s AND option_value = %s", $key, $owner ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Atomic compare-and-delete for a cross-worker lease.
+		wp_cache_delete( $key, 'options' );
+		wp_cache_delete( 'notoptions', 'options' );
+	}
+
+	/** Serialize rate check, exact retries and save across PHP workers using a unique option key. */
+	private function persist( array $fields, $ip_key ) {
+		$key = 'abt_submit_lock_' . substr( $ip_key, -16 );
+		$owner = ( time() + 30 ) . ':' . wp_generate_uuid4();
+		$acquired = add_option( $key, $owner, '', false );
+		if ( ! $acquired ) {
+			$previous = get_option( $key );
+			if ( is_string( $previous ) && (int) $previous < time() ) {
+				$this->release( $key, $previous );
+				$acquired = add_option( $key, $owner, '', false );
+			}
+		}
+		if ( ! $acquired ) {
+			return new WP_Error( 'busy' );
+		}
+		try {
+			$retry_key = 'abt_retry_' . wp_hash( $ip_key . wp_json_encode( $fields ) );
+			$existing = (int) get_transient( $retry_key );
+			if ( $existing && ABT_Data::POST_TYPE === get_post_type( $existing ) ) {
+				return array( 'id' => $existing, 'duplicate' => true );
+			}
+			// Transients may have been cached before obtaining the lease in this worker.
+			wp_cache_delete( '_transient_' . $ip_key, 'options' );
+			wp_cache_delete( 'notoptions', 'options' );
+			$sent = (int) get_transient( $ip_key );
+			if ( $sent >= self::MAX_PER_HOUR ) {
+				return new WP_Error( 'limit' );
+			}
+			$id = ABT_Data::instance()->save( $fields );
+			if ( is_wp_error( $id ) ) {
+				return $id;
+			}
+			set_transient( $ip_key, $sent + 1, HOUR_IN_SECONDS );
+			set_transient( $retry_key, $id, HOUR_IN_SECONDS );
+			return array( 'id' => $id, 'duplicate' => false );
+		} finally {
+			$this->release( $key, $owner );
+		}
+	}
+
 	/** Process a submission and redirect back to the form. */
 	public function handle() {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Anonymous form verified by a signed target-bound token below.
-		$form_id = isset( $_POST['abt_form'] ) ? sanitize_key( wp_unslash( $_POST['abt_form'] ) ) : '';
+		$form_id = isset( $_POST['abt_form'] ) && is_string( $_POST['abt_form'] ) ? sanitize_key( wp_unslash( $_POST['abt_form'] ) ) : '';
 		$back    = wp_get_referer() ?: home_url( '/' );
 		$back    = remove_query_arg( array( 'abt_status', 'abt_form' ), $back );
 		$go      = static function ( $status ) use ( $back, $form_id ) {
 			wp_safe_redirect( add_query_arg( array( 'abt_status' => $status, 'abt_form' => $form_id ), $back ) . '#' . $form_id );
 			exit;
 		};
+
+		// Browser maxlength is advisory; validate type and character limits on the server.
+		foreach ( self::FIELD_LIMITS as $field => $limit ) {
+			if ( ! isset( $_POST[ $field ] ) ) {
+				continue;
+			}
+			$value = $_POST[ $field ];
+			if ( ! is_string( $value ) || strlen( $value ) > $limit * 4 || wp_check_invalid_utf8( $value ) !== $value ) {
+				$go( 'invalid' );
+			}
+			$value = wp_unslash( $value );
+			$length = function_exists( 'mb_strlen' ) ? mb_strlen( $value, 'UTF-8' ) : preg_match_all( '/./us', $value );
+			if ( $length > $limit ) {
+				$go( 'invalid' );
+			}
+		}
 
 		// Bots fill the hidden field; pretend success so they learn nothing.
 		if ( ! empty( $_POST['abt_website'] ) ) {
@@ -166,10 +232,6 @@ class ABT_Form {
 		}
 
 		$ip_key = 'abt_rate_' . substr( wp_hash( (string) ( $_SERVER['REMOTE_ADDR'] ?? '' ) ), 0, 16 ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Hashed only, never stored raw.
-		$sent   = (int) get_transient( $ip_key );
-		if ( $sent >= self::MAX_PER_HOUR ) {
-			$go( 'limit' );
-		}
 
 		list( $term_id, $product_id ) = array_map( 'intval', explode( ':', $target ) );
 		$term = get_term( $term_id, ABT_Data::TAXONOMY );
@@ -181,7 +243,7 @@ class ABT_Form {
 		foreach ( array( 'author', 'email', 'role', 'company', 'location', 'headline', 'content', 'rating' ) as $key ) {
 			$fields[ $key ] = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised by ABT_Data::sanitize().
 		}
-		if ( empty( $_POST['consent'] ) || '' === trim( (string) $fields['author'] ) || ! is_email( (string) $fields['email'] ) || '' === trim( (string) $fields['content'] ) ) {
+		if ( '1' !== ( $_POST['consent'] ?? '' ) || ! preg_match( '/^[0-5]?$/', $fields['rating'] ) || '' === trim( (string) $fields['author'] ) || ! is_email( (string) $fields['email'] ) || '' === trim( (string) $fields['content'] ) ) {
 			$go( 'invalid' );
 		}
 		// phpcs:enable
@@ -192,11 +254,14 @@ class ABT_Form {
 		$fields['collections'] = array( $term_id );
 		$fields['source']      = __( 'Website', 'ashbi-testimonials' );
 
-		$id = ABT_Data::instance()->save( $fields );
-		if ( is_wp_error( $id ) ) {
-			$go( 'error' );
+		$result = $this->persist( $fields, $ip_key );
+		if ( is_wp_error( $result ) ) {
+			$go( in_array( $result->get_error_code(), array( 'limit', 'busy' ), true ) ? $result->get_error_code() : 'error' );
 		}
-		set_transient( $ip_key, $sent + 1, HOUR_IN_SECONDS );
+		if ( $result['duplicate'] ) {
+			$go( 'thanks' );
+		}
+		$id = $result['id'];
 
 		$notify = abt_settings()['notify_email'];
 		if ( $notify && is_email( $notify ) ) {

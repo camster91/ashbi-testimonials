@@ -72,6 +72,10 @@ jobs:
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-deeper-review.php
       - name: Public form validation and retries
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-form-safety.php
+      - name: Parallel public submissions
+        run: |
+          wp-env run cli env ABT_DISPOSABLE_TEST=1 wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-form-concurrent.php setup
+          wp-env run cli env ABT_DISPOSABLE_TEST=1 sh -c 'for i in 1 2 3 4 5 6 7 8 9 10; do wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-form-concurrent.php worker "$i" & done; wait; wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-form-concurrent.php check'
       - name: Management permissions and public data boundaries
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-permissions.php
       - name: WordPress privacy export and erasure

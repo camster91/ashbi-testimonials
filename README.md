@@ -18,6 +18,8 @@ A WordPress plugin for testimonials and reviews that scales from a handful of cl
 
 All plugin features are free under GPL-2.0-or-later. No paid edition, license key, mandatory account or forced attribution. The [professional product roadmap](tasks/plan.md) tracks the work toward broad adoption.
 
+Form fields are validated on the server as well as in the browser. Exact retries from the same connection within an hour reuse the saved review. A short processing lock prevents simultaneous requests from racing the five-review limit. Shared connections share this limit; forwarded IP headers are not trusted.
+
 ## Privacy and retention
 
 WordPress **Tools → Export Personal Data / Erase Personal Data** includes reviews matching the request email, including unpublished and trashed reviews. Requests use the native WordPress verification workflow. Erasure permanently deletes whole matching reviews and their metadata in batches of 100. Records without a matching email need manual review. Shared Media Library files are retained and reported for separate review; backups and external copies are outside this tool. Adapt the suggested privacy policy text to the site’s actual practices.
