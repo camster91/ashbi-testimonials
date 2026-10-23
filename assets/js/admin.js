@@ -267,7 +267,9 @@
 		trash: __( 'Trash', 'ashbi-testimonials' ),
 	};
 
+	let loadRequest = 0;
 	async function load() {
+		const requestId = ++loadRequest;
 		rowsEl.setAttribute( 'aria-busy', 'true' );
 		rowsEl.classList.add( 'is-loading' );
 		const product = state.product.trim();
@@ -284,6 +286,9 @@
 				page: state.page,
 				per_page: 20,
 			} );
+			if ( requestId !== loadRequest ) {
+				return;
+			}
 			state.items = data.items;
 			state.selected.clear();
 			renderRows( data );
@@ -291,6 +296,9 @@
 			renderStats( data.stats, data.counts );
 			renderPager( data );
 		} catch ( err ) {
+			if ( requestId !== loadRequest ) {
+				return;
+			}
 			rowsEl.innerHTML = '<p class="abt-empty">' + esc( err.message ) + '</p>';
 		}
 		rowsEl.classList.remove( 'is-loading' );
@@ -679,7 +687,7 @@
 		eerror.hidden = true;
 		els.id.value = data.id || 0;
 		[ 'author', 'headline', 'role', 'company', 'location', 'email', 'subject', 'source', 'source_url', 'avatar_url' ].forEach( ( k ) => ( els[ k ].value = data[ k ] || '' ) );
-		els.content.value = ( data.content || '' ).replace( /<\/?p>/g, '' );
+		els.content.value = data.content || '';
 		els.avatar_id.value = data.avatar_id || 0;
 		els.status.value = data.status || 'publish';
 		els.date.value = data.date || today();

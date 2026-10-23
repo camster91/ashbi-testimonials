@@ -23,6 +23,7 @@ function abt_assert( $condition, $message ) {
 /** Rebuild the singleton so it re-reads settings, as it would on the next request. */
 function abt_reload_woocommerce() {
 	remove_all_filters( 'woocommerce_product_tabs' );
+	remove_filter( 'woocommerce_structured_data_product', array( ABT_WooCommerce::instance(), 'schema' ), 20 );
 	$prop = new ReflectionProperty( 'ABT_WooCommerce', 'instance' );
 	$prop->setAccessible( true );
 	$prop->setValue( null, null );

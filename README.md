@@ -11,8 +11,8 @@ A WordPress plugin for testimonials and reviews that scales from a handful of cl
 - **Shortcode builder** with live preview.
 - **Rating summary** with average, count and per-star breakdown, or an inline badge.
 - **Review form** with moderation, honeypot, signed cache-safe token and rate limiting. Tokens are bound to the collection and product without a time expiry; submissions always require moderation. Purge page caches after rotating WordPress salts.
-- **CSV import/export**: the browser sends large files in batches of 100 rows.
-- **Structured data** for products and software only; optional **WooCommerce tab**.
+- **CSV import/export**: the browser sends large files in batches of 100 rows. Exports include collection names, slugs and display settings; imports restore missing collections by slug and keep existing settings. A selected import collection is added alongside the restored groups.
+- **Structured data** for products and software only; optional **WooCommerce tab**. When the tab and schema are enabled, its ratings are combined with native WooCommerce ratings in the existing Product entity.
 
 ## Shortcodes
 
@@ -25,6 +25,8 @@ A WordPress plugin for testimonials and reviews that scales from a handful of cl
 ```
 
 Every attribute is listed in `readme.txt` and in the reference table under **Testimonials → Settings**.
+
+Review dates must be today or earlier in the WordPress site time zone. Date-only entries use midnight so saving today never schedules them for noon.
 
 ## Storage
 

@@ -21,7 +21,7 @@ Ashbi Testimonials works for a freelancer with five client quotes and for a stor
 * A visual shortcode builder with a live preview.
 * Rating summaries with average stars, review count and a five-to-one star breakdown.
 * A public review form. Submissions wait for your approval and can email you.
-* CSV import in batches (thousands of rows) and CSV export.
+* CSV import in batches (thousands of rows) and CSV export, including portable collection assignments and settings.
 * Optional review structured data for products and software, and an optional WooCommerce product tab.
 
 Testimonials are stored as a private post type, so large collections use the WordPress database indexes. Rating summaries are calculated with a single grouped query and cached until something changes.
@@ -51,10 +51,10 @@ Theme developers can call `abt_render_testimonials( array( 'collection' => 'stor
 Yes. Attach each review to its product, then use product="current" on your product template or product="123" anywhere. Reviews without a page can use a label: subject="SKU-1042".
 
 = Does the form work on cached pages? =
-Yes. It uses a signed time-limited token instead of a nonce, a hidden honeypot field and a limit of five submissions per hour per visitor. Every submission is held as pending.
+Yes. It uses a signed target-bound token without a time expiry instead of a nonce, a hidden honeypot field and a limit of five submissions per hour per visitor. Every submission is held as pending.
 
 = Will it add star ratings in search results? =
-For products and software it can add AggregateRating structured data. It never adds review markup for your own business, which search engines ignore. Whether stars appear is decided by the search engine.
+For products and software it can add AggregateRating structured data. It never adds review markup for your own business, which search engines ignore. When the WooCommerce testimonials tab is enabled, its ratings are combined with native ratings in the existing Product schema. Whether stars appear is decided by the search engine.
 
 = What happens when I delete the plugin? =
 Deactivation keeps everything. Deleting the plugin removes all testimonials, collections and settings. Export a CSV first.

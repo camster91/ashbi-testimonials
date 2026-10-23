@@ -14,7 +14,7 @@ class ABT_Admin {
 	const SLUG = 'ashbi-testimonials';
 
 	/** CSV columns, in export order. */
-	const CSV_COLUMNS = array( 'author', 'content', 'rating', 'headline', 'role', 'company', 'location', 'email', 'avatar_url', 'product_id', 'subject', 'source', 'source_url', 'verified', 'featured', 'status', 'date' );
+	const CSV_COLUMNS = array( 'author', 'content', 'rating', 'headline', 'role', 'company', 'location', 'email', 'avatar_url', 'product_id', 'subject', 'source', 'source_url', 'verified', 'featured', 'status', 'date', 'collections' );
 
 	/**
 	 * @var ABT_Admin|null
@@ -318,20 +318,7 @@ class ABT_Admin {
 			if ( ! is_array( $row ) ) {
 				continue;
 			}
-			$row = array_change_key_case( $row, CASE_LOWER );
-			// Accept common alternative headings.
-			foreach ( array( 'name' => 'author', 'review' => 'content', 'text' => 'content', 'testimonial' => 'content', 'title' => 'headline', 'stars' => 'rating', 'product' => 'product_id', 'sku' => 'subject' ) as $alias => $field ) {
-				if ( isset( $row[ $alias ] ) && ! isset( $row[ $field ] ) ) {
-					$row[ $field ] = $row[ $alias ];
-				}
-			}
-			if ( $collection ) {
-				$row['collections'] = array( $collection );
-			}
-			if ( isset( $row['status'] ) && 'published' === strtolower( (string) $row['status'] ) ) {
-				$row['status'] = 'publish';
-			}
-			$result = ABT_Data::instance()->save( $row );
+			$result = $this->import_row( $row, $collection );
 			if ( is_wp_error( $result ) ) {
 				$errors[] = array( 'row' => (int) $index, 'message' => $result->get_error_message() );
 			} else {
@@ -341,6 +328,69 @@ class ABT_Admin {
 		wp_defer_term_counting( false );
 
 		wp_send_json_success( array( 'created' => $created, 'errors' => $errors ) );
+	}
+
+	/** Import a single decoded CSV record, restoring collections by slug. */
+	public function import_row( array $row, $collection = 0 ) {
+		$row = array_change_key_case( $row, CASE_LOWER );
+		// Accept common alternative headings.
+		foreach ( array( 'name' => 'author', 'review' => 'content', 'text' => 'content', 'testimonial' => 'content', 'title' => 'headline', 'stars' => 'rating', 'product' => 'product_id', 'sku' => 'subject' ) as $alias => $field ) {
+			if ( isset( $row[ $alias ] ) && ! isset( $row[ $field ] ) ) {
+				$row[ $field ] = $row[ $alias ];
+			}
+		}
+		if ( isset( $row['status'] ) && 'published' === strtolower( (string) $row['status'] ) ) {
+			$row['status'] = 'publish';
+		}
+
+		$ids = array();
+		if ( ! empty( $row['collections'] ) ) {
+			$groups = is_string( $row['collections'] ) ? json_decode( $row['collections'], true ) : $row['collections'];
+			if ( ! is_array( $groups ) ) {
+				return new WP_Error( 'abt_csv_collections', __( 'The collections column must contain an exported JSON list.', 'ashbi-testimonials' ) );
+			}
+			foreach ( $groups as $group ) {
+				if ( ! is_array( $group ) || empty( $group['slug'] ) || empty( $group['name'] ) || ! is_string( $group['slug'] ) || ! is_string( $group['name'] ) ) {
+					return new WP_Error( 'abt_csv_collection', __( 'An exported collection needs a name and slug.', 'ashbi-testimonials' ) );
+				}
+				$term = get_term_by( 'slug', sanitize_title( (string) $group['slug'] ), ABT_Data::TAXONOMY );
+				if ( $term ) {
+					$ids[] = (int) $term->term_id;
+				} else {
+					$saved = ABT_Data::instance()->save_collection( array_filter( $group, 'is_scalar' ) );
+					if ( is_wp_error( $saved ) ) {
+						return $saved;
+					}
+					$ids[] = $saved['id'];
+				}
+			}
+		}
+		if ( $collection ) {
+			$ids[] = absint( $collection );
+		}
+		$row['collections'] = array_values( array_unique( $ids ) );
+		return ABT_Data::instance()->save( $row );
+	}
+
+	/** Build an export record with portable collection metadata and safe cells. */
+	public function export_row( array $item ) {
+		$groups = array();
+		foreach ( $item['collections'] as $id ) {
+			$term = get_term( $id, ABT_Data::TAXONOMY );
+			if ( $term instanceof WP_Term ) {
+				$group = ABT_Data::instance()->collection_to_array( $term );
+				unset( $group['id'], $group['count'] );
+				$groups[] = $group;
+			}
+		}
+		$item['collections'] = wp_json_encode( $groups );
+		$row = array();
+		foreach ( self::CSV_COLUMNS as $column ) {
+			$value = 'avatar_url' === $column ? $item['avatar'] : ( $item[ $column ] ?? '' );
+			// Neutralise spreadsheet formulas.
+			$row[] = is_string( $value ) && preg_match( '/^[=+\-@]/', $value ) ? "'" . $value : $value;
+		}
+		return $row;
 	}
 
 	/** Render a shortcode for the builder's live preview. */
@@ -377,13 +427,7 @@ class ABT_Admin {
 		do {
 			$result = ABT_Data::instance()->query( array( 'collection' => $collection, 'status' => 'any', 'per_page' => 200, 'page' => $page ) );
 			foreach ( $result['items'] as $item ) {
-				$row = array();
-				foreach ( self::CSV_COLUMNS as $column ) {
-					$value = 'avatar_url' === $column ? $item['avatar'] : ( $item[ $column ] ?? '' );
-					// Neutralise spreadsheet formulas.
-					$row[] = is_string( $value ) && preg_match( '/^[=+\-@]/', $value ) ? "'" . $value : $value;
-				}
-				fputcsv( $out, $row, ',', '"', '' );
+				fputcsv( $out, $this->export_row( $item ), ',', '"', '' );
 			}
 			++$page;
 		} while ( $page <= $result['pages'] );
