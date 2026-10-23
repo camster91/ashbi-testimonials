@@ -28,6 +28,12 @@ WordPress **Tools → Export Personal Data / Erase Personal Data** includes revi
 
 Deleting or deactivating the plugin keeps data by default, including for existing installations. Administrators may explicitly enable **Permanently delete this site’s plugin data** in Settings before deleting the plugin. Cleanup applies independently to each site on multisite and preserves Media Library files. Export a backup before enabling deletion.
 
+## Native editing
+
+Use **Testimonials**, **Rating Summary** or **Review Form** in the WordPress block inserter. Choose a collection and adjust layout, columns, theme, colour and pagination in the block settings. Use `current` in Product/page ID for a template's current item. An unconfigured block renders nothing publicly. Existing shortcodes remain compatible.
+
+With free Elementor installed, use **Ashbi Reviews** and choose Testimonials, Rating summary or Review form. It renders through the same model and layouts; Elementor Pro is not required. Frontend assets load only where the content is rendered.
+
 ## Shortcodes
 
 ```text

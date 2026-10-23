@@ -25,7 +25,7 @@ jobs:
       - name: Admin JavaScript regressions
         run: node --test tests/admin-regressions.test.cjs
       - name: JavaScript syntax
-        run: node --check assets/js/admin.js && node --check assets/js/frontend.js
+        run: node --check assets/js/admin.js && node --check assets/js/frontend.js && node --check assets/js/blocks.js
       - name: Package
         if: matrix.php == '8.2'
         run: bash scripts/package.sh
@@ -129,3 +129,23 @@ jobs:
       - name: Verify per-site uninstall retention and cleanup
         run: wp-env run cli env ABT_DISPOSABLE_TEST=1 wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-uninstall.php
 
+
+  elementor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install -g @wordpress/env
+      - name: Start disposable WordPress with free Elementor
+        run: |
+          echo '{"phpVersion":"8.3","testsEnvironment":false,"plugins":["."],"config":{"WP_DEBUG":true,"WP_DEBUG_LOG":"/var/www/html/wp-content/debug.log","WP_DEBUG_DISPLAY":false}}' > .wp-env.json
+          wp-env start
+          wp-env run cli wp plugin install elementor --activate
+      - name: Native Elementor widget
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-elementor.php
+      - name: No plugin PHP notices
+        run: |
+          wp-env run cli sh -c 'touch wp-content/debug.log; cat wp-content/debug.log' > debug.log
+          if grep -iE 'ashbi-testimonials|abt_' debug.log; then echo 'Plugin logged PHP notices'; exit 1; fi
