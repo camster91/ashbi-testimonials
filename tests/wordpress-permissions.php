@@ -109,3 +109,14 @@ $check( 4 === count( $result['json']['data'] ), 'administrators retain private p
 remove_filter( 'abt_capability', $custom_cap );
 remove_filter( 'wp_die_ajax_handler', $die_handler );
 fwrite( STDOUT, "OK: management permission regressions passed\n" );
+
+$abt_diag_admin = get_users( array( 'role' => 'administrator', 'number' => 1 ) )[0];
+wp_set_current_user( 0 );
+if ( ABT_Admin::diagnostics() ) { throw new RuntimeException( 'Anonymous diagnostics exposed.' ); }
+$abt_diag_editor = wp_create_user( 'diag_' . wp_generate_password( 8, false ), wp_generate_password(), 'diag-' . wp_generate_password( 8, false ) . '@example.test' );
+$abt_diag_user = new WP_User( $abt_diag_editor ); $abt_diag_user->set_role( 'editor' ); wp_set_current_user( $abt_diag_editor );
+if ( ABT_Admin::diagnostics() ) { throw new RuntimeException( 'Editor accessed administrator diagnostics.' ); }
+wp_set_current_user( $abt_diag_admin->ID );
+$abt_diag = ABT_Admin::diagnostics();
+if ( ABT_VERSION !== $abt_diag['plugin'] || false !== strpos( wp_json_encode( $abt_diag ), 'http' ) || false !== strpos( wp_json_encode( $abt_diag ), '@' ) ) { throw new RuntimeException( 'Diagnostics contains unexpected data.' ); }
+fwrite( STDOUT, "OK: diagnostics are minimal and administrator-only\n" );

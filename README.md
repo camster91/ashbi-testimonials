@@ -1,6 +1,6 @@
 # Ashbi Testimonials
 
-A WordPress plugin for testimonials and reviews that scales from a handful of client quotes to thousands of products with their own reviews. Companion to [Ashbi Mega Menu](https://github.com/camster91/ashbi-mega-menu), with the same admin look and conventions. Licensed under GPL-2.0-or-later.
+A free WordPress plugin for collecting, organising and displaying testimonials and reviews in your own database. Companion to [Ashbi Mega Menu](https://github.com/camster91/ashbi-mega-menu), with the same admin look and conventions. Licensed under GPL-2.0-or-later.
 
 ## Features
 
@@ -18,7 +18,7 @@ Schema is conservative: existing/manual/CSV reviews remain visible but need conf
 
 ## Free by design
 
-All plugin features are free under GPL-2.0-or-later. No paid edition, license key, mandatory account or forced attribution. The [professional product roadmap](tasks/plan.md) tracks the work toward broad adoption.
+All plugin features are free under GPL-2.0-or-later. No paid edition, licence key, mandatory account or forced attribution. The [professional product roadmap](tasks/plan.md) tracks the work toward broad adoption.
 
 Form fields are validated on the server as well as in the browser. Exact retries from the same connection within an hour reuse the saved review. A short processing lock prevents simultaneous requests from racing the five-review limit. Shared connections share this limit; forwarded IP headers are not trusted.
 
@@ -82,3 +82,9 @@ On product review forms, a signed-in customer's JavaScript submission can receiv
 Off by default. An administrator can enable reminders alongside the WooCommerce product tab and collection form. A signed-in customer then requests **one email** from their own completed order's account view. No customer is enrolled automatically and guest orders are not enrolled. WP-Cron queues it for seven days later; sites with little traffic should configure a system cron. The invitation asks for honest feedback, positive or negative, and includes a confirmation-based opt-out. Missing/deleted/refunded/cancelled orders, identity changes, existing reviews and disabled settings suppress delivery.
 
 At most three retries apply before sending if WooCommerce is temporarily unavailable. An atomic claim permits one mail attempt per order: WordPress mail has no provider idempotency key, so a failed/ambiguous attempt is not automatically resent. “Accepted” means the mail transport accepted it, not that an inbox received it. A crash after claiming can leave an unsent reminder; avoid resetting claims unless you have verified the delivery outcome. Native privacy tools export request/consent state and erase pending records while retaining a minimal account suppression preference. Order privacy is managed separately by WooCommerce. No external delivery service, tracking pixel or Ashbi account is required.
+
+## Support and release evidence
+
+See [support](SUPPORT.md), [security reporting](SECURITY.md), [installation/upgrade/recovery](docs/OPERATIONS.md), [pilot protocol](docs/PILOT.md) and [connector prerequisites](docs/CONNECTOR-DECISION.md). The 1.1.0 files are a development release candidate; the published v1.0.0 download does not include unmerged changes.
+
+Public load-more accepts at most 100 IDs, 20 collections and 8 KiB of attributes; random/context-dependent requests and offsets beyond 10,000 displayed positions are rejected. Tied date/rating/featured ordering uses post IDs. Browse larger datasets through targeted collections/products or the manager UI.

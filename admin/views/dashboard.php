@@ -197,6 +197,13 @@ $abt_render = ABT_Render::instance();
 		</table>
 	</details>
 
+	<?php if ( current_user_can( 'manage_options' ) ) : ?>
+		<details class="abt-settings"><summary><?php esc_html_e( 'Private support diagnostics', 'ashbi-testimonials' ); ?></summary>
+			<p><?php esc_html_e( 'Copy these versions and configuration flags when requesting support. Nothing is sent automatically. Check screenshots and logs separately for personal data before sharing.', 'ashbi-testimonials' ); ?></p>
+			<label for="abt-diagnostics"><?php esc_html_e( 'Diagnostics (select and copy)', 'ashbi-testimonials' ); ?></label>
+			<textarea id="abt-diagnostics" readonly rows="14" class="widefat"><?php echo esc_textarea( wp_json_encode( ABT_Admin::diagnostics(), JSON_PRETTY_PRINT ) ); ?></textarea>
+		</details>
+	<?php endif; ?>
 	<?php include ABT_PLUGIN_DIR . 'admin/views/presets.php'; ?>
 	<?php include ABT_PLUGIN_DIR . 'admin/views/collection-modal.php'; ?>
 </div>

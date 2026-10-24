@@ -76,3 +76,9 @@ Use WordPress Tools > Export Personal Data or Erase Personal Data with the email
 
 = 1.0.0 =
 * First release.
+
+== Support and privacy ==
+
+All features are free, without an Ashbi account or forced credit. Start with https://github.com/camster91/ashbi-testimonials/blob/main/docs/OPERATIONS.md for installation, privacy, import recovery and rollback. Non-sensitive support: https://github.com/camster91/ashbi-testimonials/issues . Never post customer data, credentials or signed preference links. Security reporting: https://github.com/camster91/ashbi-testimonials/blob/main/SECURITY.md . Private diagnostics in Settings contain versions and configuration flags only and are never sent automatically.
+
+The optional reminder workflow is off by default and requires both administrator configuration and explicit customer opt-in. WordPress mail acceptance does not guarantee inbox delivery. No external review connector or million-site performance claim is included.

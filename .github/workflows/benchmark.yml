@@ -2,9 +2,13 @@ name: Reproducible review benchmark
 on:
   push:
     branches: ['quality/scale-and-release']
+    paths: ['tests/wordpress-benchmark.php', '.github/workflows/benchmark.yml', 'includes/class-abt-data.php']
   pull_request:
     paths: ['tests/wordpress-benchmark.php', '.github/workflows/benchmark.yml', 'includes/class-abt-data.php']
   workflow_dispatch:
+concurrency:
+  group: benchmark-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

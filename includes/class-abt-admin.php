@@ -450,6 +450,23 @@ class ABT_Admin {
 		exit;
 	}
 
+	/** Minimal administrator-only diagnostics; never include site URLs, paths or review/order data. */
+	public static function diagnostics() {
+		if ( ! current_user_can( 'manage_options' ) ) { return array(); }
+		return array(
+			'plugin' => ABT_VERSION,
+			'wordpress' => get_bloginfo( 'version' ),
+			'php' => PHP_VERSION,
+			'woocommerce' => defined( 'WC_VERSION' ) ? WC_VERSION : 'inactive',
+			'elementor' => defined( 'ELEMENTOR_VERSION' ) ? ELEMENTOR_VERSION : 'inactive',
+			'multisite' => is_multisite(),
+			'external_object_cache' => wp_using_ext_object_cache(),
+			'cron_disabled' => defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON,
+			'review_reminders_enabled' => '1' === abt_settings()['review_requests'],
+			'cleanup_on_uninstall' => '1' === abt_settings()['delete_on_uninstall'],
+		);
+	}
+
 	public function save_settings() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to change these settings.', 'ashbi-testimonials' ) );
