@@ -8,6 +8,7 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
  const context = await browser.newContext();
  const page = await context.newPage();
  const errors=[]; page.on('pageerror',e=>errors.push(e.message));
+ page.on('response',async response=>{if(response.url().includes('admin-post.php')){const headers=await response.allHeaders();console.log('Form transport',response.status(),headers.location||response.url());}});
  fs.mkdirSync('browser-results',{recursive:true});
  try {
   for(const width of [375,768,1440]) {
@@ -50,6 +51,6 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await page.screenshot({path:'browser-results/admin-1440.png',fullPage:true});
   assert.deepEqual(errors,[],'no browser runtime errors');
   console.log('OK: three viewport/accessibility checks, repeated forms, load more, keyboard, recovery and admin rendering');
- } catch (error) { await page.screenshot({path:'browser-results/failure.png',fullPage:true}); throw error; }
+ } catch (error) { console.log('Form notices:',await page.locator('.abt-form__notice').allTextContents()); await page.screenshot({path:'browser-results/failure.png',fullPage:true}); throw error; }
  finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});
