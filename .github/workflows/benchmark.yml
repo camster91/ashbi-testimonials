@@ -1,0 +1,33 @@
+name: Reproducible review benchmark
+on:
+  push:
+    branches: ['quality/scale-and-release']
+  pull_request:
+    paths: ['tests/wordpress-benchmark.php', '.github/workflows/benchmark.yml', 'includes/class-abt-data.php']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install -g @wordpress/env
+      - name: Start fresh disposable MySQL WordPress
+        run: |
+          echo '{"phpVersion":"8.4","plugins":["."],"config":{"WP_DEBUG":false}}' > .wp-env.json
+          wp-env start
+          wp-env run cli wp plugin activate ashbi-testimonials
+      - name: Measure 1000, 10000 and 100000 synthetic reviews
+        run: |
+          set -o pipefail
+          wp-env run cli env ABT_DISPOSABLE_TEST=1 ABT_BENCH_REVISION=${{ github.sha }} wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-benchmark.php | tee benchmark.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: review-volume-benchmark
+          path: benchmark.log
