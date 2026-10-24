@@ -118,7 +118,18 @@
 		button.textContent = t( 'loading', 'Loading…' );
 		let status = 'error';
 		try {
-			const response = await fetch( form.getAttribute( 'action' ), { method: 'POST', body: new FormData( form ), credentials: 'same-origin', signal: controller.signal } );
+			const body = new FormData( form );
+			if ( Number( form.dataset && form.dataset.abtProduct ) > 0 ) {
+				const proof = new FormData(); proof.append( 'action', 'abt_purchase_nonce' ); proof.append( 'product_id', form.dataset.abtProduct );
+				const proofController = new AbortController();
+				const proofTimeout = setTimeout( () => proofController.abort(), 3000 );
+				try {
+					const context = await fetch( cfg.ajaxUrl, { method: 'POST', body: proof, credentials: 'same-origin', signal: proofController.signal } );
+					const result = await context.json();
+					if ( result.success && result.data && result.data.nonce ) { body.append( 'abt_purchase_nonce', result.data.nonce ); }
+				} catch ( error ) { /* Purchase proof is optional; the review still submits. */ } finally { clearTimeout( proofTimeout ); }
+			}
+			const response = await fetch( form.getAttribute( 'action' ), { method: 'POST', body, credentials: 'same-origin', signal: controller.signal } );
 			if ( response.ok ) { status = new URL( response.url ).searchParams.get( 'abt_status' ) || 'error'; }
 		} catch ( error ) { status = 'error'; }
 		finally { clearTimeout( timeout ); form.removeAttribute( 'aria-busy' ); button.disabled = false; button.textContent = label; }

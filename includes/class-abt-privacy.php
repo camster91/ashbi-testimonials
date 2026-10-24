@@ -94,6 +94,10 @@ class ABT_Privacy {
 					$data[] = array( 'name' => $label, 'value' => (string) $value );
 				}
 			}
+			$proof = get_post_meta( $id, ABT_Purchase::META, true );
+			if ( is_array( $proof ) && $proof ) {
+				$data[] = array( 'name' => __( 'Purchase evidence', 'ashbi-testimonials' ), 'value' => wp_json_encode( $proof ) );
+			}
 			$custom = ABT_Fields::snapshots( get_post_meta( $id, ABT_Data::META['custom_fields'], true ) ?: array() );
 			if ( ! is_wp_error( $custom ) ) {
 				foreach ( $custom as $field ) {

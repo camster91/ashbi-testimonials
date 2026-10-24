@@ -87,7 +87,7 @@ class ABT_Form {
 			<?php elseif ( $status ) : ?>
 				<p class="abt-form__notice abt-form__notice--error" role="alert"><?php echo esc_html( $this->message( $status ) ); ?></p>
 			<?php endif; ?>
-			<form class="abt-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<form class="abt-form" data-abt-product="<?php echo class_exists( 'WooCommerce' ) ? (int) $product_id : 0; ?>" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<?php if ( '' !== $atts['title'] ) : ?>
 					<h3 class="abt-form__title"><?php echo esc_html( $atts['title'] ); ?></h3>
 				<?php endif; ?>

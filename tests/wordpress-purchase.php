@@ -9,7 +9,7 @@ wp_set_current_user( $user );
 $account = get_userdata( $user );
 $product = new WC_Product_Simple(); $product->set_name( 'Evidence mug' ); $product->set_regular_price( '12' ); $product->set_status( 'publish' ); $product_id = $product->save();
 $order = wc_create_order( array( 'customer_id' => $user ) );
-$line_id = $order->add_product( $product, 1 ); $order->set_billing_email( $account->user_email ); $order->calculate_totals(); $order->set_status( 'completed' ); $order->save();
+$line_id = $order->add_product( $product, 1 ); $order->set_billing_email( $account->user_email ); $order->calculate_totals(); $order->set_date_paid( time() ); $order->set_status( 'completed' ); $order->save();
 $col = ABT_Data::instance()->save_collection( array( 'name' => 'Evidence collection' ) );
 $id = ABT_Data::instance()->save( array( 'author' => 'Buyer', 'email' => $account->user_email, 'rating' => 5, 'verified' => 1, 'product_id' => $product_id, 'collections' => array( $col['id'] ) ) );
 $check( ! ABT_Purchase::verified( ABT_Data::instance()->get( $id ) ), 'manual verified flag cannot create purchase evidence' );

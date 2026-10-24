@@ -72,3 +72,7 @@ WordPress 6.6+, PHP 8.2+. WooCommerce is optional.
 ### Custom collection questions
 
 Collection settings include up to ten text, long-text, choice, checkbox or URL fields. Mark each answer private or public and optionally required. Public forms validate the current definitions on the server. Making a field private, removing its definition or changing its type hides old public answers. The review editor preserves answer snapshots; CSV export/import transfers definitions and answers, and WordPress privacy exports include private answers. Treat CSV files as personal data. Avoid collecting sensitive information you do not need.
+
+### Verified purchase evidence
+
+On product review forms, a signed-in customer's JavaScript submission can receive a separate **Verified purchase** badge when the account email matches and one of their 50 latest paid WooCommerce orders contains an unrefunded quantity of that product. It uses a fresh product-bound account nonce; public page caches never contain the account proof. Anonymous email claims, CSV imports and the manual Verified toggle do not create purchase evidence. Guest and non-JavaScript reviews remain accepted without this badge. Refunding/deleting the order, changing the account/email or changing the reviewed product removes eligibility at render time. Private order references appear in WordPress privacy exports, never in public cards or portable CSV files.

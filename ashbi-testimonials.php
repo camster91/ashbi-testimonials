@@ -34,6 +34,7 @@ require_once ABT_PLUGIN_DIR . 'includes/class-abt-presets.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-privacy.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-admin.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-woocommerce.php';
+require_once ABT_PLUGIN_DIR . 'includes/class-abt-purchase.php';
 
 /* ==================================================================
    Helpers
@@ -70,6 +71,7 @@ function abt_init() {
 	ABT_Form::instance();
 	ABT_Editors::init();
 	ABT_Presets::init();
+	ABT_Purchase::init();
 	ABT_Privacy::instance();
 	ABT_WooCommerce::instance();
 	abt_maybe_upgrade();

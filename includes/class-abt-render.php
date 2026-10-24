@@ -157,6 +157,9 @@ class ABT_Render {
 			$html .= '</blockquote>';
 		}
 
+		if ( $show( 'verified' ) && ABT_Purchase::verified( $item ) ) {
+			$html .= '<p class="abt-card__purchase">' . esc_html__( 'Verified purchase', 'ashbi-testimonials' ) . '</p>';
+		}
 		$html .= ABT_Fields::card( $item );
 		if ( $show( 'product' ) && $item['product_title'] ) {
 			$html .= sprintf(

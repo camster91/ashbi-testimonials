@@ -439,3 +439,5 @@
 .abt-card__fields dt { font-weight:600; }
 .abt-card__fields dd { margin:0; white-space:pre-wrap; }
 .abt-form select { box-sizing:border-box; max-width:100%; width:100%; font:inherit; padding:.65em; }
+
+.abt-card__purchase { font-size:.85em; font-weight:600; margin-block:.75em; }
