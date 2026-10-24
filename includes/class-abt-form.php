@@ -160,12 +160,12 @@ class ABT_Form {
 	private function persist( array $fields, $ip_key ) {
 		$key = 'abt_submit_lock_' . substr( $ip_key, -16 );
 		$owner = ( time() + 30 ) . ':' . wp_generate_uuid4();
-		$acquired = add_option( $key, $owner, '', false );
+		$acquired = ABT_Atomic::insert( $key, $owner );
 		if ( ! $acquired ) {
 			$previous = get_option( $key );
 			if ( is_string( $previous ) && (int) $previous < time() ) {
 				$this->release( $key, $previous );
-				$acquired = add_option( $key, $owner, '', false );
+				$acquired = ABT_Atomic::insert( $key, $owner );
 			}
 		}
 		if ( ! $acquired ) {

@@ -3,7 +3,7 @@
  * Plugin Name: Ashbi Testimonials
  * Plugin URI:  https://github.com/camster91/ashbi-testimonials
  * Description: Collect, organise and display testimonials and reviews for your store, products, software or services with a clean editor and simple shortcodes.
- * Version:     1.0.0
+ * Version:     1.1.0
  * Author:      Cameron Ashley
  * Author URI:  https://github.com/camster91
  * License:     GPL-2.0-or-later
@@ -24,6 +24,7 @@ define( 'ABT_VERSION_OPTION', 'abt_plugin_version' );
 define( 'ABT_SETTINGS_OPTION', 'abt_settings' );
 define( 'ABT_CACHE_OPTION', 'abt_cache_version' );
 
+require_once ABT_PLUGIN_DIR . 'includes/class-abt-atomic.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-fields.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-data.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-render.php';

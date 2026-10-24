@@ -50,7 +50,7 @@ class ABT_Requests {
 		if ( get_option( $key ) || get_option( $key . '_claim' ) ) { return true; }
 		delete_user_meta( $user, self::optout_key() );
 		$state = array( 'user_id' => $user, 'order_id' => (int) $id, 'consented_at' => time(), 'due' => time() + 7 * DAY_IN_SECONDS, 'attempts' => 0, 'state' => 'queued' );
-		if ( ! add_option( $key, $state, '', false ) ) { return true; }
+		if ( ! ABT_Atomic::insert( $key, $state ) ) { return true; }
 		if ( ! wp_schedule_single_event( $state['due'], self::HOOK, array( (int) $id, $user ) ) ) { $state['state'] = 'schedule_failed'; update_option( $key, $state, false ); return new WP_Error( 'abt_schedule', __( 'The reminder could not be scheduled. Contact the site owner.', 'ashbi-testimonials' ) ); }
 		return true;
 	}
@@ -81,7 +81,7 @@ class ABT_Requests {
 		if ( ! self::enabled() || ! $account || get_user_meta( $user, self::optout_key(), true ) || ! $product || (int) $order->get_customer_id() !== (int) $user || strtolower( $order->get_billing_email() ) !== strtolower( $account->user_email ) ) { self::cancel( $id, $user ); return; }
 		$reviews = get_posts( array( 'post_type' => ABT_Data::POST_TYPE, 'post_status' => ABT_Data::STATUSES, 'posts_per_page' => 1, 'fields' => 'ids', 'no_found_rows' => true, 'meta_query' => array( array( 'key' => ABT_Data::META['email'], 'value' => $account->user_email ), array( 'key' => ABT_Data::META['product_id'], 'value' => $product->get_id() ) ) ) ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Bounded check before an explicitly opted-in reminder.
 		if ( $reviews ) { self::cancel( $id, $user ); return; }
-		if ( ! add_option( $key . '_claim', time(), '', false ) ) { return; }
+		if ( ! ABT_Atomic::insert( $key . '_claim', time() ) ) { return; }
 		$stop = add_query_arg( array( 'action' => 'abt_request_stop', 'order' => (int) $id, 'customer' => (int) $user, 'token' => wp_hash( 'abt_stop|' . $id . '|' . $user ) ), admin_url( 'admin-post.php' ) );
 		/* translators: 1: product name, 2: review link, 3: unsubscribe confirmation link */
 		$message = sprintf( __( "You requested one review reminder for %1\$s. Share your honest experience, positive or negative:\n\n%2\$s\n\nStop review reminders (confirmation required):\n%3\$s", 'ashbi-testimonials' ), wp_strip_all_tags( $product->get_name() ), $product->get_permalink(), $stop );

@@ -55,6 +55,8 @@ try {
 	$ip = '192.0.2.202';
 	$lock = 'abt_submit_lock_' . substr( wp_hash( $ip ), 0, 16 );
 	add_option( $lock, ( time() + 30 ) . ':another-worker', '', false );
+	// A second worker may have cached absence before another worker acquired the lease.
+	wp_cache_set( 'notoptions', array( $lock => true ), 'options' );
 	$check( 'busy' === $send( array( 'content' => 'Contended review' ), $ip ), 'contended request gives an honest retry response' );
 	delete_option( $lock );
 	add_option( $lock, ( time() - 60 ) . ':expired-worker', '', false );
