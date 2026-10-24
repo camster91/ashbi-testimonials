@@ -14,7 +14,7 @@ class ABT_Admin {
 	const SLUG = 'ashbi-testimonials';
 
 	/** CSV columns, in export order. */
-	const CSV_COLUMNS = array( 'author', 'content', 'rating', 'headline', 'role', 'company', 'location', 'email', 'avatar_url', 'product_id', 'subject', 'source', 'source_url', 'verified', 'featured', 'status', 'date', 'collections' );
+	const CSV_COLUMNS = array( 'author', 'content', 'rating', 'headline', 'role', 'company', 'location', 'email', 'avatar_url', 'product_id', 'subject', 'source', 'source_url', 'verified', 'featured', 'status', 'date', 'collections', 'origin', 'custom_fields' );
 
 	/**
 	 * @var ABT_Admin|null
@@ -95,7 +95,7 @@ class ABT_Admin {
 				'pageUrl'     => admin_url( 'admin.php?page=' . self::SLUG ),
 				'collection'  => $this->current_collection_id(),
 				'collections' => array_map(
-					static fn( $c ) => array( 'id' => $c['id'], 'name' => $c['name'], 'slug' => $c['slug'] ),
+					static fn( $c ) => array( 'id' => $c['id'], 'name' => $c['name'], 'slug' => $c['slug'], 'fields' => $c['fields'] ),
 					ABT_Data::instance()->collections()
 				),
 				'types'       => $types,
@@ -346,6 +346,13 @@ class ABT_Admin {
 			$row['status'] = 'publish';
 		}
 
+		if ( isset( $row['custom_fields'] ) && is_string( $row['custom_fields'] ) ) {
+			if ( strlen( $row['custom_fields'] ) > 100000 ) { return new WP_Error( 'abt_fields', __( 'The custom fields column is too large.', 'ashbi-testimonials' ) ); }
+			$row['custom_fields'] = '' === $row['custom_fields'] ? array() : json_decode( $row['custom_fields'], true );
+		}
+		$custom = ABT_Fields::snapshots( $row['custom_fields'] ?? array() );
+		if ( is_wp_error( $custom ) ) { return $custom; }
+		$row['custom_fields'] = $custom;
 		$ids = array();
 		if ( ! empty( $row['collections'] ) ) {
 			$groups = is_string( $row['collections'] ) ? json_decode( $row['collections'], true ) : $row['collections'];
@@ -360,7 +367,9 @@ class ABT_Admin {
 				if ( $term ) {
 					$ids[] = (int) $term->term_id;
 				} else {
-					$saved = ABT_Data::instance()->save_collection( array_filter( $group, 'is_scalar' ) );
+					$settings = array_filter( $group, 'is_scalar' );
+					$settings['fields'] = $group['fields'] ?? array();
+					$saved = ABT_Data::instance()->save_collection( $settings );
 					if ( is_wp_error( $saved ) ) {
 						return $saved;
 					}
@@ -371,6 +380,7 @@ class ABT_Admin {
 		if ( $collection ) {
 			$ids[] = absint( $collection );
 		}
+		$row['origin'] = 'imported';
 		$row['collections'] = array_values( array_unique( $ids ) );
 		return ABT_Data::instance()->save( $row );
 	}
@@ -387,6 +397,7 @@ class ABT_Admin {
 			}
 		}
 		$item['collections'] = wp_json_encode( $groups );
+		$item['custom_fields'] = wp_json_encode( $item['custom_fields'] ?? array(), JSON_UNESCAPED_UNICODE );
 		$row = array();
 		foreach ( self::CSV_COLUMNS as $column ) {
 			$value = 'avatar_url' === $column ? $item['avatar'] : ( $item[ $column ] ?? '' );
@@ -439,6 +450,23 @@ class ABT_Admin {
 		exit;
 	}
 
+	/** Minimal administrator-only diagnostics; never include site URLs, paths or review/order data. */
+	public static function diagnostics() {
+		if ( ! current_user_can( 'manage_options' ) ) { return array(); }
+		return array(
+			'plugin' => ABT_VERSION,
+			'wordpress' => get_bloginfo( 'version' ),
+			'php' => PHP_VERSION,
+			'woocommerce' => defined( 'WC_VERSION' ) ? WC_VERSION : 'inactive',
+			'elementor' => defined( 'ELEMENTOR_VERSION' ) ? ELEMENTOR_VERSION : 'inactive',
+			'multisite' => is_multisite(),
+			'external_object_cache' => wp_using_ext_object_cache(),
+			'cron_disabled' => defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON,
+			'review_reminders_enabled' => '1' === abt_settings()['review_requests'],
+			'cleanup_on_uninstall' => '1' === abt_settings()['delete_on_uninstall'],
+		);
+	}
+
 	public function save_settings() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to change these settings.', 'ashbi-testimonials' ) );
@@ -449,6 +477,7 @@ class ABT_Admin {
 		$settings = array(
 			'schema'         => isset( $_POST['schema'] ) ? '1' : '0',
 			'woo_tab'        => isset( $_POST['woo_tab'] ) ? '1' : '0',
+			'review_requests' => isset( $_POST['review_requests'] ) && '1' === $_POST['review_requests'] ? '1' : '0',
 			'woo_collection' => isset( $_POST['woo_collection'] ) ? (string) absint( $_POST['woo_collection'] ) : '0',
 			'notify_email'   => isset( $_POST['notify_email'] ) ? sanitize_email( wp_unslash( $_POST['notify_email'] ) ) : '',
 			'accent'         => isset( $_POST['accent'] ) ? ( sanitize_hex_color( wp_unslash( $_POST['accent'] ) ) ?: '#2457ff' ) : '#2457ff',

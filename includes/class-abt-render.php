@@ -47,6 +47,14 @@ class ABT_Render {
 			'abtFrontend',
 			array(
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'form' => array(
+					'thanks' => __( 'Thank you! Your review was received and will appear once approved.', 'ashbi-testimonials' ),
+					'invalid' => __( 'Check the required fields, rating and consent before trying again.', 'ashbi-testimonials' ),
+					'expired' => __( 'The form could not be verified. Reload the page before trying again; copy your review first.', 'ashbi-testimonials' ),
+					'busy' => __( 'Another review is being processed from your connection. Try again in a moment.', 'ashbi-testimonials' ),
+					'limit' => __( 'Too many reviews were sent from your connection. Try again later.', 'ashbi-testimonials' ),
+					'error' => __( 'Your review could not be saved. Your text is still here; please try again.', 'ashbi-testimonials' ),
+				),
 				'i18n'    => array(
 					'more'    => __( 'Read more', 'ashbi-testimonials' ),
 					'less'    => __( 'Show less', 'ashbi-testimonials' ),
@@ -117,7 +125,7 @@ class ABT_Render {
 	public function card( array $item, array $opts = array() ) {
 		$parts   = array_flip( $opts['parts'] ?? explode( ',', self::DEFAULT_PARTS ) );
 		$words   = (int) ( $opts['words'] ?? 0 );
-		$heading = in_array( $opts['heading'] ?? 'h3', array( 'h2', 'h3', 'h4', 'h5', 'h6', 'p' ), true ) ? $opts['heading'] : 'h3';
+		$heading = in_array( $opts['heading'] ?? 'h3', array( 'h2', 'h3', 'h4', 'h5', 'h6', 'p' ), true ) ? ( $opts['heading'] ?? 'h3' ) : 'h3';
 		$show    = static fn( $part ) => isset( $parts[ $part ] );
 
 		$classes = array( 'abt-card' );
@@ -149,6 +157,10 @@ class ABT_Render {
 			$html .= '</blockquote>';
 		}
 
+		if ( $show( 'verified' ) && ABT_Purchase::verified( $item ) ) {
+			$html .= '<p class="abt-card__purchase">' . esc_html__( 'Verified purchase', 'ashbi-testimonials' ) . '</p>';
+		}
+		$html .= ABT_Fields::card( $item );
 		if ( $show( 'product' ) && $item['product_title'] ) {
 			$html .= sprintf(
 				'<p class="abt-card__product">%s <a href="%s">%s</a></p>',
@@ -166,7 +178,7 @@ class ABT_Render {
 		}
 		$html .= '<span class="abt-card__who"><cite class="abt-card__name">' . esc_html( $item['author'] ) . '</cite>';
 		if ( $show( 'verified' ) && $item['verified'] ) {
-			$html .= '<span class="abt-badge-verified"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>' . esc_html__( 'Verified', 'ashbi-testimonials' ) . '</span>';
+			$html .= '<span class="abt-badge-verified"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>' . esc_html__( 'Checked by site owner', 'ashbi-testimonials' ) . '</span>';
 		}
 
 		$meta = array();
@@ -308,7 +320,7 @@ class ABT_Render {
 	 * @param string $url     Item URL.
 	 */
 	public function queue_schema( $type, $name, array $stats, array $reviews = array(), $url = '' ) {
-		if ( '1' !== abt_settings()['schema'] || ! $stats['rated'] || '' === $name || ! in_array( $type, array( 'Product', 'SoftwareApplication' ), true ) ) {
+		if ( '1' !== abt_settings()['schema'] || ( $stats['ineligible'] ?? $stats['rated'] ) || ! $stats['rated'] || '' === $name || ! in_array( $type, array( 'Product', 'SoftwareApplication' ), true ) ) {
 			return;
 		}
 		// WooCommerce already prints Product markup on its product pages.

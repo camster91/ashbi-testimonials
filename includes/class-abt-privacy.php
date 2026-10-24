@@ -54,8 +54,8 @@ class ABT_Privacy {
 			'paged' => max( 1, (int) $page ),
 			'orderby' => 'ID',
 			'order' => 'ASC',
-			'meta_key' => ABT_Data::META['email'],
-			'meta_value' => $email,
+			'meta_key' => ABT_Data::META['email'], // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Bounded batches for verified administrative privacy requests.
+			'meta_value' => $email, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Bounded batches for verified administrative privacy requests.
 		) );
 	}
 
@@ -74,6 +74,7 @@ class ABT_Privacy {
 			'avatar_url' => __( 'Avatar URL', 'ashbi-testimonials' ),
 			'product_id' => __( 'Associated product or page ID', 'ashbi-testimonials' ),
 			'subject' => __( 'Subject', 'ashbi-testimonials' ),
+			'origin' => __( 'Collection provenance', 'ashbi-testimonials' ),
 			'source' => __( 'Source', 'ashbi-testimonials' ),
 			'source_url' => __( 'Source URL', 'ashbi-testimonials' ),
 			'verified' => __( 'Verified flag', 'ashbi-testimonials' ),
@@ -91,6 +92,16 @@ class ABT_Privacy {
 				$value = get_post_meta( $id, ABT_Data::META[ $field ], true );
 				if ( is_scalar( $value ) && '' !== (string) $value ) {
 					$data[] = array( 'name' => $label, 'value' => (string) $value );
+				}
+			}
+			$proof = get_post_meta( $id, ABT_Purchase::META, true );
+			if ( is_array( $proof ) && $proof ) {
+				$data[] = array( 'name' => __( 'Purchase evidence', 'ashbi-testimonials' ), 'value' => wp_json_encode( $proof ) );
+			}
+			$custom = ABT_Fields::snapshots( get_post_meta( $id, ABT_Data::META['custom_fields'], true ) ?: array() );
+			if ( ! is_wp_error( $custom ) ) {
+				foreach ( $custom as $field ) {
+					$data[] = array( 'name' => $field['label'], 'value' => $field['value'] );
 				}
 			}
 			// Historical author/text values are personal data too.
@@ -142,7 +153,7 @@ class ABT_Privacy {
 
 	public function policy() {
 		if ( function_exists( 'wp_add_privacy_policy_content' ) ) {
-			wp_add_privacy_policy_content( 'Ashbi Testimonials', '<p>' . esc_html__( 'Suggested text: When you submit a review, we store your name, email, review, rating and any optional profile details you provide. Approved reviews and public profile details may be displayed on this site; your email is not displayed by this plugin. Submissions are held for moderation. A temporary hashed connection identifier limits submissions for one hour. Reviews remain until a site administrator removes them. You can request an export or erasure using the email associated with your reviews. Review-related media, backups and copies held by external services require separate handling. Administrators should describe their actual retention period and any configured email delivery or external media services.', 'ashbi-testimonials' ) . '</p>' );
+			wp_add_privacy_policy_content( 'Ashbi Testimonials', '<p>' . esc_html__( 'Suggested text: When you submit a review, we store your name, email, review, rating and any optional profile details you provide. Approved reviews and public profile details may be displayed on this site; your email is not displayed by this plugin. Submissions are held for moderation. Temporary hashed connection and retry identifiers limit submissions and prevent duplicate reviews for one hour. Processing locks are normally removed immediately; interrupted requests can leave expired lock records until a retry or explicit plugin cleanup. Reviews remain until a site administrator removes them. You can request an export or erasure using the email associated with your reviews. Review-related media, backups and copies held by external services require separate handling. Administrators should describe their actual retention period and any configured email delivery or external media services.', 'ashbi-testimonials' ) . '</p>' );
 		}
 	}
 }

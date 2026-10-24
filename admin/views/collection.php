@@ -43,7 +43,7 @@ $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yel
 				<summary class="button"><?php esc_html_e( 'Import / export', 'ashbi-testimonials' ); ?></summary>
 				<div class="abt-menu__list">
 					<button type="button" data-abt-open="abt-import-dialog"><span class="dashicons dashicons-upload" aria-hidden="true"></span><?php esc_html_e( 'Import CSV', 'ashbi-testimonials' ); ?></button>
-					<a href="<?php echo esc_url( $abt_export ); ?>"><span class="dashicons dashicons-download" aria-hidden="true"></span><?php esc_html_e( 'Export CSV', 'ashbi-testimonials' ); ?></a>
+					<a download href="<?php echo esc_url( $abt_export ); ?>"><span class="dashicons dashicons-download" aria-hidden="true"></span><?php esc_html_e( 'Export CSV', 'ashbi-testimonials' ); ?></a>
 				</div>
 			</details>
 			<button type="button" class="button" data-abt-open="abt-builder-dialog"><span class="dashicons dashicons-shortcode" aria-hidden="true"></span> <?php esc_html_e( 'Get shortcode', 'ashbi-testimonials' ); ?></button>
@@ -249,13 +249,23 @@ $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yel
 							<input type="date" id="abt-e-date" name="date" />
 						</div>
 					</div>
+					<div class="abt-field">
+						<label for="abt-e-origin"><?php esc_html_e( 'Review provenance', 'ashbi-testimonials' ); ?></label>
+						<select id="abt-e-origin" name="origin">
+							<option value="manual"><?php esc_html_e( 'Manually entered / not confirmed', 'ashbi-testimonials' ); ?></option>
+							<option value="direct"><?php esc_html_e( 'Collected directly from the reviewer', 'ashbi-testimonials' ); ?></option>
+							<option value="imported"><?php esc_html_e( 'Imported from another source', 'ashbi-testimonials' ); ?></option>
+						</select>
+						<p class="description"><?php esc_html_e( 'Confirm direct collection only for original reviews you received yourself. External source links and platform ratings remain excluded from review schema.', 'ashbi-testimonials' ); ?></p>
+					</div>
 					<div class="abt-toggles">
-						<label class="abt-toggle"><input type="checkbox" name="verified" value="1" /> <span><?php esc_html_e( 'Verified customer', 'ashbi-testimonials' ); ?></span></label>
+						<label class="abt-toggle"><input type="checkbox" name="verified" value="1" /> <span><?php esc_html_e( 'Manually checked', 'ashbi-testimonials' ); ?></span></label>
 						<label class="abt-toggle"><input type="checkbox" name="featured" value="1" /> <span><?php esc_html_e( 'Featured', 'ashbi-testimonials' ); ?></span></label>
 					</div>
 					<fieldset class="abt-field">
 						<legend><?php esc_html_e( 'Collections', 'ashbi-testimonials' ); ?></legend>
 						<div class="abt-checklist" data-abt-collections></div>
+						<div data-abt-custom-values></div>
 					</fieldset>
 				</section>
 			</div>
@@ -323,7 +333,7 @@ $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yel
 						<label class="abt-toggle"><input type="checkbox" name="summary" value="1" /> <span><?php esc_html_e( 'Rating summary', 'ashbi-testimonials' ); ?></span></label>
 						<label class="abt-toggle"><input type="checkbox" name="load_more" value="1" /> <span><?php esc_html_e( 'Load more button', 'ashbi-testimonials' ); ?></span></label>
 						<label class="abt-toggle"><input type="checkbox" name="featured" value="1" /> <span><?php esc_html_e( 'Featured only', 'ashbi-testimonials' ); ?></span></label>
-						<label class="abt-toggle"><input type="checkbox" name="verified" value="1" /> <span><?php esc_html_e( 'Verified only', 'ashbi-testimonials' ); ?></span></label>
+						<label class="abt-toggle"><input type="checkbox" name="verified" value="1" /> <span><?php esc_html_e( 'Manually checked only', 'ashbi-testimonials' ); ?></span></label>
 						<label class="abt-toggle"><input type="checkbox" name="product_current" value="1" /> <span><?php esc_html_e( 'Only the product being viewed', 'ashbi-testimonials' ); ?></span></label>
 					</div>
 				</div>

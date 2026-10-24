@@ -22,6 +22,7 @@ class ABT_Data {
 	 * ordering and filtering never miss posts that lack a value.
 	 */
 	const META = array(
+		'custom_fields' => '_abt_custom_fields',
 		'headline'   => '_abt_headline',
 		'rating'     => '_abt_rating',
 		'role'       => '_abt_role',
@@ -32,6 +33,7 @@ class ABT_Data {
 		'avatar_url' => '_abt_avatar_url',
 		'product_id' => '_abt_product_id',
 		'subject'    => '_abt_subject',
+		'origin'     => '_abt_origin',
 		'source'     => '_abt_source',
 		'source_url' => '_abt_source_url',
 		'verified'   => '_abt_verified',
@@ -115,7 +117,8 @@ class ABT_Data {
 
 	/** Invalidate cached rating summaries after any change. */
 	public function flush() {
-		update_option( ABT_CACHE_OPTION, (int) get_option( ABT_CACHE_OPTION, 1 ) + 1 );
+		// A fresh token cannot reuse a cached generation when another worker held an old option value.
+		update_option( ABT_CACHE_OPTION, wp_generate_uuid4() );
 	}
 
 	/* ==================================================================
@@ -226,6 +229,7 @@ class ABT_Data {
 			'layout' => $this->clean_layout( get_term_meta( $term->term_id, 'abt_layout', true ) ),
 			'accent' => (string) ( sanitize_hex_color( (string) get_term_meta( $term->term_id, 'abt_accent', true ) ) ?: '' ),
 			'count'  => (int) $term->count,
+			'fields' => ABT_Fields::for_collection( $term->term_id ),
 		);
 	}
 
@@ -237,6 +241,8 @@ class ABT_Data {
 	 * @return array|WP_Error
 	 */
 	public function save_collection( array $data, $id = 0 ) {
+		$fields = ABT_Fields::definitions( $data['fields'] ?? ( $id ? ABT_Fields::for_collection( $id ) : array() ) );
+		if ( is_wp_error( $fields ) ) { return $fields; }
 		$name = sanitize_text_field( (string) ( $data['name'] ?? '' ) );
 		if ( '' === $name ) {
 			return new WP_Error( 'abt_collection_name', __( 'Give the collection a name.', 'ashbi-testimonials' ) );
@@ -257,6 +263,7 @@ class ABT_Data {
 		}
 
 		$term_id = (int) $result['term_id'];
+		update_term_meta( $term_id, 'abt_fields', wp_slash( $fields ) );
 		$type    = sanitize_key( (string) ( $data['type'] ?? 'general' ) );
 		update_term_meta( $term_id, 'abt_type', isset( self::types()[ $type ] ) ? $type : 'general' );
 		update_term_meta( $term_id, 'abt_layout', $this->clean_layout( $data['layout'] ?? '' ) );
@@ -350,6 +357,7 @@ class ABT_Data {
 			'avatar_url'  => esc_url_raw( (string) ( $in['avatar_url'] ?? '' ) ),
 			'product_id'  => absint( $in['product_id'] ?? 0 ),
 			'subject'     => sanitize_text_field( (string) ( $in['subject'] ?? '' ) ),
+			'origin'      => in_array( $in['origin'] ?? '', array( 'direct', 'manual', 'imported' ), true ) ? $in['origin'] : 'manual',
 			'source'      => sanitize_text_field( (string) ( $in['source'] ?? '' ) ),
 			'source_url'  => esc_url_raw( (string) ( $in['source_url'] ?? '' ) ),
 			'verified'    => ! empty( $in['verified'] ) && '0' !== (string) $in['verified'] ? 1 : 0,
@@ -368,7 +376,13 @@ class ABT_Data {
 	 * @return int|WP_Error Post ID.
 	 */
 	public function save( array $raw, $id = 0 ) {
+		if ( $id && ! array_key_exists( 'origin', $raw ) ) {
+			$raw['origin'] = get_post_meta( $id, self::META['origin'], true );
+		}
+		$custom = ABT_Fields::snapshots( $raw['custom_fields'] ?? ( $id ? get_post_meta( $id, self::META['custom_fields'], true ) ?: array() : array() ) );
+		if ( is_wp_error( $custom ) ) { return $custom; }
 		$data = $this->sanitize( $raw );
+		$data['custom_fields'] = $custom;
 		if ( '' === $data['author'] ) {
 			return new WP_Error( 'abt_author', __( 'Add the reviewer’s name.', 'ashbi-testimonials' ) );
 		}
@@ -404,7 +418,7 @@ class ABT_Data {
 		}
 
 		foreach ( self::META as $field => $key ) {
-			update_post_meta( $post_id, $key, $data[ $field ] );
+			update_post_meta( $post_id, $key, wp_slash( $data[ $field ] ) );
 		}
 		wp_set_object_terms( $post_id, $data['collections'], self::TAXONOMY );
 		$this->flush();
@@ -435,6 +449,8 @@ class ABT_Data {
 		foreach ( self::META as $field => $key ) {
 			$item[ $field ] = get_post_meta( $post->ID, $key, true );
 		}
+		$custom = ABT_Fields::snapshots( $item['custom_fields'] ?: array() );
+		$item['custom_fields'] = is_wp_error( $custom ) ? array() : $custom;
 		foreach ( array( 'rating', 'avatar_id', 'product_id', 'verified', 'featured' ) as $int_field ) {
 			$item[ $int_field ] = (int) $item[ $int_field ];
 		}
@@ -534,11 +550,11 @@ class ABT_Data {
 		switch ( $args['orderby'] ) {
 			case 'rating':
 				$q['meta_query']['abt_rating'] = array( 'key' => self::META['rating'], 'type' => 'NUMERIC' );
-				$q['orderby']                  = array( 'abt_rating' => $order, 'date' => 'DESC' );
+				$q['orderby']                  = array( 'abt_rating' => $order, 'date' => 'DESC', 'ID' => 'DESC' );
 				break;
 			case 'featured':
 				$q['meta_query']['abt_featured'] = array( 'key' => self::META['featured'], 'type' => 'NUMERIC' );
-				$q['orderby']                    = array( 'abt_featured' => 'DESC', 'date' => $order );
+				$q['orderby']                    = array( 'abt_featured' => 'DESC', 'date' => $order, 'ID' => $order );
 				break;
 			case 'random':
 				$q['orderby'] = 'rand';
@@ -589,72 +605,63 @@ class ABT_Data {
 		$ids        = array_map( 'absint', (array) ( $args['ids'] ?? array() ) );
 		sort( $ids );
 
-		$key    = 'abt_stats_' . md5( wp_json_encode( array( $collections, $product_id, $subject, $rating, $min_rating, $featured, $verified, $ids, get_option( ABT_CACHE_OPTION, 1 ) ) ) );
+		$key    = 'abt_stats_' . md5( wp_json_encode( array( 'eligibility-pivot-v2', $collections, $product_id, $subject, $rating, $min_rating, $featured, $verified, $ids, get_option( ABT_CACHE_OPTION, 1 ) ) ) );
 		$cached = get_transient( $key );
 		if ( is_array( $cached ) ) {
 			return $cached;
 		}
 
-		$joins  = '';
-		$params = array( self::META['rating'] );
+		// Pivot only the needed metadata once per matching review. Four independent
+		// meta joins caused multiplicative work and unstable plans in the 100k fixture.
+		$fields = array( 'rating', 'origin', 'source', 'source_url' );
+		$params = array(); $select = array();
+		foreach ( $fields as $field ) {
+			$select[] = "COALESCE(MAX(CASE WHEN pm.meta_key = %s THEN pm.meta_value END), '') AS {$field}";
+			$params[] = self::META[ $field ];
+		}
+		$placeholders = implode( ',', array_fill( 0, count( $fields ), '%s' ) );
+		foreach ( $fields as $field ) { $params[] = self::META[ $field ]; }
+		$joins = '';
 		if ( $collections ) {
 			$tt_ids = array();
 			foreach ( $collections as $term_id ) {
 				$term = get_term( $term_id, self::TAXONOMY );
-				if ( $term instanceof WP_Term ) {
-					$tt_ids[] = (int) $term->term_taxonomy_id;
-				}
+				if ( $term instanceof WP_Term ) { $tt_ids[] = (int) $term->term_taxonomy_id; }
 			}
-			if ( ! $tt_ids ) {
-				$tt_ids = array( 0 );
-			}
-			$joins .= " INNER JOIN {$wpdb->term_relationships} tr ON tr.object_id = p.ID AND tr.term_taxonomy_id IN (" . implode( ',', $tt_ids ) . ')';
+			$joins = " INNER JOIN {$wpdb->term_relationships} tr ON tr.object_id = p.ID AND tr.term_taxonomy_id IN (" . implode( ',', $tt_ids ?: array( 0 ) ) . ')';
 		}
-		if ( $product_id ) {
-			$joins   .= " INNER JOIN {$wpdb->postmeta} pp ON pp.post_id = p.ID AND pp.meta_key = %s AND pp.meta_value = %s";
-			$params[] = self::META['product_id'];
-			$params[] = (string) $product_id;
-		}
-		if ( '' !== $subject ) {
-			$joins   .= " INNER JOIN {$wpdb->postmeta} ps ON ps.post_id = p.ID AND ps.meta_key = %s AND ps.meta_value = %s";
-			$params[] = self::META['subject'];
-			$params[] = $subject;
-		}
-		foreach ( array( 'featured' => $featured, 'verified' => $verified ) as $field => $enabled ) {
-			if ( $enabled ) {
-				$alias = 'p_' . $field;
-				$joins .= " INNER JOIN {$wpdb->postmeta} {$alias} ON {$alias}.post_id = p.ID AND {$alias}.meta_key = %s AND {$alias}.meta_value = '1'";
-				$params[] = self::META[ $field ];
+		foreach ( array( 'product_id' => $product_id ? (string) $product_id : '', 'subject' => $subject, 'featured' => $featured ? '1' : '', 'verified' => $verified ? '1' : '' ) as $field => $value ) {
+			if ( '' !== $value ) {
+				$alias = 'filter_' . $field;
+				$joins .= " INNER JOIN {$wpdb->postmeta} {$alias} ON {$alias}.post_id = p.ID AND {$alias}.meta_key = %s AND {$alias}.meta_value = %s";
+				$params[] = self::META[ $field ]; $params[] = $value;
 			}
 		}
 		$params[] = self::POST_TYPE;
-		$where = '';
-		if ( $rating > 0 ) {
-			$where .= ' AND CAST(pm.meta_value AS UNSIGNED) = %d';
-			$params[] = $rating;
-		} elseif ( $min_rating > 0 ) {
-			$where .= ' AND CAST(pm.meta_value AS UNSIGNED) >= %d';
-			$params[] = $min_rating;
-		}
-		if ( $ids ) {
-			$where .= ' AND p.ID IN (' . implode( ',', $ids ) . ')';
-		}
-
-		// Integer IDs are cast above; every other value is a placeholder.
-		$sql  = "SELECT CAST(pm.meta_value AS UNSIGNED) AS rating, COUNT(DISTINCT p.ID) AS n FROM {$wpdb->posts} p
-			LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key = %s
-			{$joins}
-			WHERE p.post_type = %s AND p.post_status = 'publish' {$where}
-			GROUP BY rating";
-		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Cached in a versioned transient; dynamic parts are cast integers and core table names.
+		$post_where = $ids ? ' AND p.ID IN (' . implode( ',', $ids ) . ')' : '';
+		$where = array();
+		if ( $rating > 0 ) { $where[] = 'CAST(r.rating AS UNSIGNED) = %d'; $params[] = $rating; }
+		elseif ( $min_rating > 0 ) { $where[] = 'CAST(r.rating AS UNSIGNED) >= %d'; $params[] = $min_rating; }
+		$filter = $where ? 'WHERE ' . implode( ' AND ', $where ) : '';
+		$select_sql = implode( ',', $select );
+		$sql = "SELECT CAST(r.rating AS UNSIGNED) AS rating, COUNT(*) AS n,
+			SUM(CASE WHEN CAST(r.rating AS UNSIGNED) BETWEEN 1 AND 5 AND
+			(r.origin <> 'direct' OR r.source_url <> '' OR LOWER(TRIM(r.source)) NOT IN ('', 'website', 'email', 'survey')) THEN 1 ELSE 0 END) AS ineligible
+			FROM (SELECT p.ID, {$select_sql} FROM {$wpdb->posts} p
+			LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key IN ({$placeholders})
+			{$joins} WHERE p.post_type = %s AND p.post_status = 'publish' {$post_where} GROUP BY p.ID) r
+			{$filter} GROUP BY CAST(r.rating AS UNSIGNED)";
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Cached transient; fields are a static allowlist, IDs cast, other values prepared.
 
 		$breakdown = array( 5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0 );
 		$count     = 0;
 		$sum       = 0;
+		$ineligible = 0;
 		foreach ( (array) $rows as $row ) {
 			$rating = (int) $row->rating;
 			$n      = (int) $row->n;
 			$count += $n;
+			$ineligible += (int) $row->ineligible;
 			if ( $rating >= 1 && $rating <= 5 ) {
 				$breakdown[ $rating ] += $n;
 				$sum                  += $rating * $n;
@@ -666,6 +673,7 @@ class ABT_Data {
 			'rated'     => $rated,
 			'average'   => $rated ? round( $sum / $rated, 2 ) : 0.0,
 			'breakdown' => $breakdown,
+			'ineligible' => $ineligible,
 		);
 		set_transient( $key, $result, DAY_IN_SECONDS );
 		return $result;

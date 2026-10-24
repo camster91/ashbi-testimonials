@@ -1,0 +1,49 @@
+name: Real v1.0.0 upgrade and rollback
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: upgrade-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install -g @wordpress/env
+      - name: Build candidate and exact v1.0.0 source package
+        run: |
+          bash scripts/package.sh
+          cp dist/ashbi-testimonials-*.zip dist/candidate.zip
+          git archive --format=zip --prefix=ashbi-testimonials/ --output=dist/v1.0.0-source.zip v1.0.0
+      - name: Start separate disposable WordPress without a bind-mounted plugin
+        run: |
+          echo '{"phpVersion":"8.4","plugins":[],"mappings":{"wp-content/abt-fixtures":"./tests","wp-content/abt-packages":"./dist"},"config":{"WP_DEBUG":true}}' > .wp-env.json
+          wp-env start
+      - name: Seed using the real v1.0.0 code
+        run: |
+          wp-env run cli wp plugin install wp-content/abt-packages/v1.0.0-source.zip --activate
+          wp-env run cli env ABT_DISPOSABLE_TEST=1 ABT_UPGRADE_PHASE=seed wp eval-file wp-content/abt-fixtures/wordpress-upgrade.php
+      - name: Upgrade preserves data
+        run: |
+          wp-env run cli wp plugin install wp-content/abt-packages/candidate.zip --force --activate
+          wp-env run cli env ABT_DISPOSABLE_TEST=1 ABT_UPGRADE_PHASE=check wp eval-file wp-content/abt-fixtures/wordpress-upgrade.php
+      - name: Deactivation retains data and binary rollback preserves it
+        run: |
+          wp-env run cli wp plugin deactivate ashbi-testimonials
+          wp-env run cli wp plugin install wp-content/abt-packages/v1.0.0-source.zip --force --activate
+          wp-env run cli env ABT_DISPOSABLE_TEST=1 ABT_UPGRADE_PHASE=rollback wp eval-file wp-content/abt-fixtures/wordpress-upgrade.php
+      - name: Reinstall candidate after rollback
+        run: |
+          wp-env run cli wp plugin install wp-content/abt-packages/candidate.zip --force --activate
+          wp-env run cli env ABT_DISPOSABLE_TEST=1 ABT_UPGRADE_PHASE=reinstall wp eval-file wp-content/abt-fixtures/wordpress-upgrade.php

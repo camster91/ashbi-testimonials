@@ -172,7 +172,7 @@
 	display: grid;
 	place-items: center;
 	background: hsl(var(--abt-hue, 220) 70% 92%);
-	color: hsl(var(--abt-hue, 220) 55% 32%);
+	color: hsl(var(--abt-hue, 220) 55% 24%);
 	font-weight: 700;
 	font-size: .95em;
 }
@@ -433,3 +433,11 @@
 	.abt-stars__fill { color: CanvasText; }
 	.abt-stars__base { color: GrayText; }
 }
+
+.abt-card__fields { margin-block:1em; font-size:.9em; overflow-wrap:anywhere; }
+.abt-card__fields > div { display:flex; gap:.75em; flex-wrap:wrap; margin-block:.35em; }
+.abt-card__fields dt { font-weight:600; }
+.abt-card__fields dd { margin:0; white-space:pre-wrap; }
+.abt-form select { box-sizing:border-box; max-width:100%; width:100%; font:inherit; padding:.65em; }
+
+.abt-card__purchase { font-size:.85em; font-weight:600; margin-block:.75em; }

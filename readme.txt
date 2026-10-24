@@ -4,7 +4,7 @@ Tags: testimonials, reviews, product reviews, star rating, shortcode
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,7 @@ Collect, organise and display testimonials and reviews for your store, products,
 
 == Description ==
 
-Ashbi Testimonials works for a freelancer with five client quotes and for a store with thousands of products and tens of thousands of reviews.
+Ashbi Testimonials collects, organises and displays directly collected reviews in your WordPress database. All features are free; no licence key, Ashbi account, telemetry or mandatory public credit.
 
 * Collections group reviews: store reviews, product reviews, software reviews, service reviews or general testimonials. Create as many as you need.
 * Attach any review to a WooCommerce product, page or post, or to a free-text label such as a plan name or SKU.
@@ -54,7 +54,7 @@ Yes. Attach each review to its product, then use product="current" on your produ
 Yes. It uses a signed target-bound token without a time expiry instead of a nonce, a hidden honeypot field and a limit of five submissions per hour per visitor. Every submission is held as pending.
 
 = Will it add star ratings in search results? =
-For products and software it can add AggregateRating structured data. It never adds review markup for your own business, which search engines ignore. When the WooCommerce testimonials tab is enabled, its ratings are combined with native ratings in the existing Product schema. Whether stars appear is decided by the search engine.
+For directly collected product/software reviews, it can add AggregateRating structured data when the aggregate is visible and the view is not curated. Existing/manual/CSV reviews stay visible but require a manager to confirm direct provenance. External source links/platform reviews are excluded; a mixed-provenance view adds no Ashbi aggregate. It never adds review markup for your own business, which search engines ignore. When the WooCommerce testimonials tab is enabled, eligible directly collected ratings are combined with native ratings in the existing Product schema. Whether stars appear is decided by the search engine.
 
 = What happens when I delete the plugin? =
 Deactivation and deletion keep reviews, collections and settings by default, including on existing installations. An administrator can enable permanent deletion in Testimonials > Settings before deleting the plugin. This preference applies separately to each multisite site. Media Library files are kept. Export a CSV backup before enabling deletion.
@@ -64,5 +64,21 @@ Use WordPress Tools > Export Personal Data or Erase Personal Data with the email
 
 == Changelog ==
 
+= 1.1.0 =
+* Free native Testimonials, Rating Summary and Review Form blocks and an optional free Elementor widget.
+* Reusable design presets with validated JSON portability; custom collection questions with private/public answer controls and CSV round trips.
+* Native WordPress privacy export/erasure, default data retention on deletion and explicit per-site cleanup.
+* Reliable form outcomes, bounded inputs, concurrent rate protection, exact retry deduplication and accessible browser recovery.
+* Conservative review provenance and schema eligibility; deterministic bounded public pagination.
+* Separate order-backed Verified purchase badge and default-off customer-requested WooCommerce reminder workflow.
+* Expanded real WordPress, WooCommerce HPOS/legacy, Elementor, multisite, browser/accessibility and upgrade/rollback checks.
+
+
 = 1.0.0 =
 * First release.
+
+== Support and privacy ==
+
+All features are free, without an Ashbi account or forced credit. Start with https://github.com/camster91/ashbi-testimonials/blob/main/docs/OPERATIONS.md for installation, privacy, import recovery and rollback. Non-sensitive support: https://github.com/camster91/ashbi-testimonials/issues . Never post customer data, credentials or signed preference links. Security reporting: https://github.com/camster91/ashbi-testimonials/blob/main/SECURITY.md . Private diagnostics in Settings contain versions and configuration flags only and are never sent automatically.
+
+The optional reminder workflow is off by default and requires both administrator configuration and explicit customer opt-in. WordPress mail acceptance does not guarantee inbox delivery. No external review connector or million-site performance claim is included.

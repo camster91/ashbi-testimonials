@@ -7,7 +7,7 @@ const source = fs.readFileSync(require('node:path').join(__dirname, '../assets/j
 test('opening an imported review preserves paragraphs and safe HTML', () => {
   const fields = new Proxy({}, { get: (target, key) => target[key] ||= { value: '', focus() {} } });
   const ctx = { eform: { elements: fields, reset() {} }, eerror: {}, etitle: { dataset: {} }, collectionId: 1,
-    collectionsBox: {}, editor: {}, $: () => ({}), $$: () => [], today: () => '2026-01-01',
+    collectionsBox: {}, editor: {}, customBox: { replaceChildren() {} }, customSnapshots: {}, renderCustom() {}, $: () => ({}), $$: () => [], today: () => '2026-01-01',
     setRating() {}, setAvatar() {}, setProduct() {}, openDialog() {} };
   vm.createContext(ctx);
   vm.runInContext(source.slice(source.indexOf('function openEditor('), source.indexOf('\n\tasync function saveEditor')), ctx);
@@ -43,3 +43,21 @@ for (const fails of [false, true]) {
     assert.equal(ctx.rowsEl.innerHTML, '');
   });
 }
+
+test('multiple collections keep at most ten stored answers and preserve historical answers', () => {
+  const box = { innerHTML: '', insertAdjacentHTML(_, html) { this.innerHTML += html; } };
+  const defs = prefix => Object.fromEntries(Array.from({length:6},(_,i)=>[prefix+i,{key:prefix+i,label:prefix+i,type:'text',public:true,options:[]} ]));
+  const ctx = { cfg:{collections:[{id:1,fields:defs('a')},{id:2,fields:defs('b')}]}, editor:{}, collectionsBox:{},
+    $: selector => selector === '[data-abt-custom-values]' ? box : { addEventListener() {} },
+    $$: selector => selector.includes('collections') ? [{value:'1'},{value:'2'}] : [], esc: x=>String(x), __: x=>x, sprintf:(x,n)=>x.replace('%s',n) };
+  vm.createContext(ctx);
+  const start=source.indexOf('let customSnapshots =');
+  const end=source.indexOf('\n\tcustomBox.addEventListener',start);
+  vm.runInContext(source.slice(start,end),ctx);
+  vm.runInContext('renderCustom()',ctx);
+  assert.equal(vm.runInContext('Object.keys(customSnapshots).length',ctx),10);
+  assert.ok(box.innerHTML.includes('data-custom-remove') && box.innerHTML.includes('Additional question'));
+  vm.runInContext("customSnapshots={old:{label:'Historical',type:'text',public:false,value:'Keep this'}};renderCustom()",ctx);
+  assert.equal(vm.runInContext('Object.keys(customSnapshots).length',ctx),10);
+  assert.equal(vm.runInContext('customSnapshots.old.value',ctx),'Keep this');
+});

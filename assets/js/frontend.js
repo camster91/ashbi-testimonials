@@ -104,6 +104,49 @@
 		}
 	}
 
+	// Keep review text in the form on errors; no browser storage or personal data in URLs.
+	async function submitReview( form ) {
+		if ( form.getAttribute( 'aria-busy' ) === 'true' ) { return; }
+		const button = form.querySelector( '[type="submit"]' );
+		const label = button.textContent;
+		const wrapper = form.closest( '.abt-form-wrap' );
+		let note = wrapper.querySelector( '.abt-form__notice' );
+		if ( ! note ) { note = document.createElement( 'p' ); wrapper.prepend( note ); }
+		const controller = new AbortController();
+		const timeout = setTimeout( () => controller.abort(), 15000 );
+		form.setAttribute( 'aria-busy', 'true' ); button.disabled = true;
+		button.textContent = t( 'loading', 'Loading…' );
+		let status = 'error';
+		try {
+			const body = new FormData( form );
+			if ( Number( form.dataset && form.dataset.abtProduct ) > 0 ) {
+				const proof = new FormData(); proof.append( 'action', 'abt_purchase_nonce' ); proof.append( 'product_id', form.dataset.abtProduct );
+				const proofController = new AbortController();
+				const proofTimeout = setTimeout( () => proofController.abort(), 3000 );
+				try {
+					const context = await fetch( cfg.ajaxUrl, { method: 'POST', body: proof, credentials: 'same-origin', signal: proofController.signal } );
+					const result = await context.json();
+					if ( result.success && result.data && result.data.nonce ) { body.append( 'abt_purchase_nonce', result.data.nonce ); }
+				} catch ( error ) { /* Purchase proof is optional; the review still submits. */ } finally { clearTimeout( proofTimeout ); }
+			}
+			const response = await fetch( form.getAttribute( 'action' ), { method: 'POST', body, credentials: 'same-origin', signal: controller.signal } );
+			if ( response.ok ) { status = new URL( response.url ).searchParams.get( 'abt_status' ) || 'error'; }
+		} catch ( error ) { status = 'error'; }
+		finally { clearTimeout( timeout ); form.removeAttribute( 'aria-busy' ); button.disabled = false; button.textContent = label; }
+		const messages = cfg.form || {};
+		const success = status === 'thanks';
+		note.className = 'abt-form__notice abt-form__notice--' + ( success ? 'ok' : 'error' );
+		note.setAttribute( 'role', success ? 'status' : 'alert' );
+		note.setAttribute( 'tabindex', '-1' );
+		note.textContent = messages[ status ] || messages.error || 'Your review could not be saved. Please try again.';
+		if ( success ) { form.reset(); }
+		note.focus();
+	}
+
+	document.addEventListener( 'submit', ( event ) => {
+		if ( event.target.matches( '.abt-form' ) ) { event.preventDefault(); submitReview( event.target ); }
+	} );
+
 	function init( root = document ) {
 		root.querySelectorAll( '[data-abt-slider]' ).forEach( initSlider );
 	}

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "ashbi/review-form",
+  "version": "1.1.0",
+  "title": "Review Form",
+  "category": "widgets",
+  "icon": "format-quote",
+  "description": "Display approved reviews, ratings or a moderated collection form.",
+  "textdomain": "ashbi-testimonials",
+  "attributes": {
+    "collection": {
+      "type": "string",
+      "default": ""
+    },
+    "product": {
+      "type": "string",
+      "default": ""
+    },
+    "layout": {
+      "type": "string",
+      "default": "grid"
+    },
+    "columns": {
+      "type": "string",
+      "default": "3"
+    },
+    "theme": {
+      "type": "string",
+      "default": "light"
+    },
+    "accent": {
+      "type": "string",
+      "default": ""
+    },
+    "limit": {
+      "type": "string",
+      "default": "9"
+    },
+    "summary": {
+      "type": "string",
+      "default": "1"
+    },
+    "load_more": {
+      "type": "string",
+      "default": "0"
+    },
+    "schema": {
+      "type": "string",
+      "default": "1"
+    },
+    "show": {
+      "type": "string",
+      "default": "avatar,rating,headline,role,company,source,verified"
+    },
+    "title": {
+      "type": "string",
+      "default": "Leave a review"
+    },
+    "button": {
+      "type": "string",
+      "default": "Submit review"
+    },
+    "preset": {
+      "type": "string",
+      "default": ""
+    }
+  },
+  "usesContext": [
+    "postId",
+    "postType"
+  ],
+  "supports": {
+    "html": false,
+    "align": [
+      "wide",
+      "full"
+    ]
+  },
+  "editorScript": "abt-block-editor",
+  "editorStyle": "abt-frontend"
+}

@@ -43,7 +43,7 @@ class ABT_WooCommerce {
 			return $markup;
 		}
 		$stats = ABT_Data::instance()->stats( array( 'product_id' => $product->get_id() ) );
-		if ( ! $stats['rated'] ) {
+		if ( ! $stats['rated'] || ( $stats['ineligible'] ?? $stats['rated'] ) ) {
 			return $markup;
 		}
 		// Use each star count rather than a rounded native average.

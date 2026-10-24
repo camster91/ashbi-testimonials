@@ -27,10 +27,10 @@ try {
 foreach ( array( 'draft', 'private', 'password', 'publish' ) as $visibility ) {
 	$title = 'Confidential product ' . $visibility;
 	$product = wp_insert_post( array( 'post_type' => 'page', 'post_title' => $title, 'post_status' => 'password' === $visibility ? 'publish' : $visibility, 'post_password' => 'password' === $visibility ? 'secret' : '' ) );
-	$item = $data->save( array( 'author' => 'Reviewer', 'content' => 'Useful.', 'rating' => 5, 'product_id' => $product, 'collections' => array( $collection['id'] ) ) );
+	$item = $data->save( array( 'origin' => 'direct', 'author' => 'Reviewer', 'content' => 'Useful.', 'rating' => 5, 'product_id' => $product, 'collections' => array( $collection['id'] ) ) );
 	$check( false !== strpos( $data->get( $item )['product_title'], $title ), 'administrators retain product details for ' . $visibility );
 	wp_set_current_user( 0 );
-	$html = do_shortcode( '[ashbi_testimonials ids="' . $item . '" product="' . $product . '" show="product" schema="1"]' );
+	$html = do_shortcode( '[ashbi_testimonials summary="1" product="' . $product . '" show="product" schema="1"]' );
 	ob_start();
 	ABT_Render::instance()->print_schema();
 	$schema = ob_get_clean();

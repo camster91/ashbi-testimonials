@@ -1,5 +1,12 @@
 name: Validate plugin
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -23,9 +30,9 @@ jobs:
       - name: Avatar without mbstring uppercase support
         run: php -d disable_functions=mb_strtoupper tests/avatar-without-mbstring.php
       - name: Admin JavaScript regressions
-        run: node --test tests/admin-regressions.test.cjs
+        run: node --test tests/*test.cjs
       - name: JavaScript syntax
-        run: node --check assets/js/admin.js && node --check assets/js/frontend.js
+        run: node --check assets/js/admin.js && node --check assets/js/frontend.js && node --check assets/js/blocks.js
       - name: Package
         if: matrix.php == '8.2'
         run: bash scripts/package.sh
@@ -70,6 +77,26 @@ jobs:
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-review-regressions.php
       - name: Deeper review regressions
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-deeper-review.php
+      - name: Summary filter consistency
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-aggregate.php
+      - name: Bounded public pagination
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-pagination.php
+      - name: Custom review field privacy and portability
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-custom-fields.php
+      - name: Portable design presets
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-presets.php
+      - name: Native editor rendering
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-editors.php
+      - name: Review schema eligibility
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-schema-eligibility.php
+      - name: Public form validation and retries
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-form-safety.php
+      - name: Parallel public submissions
+        run: |
+          for round in 1 2 3 4 5; do
+            wp-env run cli env ABT_DISPOSABLE_TEST=1 wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-form-concurrent.php setup
+            wp-env run cli env ABT_DISPOSABLE_TEST=1 sh -c 'for i in 1 2 3 4 5 6 7 8 9 10; do wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-form-concurrent.php worker "$i" & done; wait; wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-form-concurrent.php check'
+          done
       - name: Management permissions and public data boundaries
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-permissions.php
       - name: WordPress privacy export and erasure
@@ -82,6 +109,11 @@ jobs:
           if grep -iE 'ashbi-testimonials|abt_' debug.log; then echo 'Plugin logged PHP notices'; exit 1; fi
   woocommerce:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        storage: ['no', 'yes']
+    name: WooCommerce (HPOS ${{ matrix.storage }})
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -95,6 +127,12 @@ jobs:
           wp-env run cli wp plugin install woocommerce --activate
           wp-env run cli wp plugin activate ashbi-testimonials
           wp-env run cli wp plugin list --status=active
+      - name: Select order storage before creating any orders
+        run: wp-env run cli wp option update woocommerce_custom_orders_table_enabled ${{ matrix.storage }}
+      - name: Genuine purchase evidence
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-purchase.php
+      - name: Opt-in review reminder scheduling (mail intercepted)
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-requests.php
       - name: WooCommerce product tab test
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-woocommerce.php
       - name: No PHP notices from the plugin
@@ -119,3 +157,45 @@ jobs:
       - name: Verify per-site uninstall retention and cleanup
         run: wp-env run cli env ABT_DISPOSABLE_TEST=1 wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-uninstall.php
 
+
+  elementor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install -g @wordpress/env
+      - name: Start disposable WordPress with free Elementor
+        run: |
+          echo '{"phpVersion":"8.3","testsEnvironment":false,"plugins":["."],"config":{"WP_DEBUG":true,"WP_DEBUG_LOG":"/var/www/html/wp-content/debug.log","WP_DEBUG_DISPLAY":false}}' > .wp-env.json
+          wp-env start
+          wp-env run cli wp plugin install elementor --activate
+      - name: Native Elementor widget
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-elementor.php
+      - name: No plugin PHP notices
+        run: |
+          wp-env run cli sh -c 'touch wp-content/debug.log; cat wp-content/debug.log' > debug.log
+          if grep -iE 'ashbi-testimonials|abt_' debug.log; then echo 'Plugin logged PHP notices'; exit 1; fi
+
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save --ignore-scripts @wordpress/env playwright@1.61.0 @axe-core/playwright@4.14.0
+      - run: npx playwright install --with-deps --no-shell chromium
+      - name: Start disposable browser fixture
+        run: |
+          echo '{"phpVersion":"8.3","testsEnvironment":false,"plugins":["."]}' > .wp-env.json
+          npx wp-env start
+          npx wp-env run cli env ABT_DISPOSABLE_TEST=1 wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-browser-fixture.php > browser-fixture.log
+      - name: Responsive and accessibility browser flows
+        run: xvfb-run --auto-servernum node tests/browser-flows.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-screenshots
+          path: browser-results/

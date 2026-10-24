@@ -1,0 +1,7 @@
+# External review connector — gated discovery
+
+Status: no API connector is shipped or claimed. No authorised source account, credentials, API permission, quota/cost record or accepted retention/attribution terms were supplied. CSV import is portable data entry, not a resumable source sync. Cameron must select and authorise one source and account before implementation/validation can be completed.
+
+The first adapter contract must define an immutable source/account/review ID, display authorisation/attribution, original rating/date/text/source link, import provenance, incremental cursor, safe retry/backoff, quota budget, token storage/rotation, revoked-access handling, upstream deletions and local suppression. Keep API secrets server-side; never expose them to blocks or CSV. Imported external reviews stay schema-ineligible and cannot acquire purchase evidence. Revocation/deletion must stop public display or preserve only what the approved retention terms permit.
+
+Required acceptance evidence: authorised sandbox/account fixture; interrupted/resumed sync with no duplicate records; 429/backoff and bounded retries; access revocation; source review deletion; private diagnostics with no secrets; native privacy export/erasure; controlled cost/quota limits and a documented opt-out/removal path. Use official source documentation at implementation time and record its date/version. Do not build an unauthorised scraper, promise platform support, fabricate API access or publish client case studies without permission.

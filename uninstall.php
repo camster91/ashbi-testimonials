@@ -15,10 +15,13 @@ if ( ! current_user_can( 'activate_plugins' ) ) {
 
 $abt_cleanup_site = static function () {
 	global $wpdb;
+	wp_unschedule_hook( 'abt_review_request' );
 	$abt_settings = get_option( 'abt_settings', array() );
 	if ( ! is_array( $abt_settings ) || '1' !== ( $abt_settings['delete_on_uninstall'] ?? '0' ) ) {
 		return;
 	}
+
+	delete_metadata( 'user', 0, '_abt_request_optout_' . get_current_blog_id(), '', true );
 
 	// Posts with their meta, revisions and term relationships.
 	$abt_ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time uninstall enumeration.
@@ -41,12 +44,12 @@ $abt_cleanup_site = static function () {
 		// phpcs:enable
 	}
 
-	foreach ( array( 'abt_settings', 'abt_plugin_version', 'abt_cache_version' ) as $abt_key ) {
+	foreach ( array( 'abt_settings', 'abt_plugin_version', 'abt_cache_version', 'abt_design_presets' ) as $abt_key ) {
 		delete_option( $abt_key );
 	}
 
 	// Cached rating summaries and submission rate limits use hashed keys.
-	foreach ( array( '_transient_abt_', '_transient_timeout_abt_' ) as $abt_prefix ) {
+	foreach ( array( 'abt_request_', 'abt_submit_lock_', '_transient_abt_', '_transient_timeout_abt_' ) as $abt_prefix ) {
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $wpdb->esc_like( $abt_prefix ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transient keys are unpredictable.
 	}
 };

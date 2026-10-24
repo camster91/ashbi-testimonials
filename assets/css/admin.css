@@ -300,3 +300,8 @@ a.abt-stat:hover {border-color:var(--abt-blue)}
  .abt-tab[aria-selected=true] {border-bottom-color:Highlight}
  .abt-type:has(input:checked),.abt-layout-opt:has(input:checked),.abt-toggle:has(input:checked) {outline:2px solid Highlight}
 }
+
+.abt-custom-definition { border:1px solid #c3c4c7; padding:12px; margin-block:12px; }
+.abt-custom-definition > label { display:block; margin-block:8px; }
+.abt-custom-definition input:not([type="checkbox"]), .abt-custom-definition textarea { display:block; width:100%; }
+[data-abt-custom-values] { margin-block-start:16px; }
