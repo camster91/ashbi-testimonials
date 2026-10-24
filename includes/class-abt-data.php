@@ -658,7 +658,7 @@ class ABT_Data {
 			{$joins}
 			WHERE p.post_type = %s AND p.post_status = 'publish' {$where}
 			GROUP BY rating";
-		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Cached in a versioned transient; dynamic parts are cast integers and core table names.
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Cached in a versioned transient; dynamic parts are cast integers and core table names.
 
 		$breakdown = array( 5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0 );
 		$count     = 0;

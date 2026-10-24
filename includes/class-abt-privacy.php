@@ -54,8 +54,8 @@ class ABT_Privacy {
 			'paged' => max( 1, (int) $page ),
 			'orderby' => 'ID',
 			'order' => 'ASC',
-			'meta_key' => ABT_Data::META['email'],
-			'meta_value' => $email,
+			'meta_key' => ABT_Data::META['email'], // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Bounded batches for verified administrative privacy requests.
+			'meta_value' => $email, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Bounded batches for verified administrative privacy requests.
 		) );
 	}
 

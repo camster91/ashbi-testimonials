@@ -211,7 +211,7 @@ class ABT_Form {
 			if ( ! isset( $_POST[ $field ] ) ) {
 				continue;
 			}
-			$value = $_POST[ $field ];
+			$value = $_POST[ $field ]; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Raw type/byte bounds checked first; unslashed below and sanitized by ABT_Data before save.
 			if ( ! is_string( $value ) || strlen( $value ) > $limit * 4 || wp_check_invalid_utf8( $value ) !== $value ) {
 				$go( 'invalid' );
 			}
@@ -246,7 +246,7 @@ class ABT_Form {
 		foreach ( array( 'author', 'email', 'role', 'company', 'location', 'headline', 'content', 'rating' ) as $key ) {
 			$fields[ $key ] = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised by ABT_Data::sanitize().
 		}
-		if ( '1' !== ( $_POST['consent'] ?? '' ) || ! preg_match( '/^[0-5]?$/', $fields['rating'] ) || '' === trim( (string) $fields['author'] ) || ! is_email( (string) $fields['email'] ) || '' === trim( (string) $fields['content'] ) ) {
+		if ( '1' !== sanitize_text_field( wp_unslash( $_POST['consent'] ?? '' ) ) || ! preg_match( '/^[0-5]?$/', $fields['rating'] ) || '' === trim( (string) $fields['author'] ) || ! is_email( (string) $fields['email'] ) || '' === trim( (string) $fields['content'] ) ) {
 			$go( 'invalid' );
 		}
 		// phpcs:enable

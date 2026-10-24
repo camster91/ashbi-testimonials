@@ -74,7 +74,7 @@ class ABT_Presets {
 			elseif ( 'save' === $operation ) {
 				$preset = array();
 				foreach ( array( 'name', 'layout', 'columns', 'theme', 'accent' ) as $field ) {
-					$preset[ $field ] = isset( $_POST[ $field ] ) && is_string( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : '';
+					$preset[ $field ] = isset( $_POST[ $field ] ) && is_string( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Full allowlist/type/value validation in validate() before any write.
 				}
 				if ( '' === $key ) { $key = sanitize_title( $preset['name'] ); if ( ! preg_match( '/^[a-z0-9][a-z0-9-]{0,39}$/', $key ) ) { $key = 'preset-' . substr( md5( $preset['name'] ), 0, 12 ); } }
 				$presets[ $key ] = $preset;

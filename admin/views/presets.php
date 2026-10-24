@@ -1,6 +1,7 @@
 <?php
 /** Administrator design preset controls. @package Ashbi_Testimonials */
-if ( ! defined( 'ABSPATH' ) || ! current_user_can( 'manage_options' ) ) { return; }
+if ( ! defined( 'ABSPATH' ) ) { exit; }
+if ( ! current_user_can( 'manage_options' ) ) { return; }
 $abt_presets = ABT_Presets::all();
 $abt_key = isset( $_GET['preset'] ) && is_string( $_GET['preset'] ) ? sanitize_key( wp_unslash( $_GET['preset'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only selection.
 $abt_design = $abt_presets[ $abt_key ] ?? array( 'name' => '', 'layout' => 'grid', 'columns' => '3', 'theme' => 'light', 'accent' => '#2457ff' );

@@ -262,8 +262,8 @@ class ABT_Shortcode {
 	 * published and private fields such as email are never rendered.
 	 */
 	public function ajax_load_more() {
-		$atts = isset( $_POST['atts'] ) ? json_decode( wp_unslash( (string) $_POST['atts'] ), true ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Decoded then sanitised attribute by attribute in parse().
-		$page = isset( $_POST['page'] ) ? max( 2, absint( $_POST['page'] ) ) : 2;
+		$atts = isset( $_POST['atts'] ) ? json_decode( wp_unslash( (string) $_POST['atts'] ), true ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- Public read-only published data; decoded then sanitised attribute by attribute in parse().
+		$page = isset( $_POST['page'] ) ? max( 2, absint( $_POST['page'] ) ) : 2; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Public read-only published data; nonces would break cached pagination.
 
 		$parsed = $this->parse( is_array( $atts ) ? $atts : array() );
 		$parsed['query']['page'] = $page;
