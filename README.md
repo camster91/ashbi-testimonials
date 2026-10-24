@@ -85,6 +85,6 @@ At most three retries apply before sending if WooCommerce is temporarily unavail
 
 ## Support and release evidence
 
-See [support](SUPPORT.md), [security reporting](SECURITY.md), [installation/upgrade/recovery](docs/OPERATIONS.md), [pilot protocol](docs/PILOT.md) and [connector prerequisites](docs/CONNECTOR-DECISION.md). The 1.1.0 files are a development release candidate; the published v1.0.0 download does not include unmerged changes.
+See [support](SUPPORT.md), [security reporting](SECURITY.md), [installation/upgrade/recovery](docs/OPERATIONS.md), [pilot protocol](docs/PILOT.md) and [connector prerequisites](docs/CONNECTOR-DECISION.md). The 1.1.0 files are a development release candidate; the published v1.0.0 download does not include the 1.1.0 changes.
 
 Public load-more accepts at most 100 IDs, 20 collections and 8 KiB of attributes; random/context-dependent requests and offsets beyond 10,000 displayed positions are rejected. Tied date/rating/featured ordering uses post IDs. Browse larger datasets through targeted collections/products or the manager UI.

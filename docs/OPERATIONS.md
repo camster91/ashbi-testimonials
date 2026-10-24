@@ -16,7 +16,7 @@ The automated upgrade fixture installs the exact v1.0.0 tagged source, seeds all
 
 ## Import recovery
 
-Import a small fictional CSV on staging and inspect row-level errors before a large transfer. Missing collections are restored by slug; existing collections retain their definitions/settings. Imported reviews cannot grant direct provenance or purchase proof automatically. Formula-like CSV cells are escaped for spreadsheets. Preserve the original export. A partial import is possible if later rows fail; do not blindly reimport successful rows. Filter by the staging/test collection and compare IDs/counts, then remove only confirmed duplicate records after authorisation. No automatic production deletion is part of recovery.
+Import a small fictional CSV on staging and inspect row-level errors before a large transfer. Missing collections are restored by slug; existing collections retain their definitions/settings. Product/page IDs are local to each WordPress database: remap them before importing into another site and verify the resulting assignments. CSV does not create products/orders or transfer purchase evidence. Imported reviews cannot grant direct provenance or purchase proof automatically. Formula-like CSV cells are escaped for spreadsheets. Preserve the original export. A partial import is possible if later rows fail; do not blindly reimport successful rows. Filter by the staging/test collection and compare IDs/counts, then remove only confirmed duplicate records after authorisation. No automatic production deletion is part of recovery.
 
 ## Review reminder operations
 
