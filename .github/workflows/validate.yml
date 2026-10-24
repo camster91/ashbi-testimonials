@@ -109,6 +109,8 @@ jobs:
           wp-env run cli wp plugin install woocommerce --activate
           wp-env run cli wp plugin activate ashbi-testimonials
           wp-env run cli wp plugin list --status=active
+      - name: Genuine purchase evidence
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-purchase.php
       - name: WooCommerce product tab test
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-woocommerce.php
       - name: No PHP notices from the plugin
