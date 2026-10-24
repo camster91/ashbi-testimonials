@@ -6,7 +6,7 @@ wp_set_password( 'abt-ci-only-password', $admin->ID );
 $data = ABT_Data::instance();
 $col = $data->save_collection( array( 'name' => 'Fictional browser demo', 'fields' => array( array( 'key' => 'project', 'label' => 'Project', 'type' => 'text', 'required' => true, 'public' => true ), array( 'key' => 'private_note', 'label' => 'Private note', 'type' => 'textarea', 'required' => false, 'public' => false ) ) ) );
 foreach ( range( 1, 8 ) as $i ) {
-	$data->save( array( 'author' => 'Demo reviewer ' . $i, 'content' => 'Fictional demonstration feedback. ' . str_repeat( 'Readable review content for testing layouts. ', 15 ), 'company' => 'Example Studio', 'rating' => $i % 2 ? 5 : 4, 'origin' => 'direct', 'collections' => array( $col['id'] ) ) );
+	$data->save( array( 'author' => 'Demo reviewer ' . $i, 'content' => 'Fictional demonstration feedback. ' . str_repeat( 'Readable review content for testing layouts. ', 15 ), 'company' => 'Example Studio', 'date' => '2025-01-01', 'rating' => $i % 2 ? 5 : 4, 'origin' => 'direct', 'collections' => array( $col['id'] ) ) );
 }
 $content = '<!-- wp:paragraph --><p>Fictional demonstration reviews for automated testing.</p><!-- /wp:paragraph -->';
 foreach ( ABT_Data::layouts() as $layout => $label ) {

@@ -590,6 +590,7 @@
 		const next = JSON.parse( JSON.stringify( customSnapshots ) );
 		$$( '[data-custom-key]', customBox ).forEach( ( input ) => {
 			const field = next[ input.dataset.customKey ];
+			if ( ! field ) { return; }
 			field.value = input.type === 'checkbox' ? ( input.checked ? '1' : '0' ) : input.value;
 		} );
 		return next;
@@ -605,7 +606,8 @@
 			if ( ! customSnapshots[ key ] ) { customSnapshots[ key ] = { label: field.label, type: field.type, public: field.public, value: '' }; }
 		} );
 		customBox.innerHTML = Object.entries( customSnapshots ).map( ( [ key, field ] ) => {
-			const label = esc( field.label ) + ' (' + esc( field.public ? __( 'public', 'ashbi-testimonials' ) : __( 'not published', 'ashbi-testimonials' ) ) + ')';
+			const isPublic = field.public && defs[ key ] && defs[ key ].public && defs[ key ].type === field.type;
+			const label = esc( field.label ) + ' (' + esc( isPublic ? __( 'public', 'ashbi-testimonials' ) : __( 'not published', 'ashbi-testimonials' ) ) + ')';
 			const attr = ' data-custom-key="' + esc( key ) + '"';
 			let control;
 			if ( field.type === 'textarea' ) {
@@ -616,9 +618,14 @@
 			} else {
 				control = '<input' + attr + ' type="' + ( field.type === 'checkbox' ? 'checkbox' : field.type === 'url' ? 'url' : 'text' ) + '" maxlength="500" value="' + esc( field.value ) + '"' + ( field.type === 'checkbox' && field.value === '1' ? ' checked' : '' ) + ' />';
 			}
-			return '<p class="abt-field"><label>' + label + control + '</label></p>';
+			return '<div class="abt-field"><label>' + label + control + '</label>' + ( ! defs[ key ] ? '<button type="button" class="button-link" data-custom-remove="' + esc( key ) + '">' + esc( __( 'Remove retired answer', 'ashbi-testimonials' ) ) + '</button>' : '' ) + '</div>';
 		} ).join( '' );
 	}
+	customBox.addEventListener( 'click', ( event ) => {
+		const button = event.target.closest( '[data-custom-remove]' );
+		if ( ! button ) { return; }
+		customSnapshots = customValues(); delete customSnapshots[ button.dataset.customRemove ]; customBox.replaceChildren(); renderCustom();
+	} );
 	collectionsBox.addEventListener( 'change', renderCustom );
 
 
