@@ -22,6 +22,12 @@ $check( false !== strpos( $html, 'Verified purchase' ) && false === strpos( $htm
 $forged = ABT_Data::instance()->save( array( 'author' => 'Other', 'email' => 'claimed@example.test', 'rating' => 5, 'product_id' => $product_id ) );
 ABT_Purchase::capture( $forged );
 $check( ! ABT_Purchase::verified( ABT_Data::instance()->get( $forged ) ), 'a claimed email cannot borrow the account purchase' );
+$variable = new WC_Product_Variable(); $variable->set_name( 'Purchased variable item' ); $variable->set_status( 'publish' ); $variable_id = $variable->save();
+$variation = new WC_Product_Variation(); $variation->set_parent_id( $variable_id ); $variation->set_status( 'publish' ); $variation->set_regular_price( '15' ); $variation->save();
+$variable_order = wc_create_order( array( 'customer_id' => $user ) ); $variable_order->add_product( $variation, 1 ); $variable_order->set_billing_email( $account->user_email ); $variable_order->set_date_paid( time() ); $variable_order->set_status( 'completed' ); $variable_order->save();
+$variable_review = ABT_Data::instance()->save( array( 'author' => 'Variation buyer', 'email' => $account->user_email, 'rating' => 5, 'product_id' => $variable_id ) );
+$_POST['abt_purchase_nonce'] = wp_create_nonce( 'abt_purchase_' . $variable_id ); ABT_Purchase::capture( $variable_review );
+$check( ABT_Purchase::verified( ABT_Data::instance()->get( $variable_review ) ), 'purchased variation verifies its public parent product review' );
 wp_set_current_user( 0 ); ABT_Purchase::capture( $forged );
 $check( ! ABT_Purchase::verified( ABT_Data::instance()->get( $forged ) ), 'anonymous submission cannot claim order evidence' );
 $refund = wc_create_refund( array( 'order_id' => $order->get_id(), 'amount' => 12, 'reason' => 'Disposable test', 'line_items' => array( $line_id => array( 'qty' => 1, 'refund_total' => 12 ) ) ) );

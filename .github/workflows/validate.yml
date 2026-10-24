@@ -193,7 +193,7 @@ jobs:
           npx wp-env start
           npx wp-env run cli env ABT_DISPOSABLE_TEST=1 wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-browser-fixture.php > browser-fixture.log
       - name: Responsive and accessibility browser flows
-        run: node tests/browser-flows.cjs
+        run: xvfb-run --auto-servernum node tests/browser-flows.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
