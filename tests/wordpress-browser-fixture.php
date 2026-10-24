@@ -11,7 +11,7 @@ foreach ( range( 1, 8 ) as $i ) {
 $content = '<!-- wp:paragraph --><p>Fictional demonstration reviews for automated testing.</p><!-- /wp:paragraph -->';
 foreach ( ABT_Data::layouts() as $layout => $label ) {
 	$content .= '<!-- wp:heading --><h2>' . esc_html( $label ) . '</h2><!-- /wp:heading -->';
-	$content .= serialize_block( array( 'blockName' => 'ashbi/testimonials', 'attrs' => array( 'collection' => (string) $col['id'], 'layout' => $layout, 'limit' => '3', 'summary' => '1', 'load_more' => '1', 'schema' => '0' ), 'innerBlocks' => array(), 'innerHTML' => '', 'innerContent' => array() ) );
+	$content .= serialize_block( array( 'blockName' => 'ashbi/testimonials', 'attrs' => array( 'collection' => (string) $col['id'], 'layout' => $layout, 'limit' => 'slider' === $layout ? '8' : '3', 'summary' => '1', 'load_more' => '1', 'schema' => '0' ), 'innerBlocks' => array(), 'innerHTML' => '', 'innerContent' => array() ) );
 }
 foreach ( range( 1, 2 ) as $form ) {
 	$content .= serialize_block( array( 'blockName' => 'ashbi/review-form', 'attrs' => array( 'collection' => (string) $col['id'] ), 'innerBlocks' => array(), 'innerHTML' => '', 'innerContent' => array() ) );

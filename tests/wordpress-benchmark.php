@@ -35,6 +35,7 @@ $cases = array(
  'search' => static fn() => $data->query( array( 'search' => 'synthetic project', 'per_page' => 20 ) ),
  'page_100' => static fn() => $data->query( array( 'page' => 100, 'per_page' => 20 ) ),
  'stats_global' => static fn() => $data->stats( array() ),
+ 'stats_product' => static fn() => $data->stats( array( 'product_id' => $products[0] ) ),
  'stats_collection' => static fn() => $data->stats( array( 'collection' => $cols[0]->term_id ) ),
 );
 foreach ( array( 1000, 10000, 100000 ) as $volume ) {

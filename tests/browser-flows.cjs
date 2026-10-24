@@ -28,6 +28,7 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await page.waitForFunction(n=>document.querySelector('.abt--grid').querySelectorAll('.abt-card').length>n,count);
   const slider=page.locator('.abt-slider__track').first();
   await slider.focus(); await page.keyboard.press('ArrowRight');
+  await page.waitForFunction(()=>Math.abs(document.querySelector('.abt-slider__track').scrollLeft)>0);
   const form=page.locator('.abt-form').first();
   await form.locator('[name=author]').fill('Browser test reviewer');
   await form.locator('[name=email]').fill('browser@example.test');
@@ -59,9 +60,56 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await editor.getByRole('button',{name:'Save',exact:true}).click();
   await editor.waitFor({state:'hidden'});
   await page.getByText('Custom browser manager',{exact:true}).first().waitFor();
+  const manager=page.locator('.abt-row').filter({hasText:'Custom browser manager'});
+  await manager.getByRole('button',{name:'Edit',exact:true}).click();
+  assert.equal(await editor.getByLabel('Project (public)').inputValue(),'Manager project');
+  assert.equal(await editor.getByLabel('Private note (not published)').inputValue(),'Manager private note');
+  await editor.locator('[name=content]').fill('Edited manager review in the browser.');
+  await editor.screenshot({path:'browser-results/editor-custom-fields.png'});
+  await editor.getByRole('button',{name:'Save',exact:true}).click();
+  await editor.waitFor({state:'hidden'});
+  await manager.getByText('Edited manager review in the browser.',{exact:true}).waitFor();
+  const pending=page.locator('.abt-row').filter({hasText:'Browser test reviewer'});
+  await pending.getByRole('button',{name:'Approve',exact:true}).click();
+  await pending.getByText('Published',{exact:true}).waitFor();
+  await page.getByText('Import / export',{exact:true}).click();
+  const downloaded=page.waitForEvent('download');
+  await page.getByRole('link',{name:'Export CSV',exact:true}).click();
+  const csv=fs.readFileSync(await (await downloaded).path(),'utf8');
+  assert.ok(csv.includes('custom_fields') && csv.includes('Manager private note'),'authorised CSV exports include portable private answers');
+  await page.getByRole('button',{name:'Import CSV',exact:true}).click();
+  const importer=page.locator('#abt-import-dialog');
+  await importer.locator('#abt-i-file').setInputFiles({name:'fictional-review.csv',mimeType:'text/csv',buffer:Buffer.from('author,content,rating\nCSV browser reviewer,Imported fictional feedback,4\n')});
+  await importer.getByRole('button',{name:'Import',exact:true}).click();
+  await importer.getByRole('status').filter({hasText:'Imported 1 testimonial.'}).waitFor();
+  await importer.getByRole('button',{name:'Close',exact:true}).click();
+  await page.getByText('CSV browser reviewer',{exact:true}).first().waitFor();
+  await page.getByRole('button',{name:'Collection settings',exact:true}).click();
+  const collection=page.locator('#abt-collection-dialog');
+  assert.equal(await collection.locator('[data-field-label]').count(),2);
+  await collection.getByRole('button',{name:'Add field',exact:true}).click();
+  await collection.locator('[data-field-label]').last().fill('Extra question');
+  await collection.getByRole('button',{name:'Save collection',exact:true}).click();
+  await collection.waitFor({state:'hidden'});
+  await page.getByRole('button',{name:'Collection settings',exact:true}).click();
+  await collection.locator('[data-field-label]').last().waitFor();
+  assert.equal(await collection.locator('[data-field-label]').last().inputValue(),'Extra question');
+  await collection.getByRole('button',{name:'Cancel',exact:true}).click();
   await page.screenshot({path:'browser-results/admin-1440.png',fullPage:true});
+  await page.goto(fixture.url,{waitUntil:'networkidle'});
+  const body=await page.locator('.abt').allTextContents();
+  assert.ok(body.join(' ').includes('Manager project') && !body.join(' ').includes('Manager private note'));
+  await page.locator('.abt--grid').first().screenshot({path:'browser-results/showcase-grid.png'});
+  const rtl=await context.newPage();
+  await rtl.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>document.querySelectorAll('.abt').forEach(root=>root.dir='rtl')));
+  for(const width of [375,1440]) {
+   await rtl.setViewportSize({width,height:1000}); await rtl.goto(fixture.url,{waitUntil:'networkidle'});
+   assert.equal(await rtl.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'RTL direction smoke has no overflow');
+   await rtl.locator('.abt--grid').first().screenshot({path:`browser-results/showcase-rtl-${width}.png`});
+  }
+  await rtl.close();
   assert.deepEqual(errors,[],'no browser runtime errors');
-  console.log('OK: three viewport/accessibility checks, repeated forms, load more, keyboard, recovery and admin rendering');
+  console.log('OK: responsive/axe checks, repeated forms, real keyboard scrolling, recovery, create/edit/approve, CSV, collection fields and RTL direction smoke');
  } catch (error) { console.log('Form notices:',await page.locator('.abt-form__notice').allTextContents()); await page.screenshot({path:'browser-results/failure.png',fullPage:true}); throw error; }
  finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

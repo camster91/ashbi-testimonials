@@ -613,9 +613,6 @@ class ABT_Data {
 		// Pivot only the needed metadata once per matching review. Four independent
 		// meta joins caused multiplicative work and unstable plans in the 100k fixture.
 		$fields = array( 'rating', 'origin', 'source', 'source_url' );
-		foreach ( array( 'product_id' => $product_id, 'subject' => '' !== $subject, 'featured' => $featured, 'verified' => $verified ) as $field => $needed ) {
-			if ( $needed ) { $fields[] = $field; }
-		}
 		$params = array(); $select = array();
 		foreach ( $fields as $field ) {
 			$select[] = "COALESCE(MAX(CASE WHEN pm.meta_key = %s THEN pm.meta_value END), '') AS {$field}";
@@ -632,14 +629,16 @@ class ABT_Data {
 			}
 			$joins = " INNER JOIN {$wpdb->term_relationships} tr ON tr.object_id = p.ID AND tr.term_taxonomy_id IN (" . implode( ',', $tt_ids ?: array( 0 ) ) . ')';
 		}
+		foreach ( array( 'product_id' => $product_id ? (string) $product_id : '', 'subject' => $subject, 'featured' => $featured ? '1' : '', 'verified' => $verified ? '1' : '' ) as $field => $value ) {
+			if ( '' !== $value ) {
+				$alias = 'filter_' . $field;
+				$joins .= " INNER JOIN {$wpdb->postmeta} {$alias} ON {$alias}.post_id = p.ID AND {$alias}.meta_key = %s AND {$alias}.meta_value = %s";
+				$params[] = self::META[ $field ]; $params[] = $value;
+			}
+		}
 		$params[] = self::POST_TYPE;
 		$post_where = $ids ? ' AND p.ID IN (' . implode( ',', $ids ) . ')' : '';
 		$where = array();
-		if ( $product_id ) { $where[] = 'r.product_id = %s'; $params[] = (string) $product_id; }
-		if ( '' !== $subject ) { $where[] = 'r.subject = %s'; $params[] = $subject; }
-		foreach ( array( 'featured' => $featured, 'verified' => $verified ) as $field => $enabled ) {
-			if ( $enabled ) { $where[] = "r.{$field} = '1'"; }
-		}
 		if ( $rating > 0 ) { $where[] = 'CAST(r.rating AS UNSIGNED) = %d'; $params[] = $rating; }
 		elseif ( $min_rating > 0 ) { $where[] = 'CAST(r.rating AS UNSIGNED) >= %d'; $params[] = $min_rating; }
 		$filter = $where ? 'WHERE ' . implode( ' AND ', $where ) : '';
