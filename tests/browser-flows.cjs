@@ -5,11 +5,15 @@ const AxeBuilder = require('@axe-core/playwright').default;
 const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/ABT_BROWSER_FIXTURE=(\{[^\r\n]*\})/)[1]);
 (async () => {
  const browser = await chromium.launch({channel:'chromium',headless:false});
- const context = await browser.newContext();
- const page = await context.newPage();
- const errors=[]; page.on('pageerror',e=>errors.push(e.message));
- page.on('dialog',async dialog=>{console.error('Unexpected browser dialog:',dialog.message());errors.push(dialog.message());await dialog.dismiss();});
- page.on('response',async response=>{if(response.url().includes('admin-post.php')){const headers=await response.allHeaders();console.log('Form transport',response.status(),headers.location||response.url());}});
+ const context = await browser.newContext({viewport:{width:1440,height:1000}});
+ let page = await context.newPage();
+ const errors=[];
+ const watch=target=>{
+ target.on('pageerror',e=>errors.push(e.message));
+ target.on('dialog',async dialog=>{console.error('Unexpected browser dialog:',dialog.message());errors.push(dialog.message());await dialog.dismiss();});
+ target.on('response',async response=>{if(response.url().includes('admin-post.php')){const headers=await response.allHeaders();console.log('Form transport',response.status(),headers.location||response.url());}});
+ };
+ watch(page);
  fs.mkdirSync('browser-results',{recursive:true});
  try {
   for(const width of [375,768,1440]) {
@@ -50,6 +54,8 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await page.locator('#user_pass').fill('abt-ci-only-password');
   await page.locator('#wp-submit').click();
   await page.waitForURL('**/wp-admin/**');
+  // Keep anonymous network-abort/viewport instrumentation out of authenticated manager flows.
+  await page.close(); page=await context.newPage(); watch(page);
   await page.goto(fixture.admin,{waitUntil:'networkidle'});
   assert.ok((await page.locator('body').innerText()).includes('Demo reviewer'));
   await page.getByRole('button',{name:'Add testimonial',exact:true}).first().click();
@@ -94,21 +100,7 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await Promise.all([page.waitForEvent('framenavigated',{predicate:frame=>frame===page.mainFrame()}),collection.getByRole('button',{name:'Save collection',exact:true}).click()]);
   await page.waitForLoadState('networkidle');
   await page.bringToFront();
-  console.log('Collection reload state',await page.evaluate(async()=>({ready:document.readyState,visible:document.visibilityState,width:innerWidth,height:innerHeight,frames:await new Promise(resolve=>{let frames=0;const tick=()=>{frames++;if(frames===2)resolve(frames);else requestAnimationFrame(tick);};requestAnimationFrame(tick);setTimeout(()=>resolve(frames),1000);})})));
   await collection.waitFor({state:'hidden'});
-  // Continue with ordinary keyboard/pointer input after the full document navigation.
-  await page.keyboard.press('Tab');
-  await page.mouse.move(40,40);
-  console.log('Post-navigation input state',await page.evaluate(async()=>({raf:String(requestAnimationFrame).slice(0,100),focused:document.hasFocus(),timeline:document.timeline.currentTime,frames:await new Promise(resolve=>{let frames=0;const tick=()=>{frames++;if(frames===2)resolve(frames);else requestAnimationFrame(tick);};requestAnimationFrame(tick);setTimeout(()=>resolve(frames),1000);})})));
-  fs.writeFileSync('browser-results/collection-reload.html',await page.content());
-  const diagnosticPage=await context.newPage();
-  await diagnosticPage.goto(fixture.admin,{waitUntil:'networkidle'});
-  const diagnosticFrames=await diagnosticPage.evaluate(()=>new Promise(resolve=>{let n=0;const tick=()=>{if(++n===2)resolve(n);else requestAnimationFrame(tick);};requestAnimationFrame(tick);setTimeout(()=>resolve(n),1000);}));
-  console.log('Independent request animation frames',diagnosticFrames);
-  if(diagnosticFrames===2) { await diagnosticPage.getByRole('button',{name:'Collection settings',exact:true}).click(); await diagnosticPage.locator('#abt-collection-dialog').screenshot({path:'browser-results/collection-independent-request.png'}); }
-  await diagnosticPage.close(); await page.bringToFront();
-  await page.reload({waitUntil:'networkidle'});
-  console.log('Explicit reload animation frames',await page.evaluate(()=>new Promise(resolve=>{let n=0;const tick=()=>{if(++n===2)resolve(n);else requestAnimationFrame(tick);};requestAnimationFrame(tick);setTimeout(()=>resolve(n),1000);})));
   await page.getByRole('button',{name:'Collection settings',exact:true}).click();
   await collection.locator('[data-field-label]').last().waitFor();
   assert.equal(await collection.locator('[data-field-label]').last().inputValue(),'Extra question');
