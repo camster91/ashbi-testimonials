@@ -237,7 +237,11 @@
 					},
 				} );
 				collectionDialog.close();
-				window.location.href = saved.url;
+				if ( saved.url === window.location.href ) {
+					window.location.reload();
+				} else {
+					window.location.assign( saved.url );
+				}
 			} catch ( err ) {
 				submit.disabled = false;
 				window.alert( err.message ); // eslint-disable-line no-alert
