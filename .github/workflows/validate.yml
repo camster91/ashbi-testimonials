@@ -118,6 +118,8 @@ jobs:
         run: wp-env run cli wp option update woocommerce_custom_orders_table_enabled ${{ matrix.storage }}
       - name: Genuine purchase evidence
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-purchase.php
+      - name: Opt-in review reminder scheduling (mail intercepted)
+        run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-requests.php
       - name: WooCommerce product tab test
         run: wp-env run cli wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-woocommerce.php
       - name: No PHP notices from the plugin

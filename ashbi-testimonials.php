@@ -35,6 +35,7 @@ require_once ABT_PLUGIN_DIR . 'includes/class-abt-privacy.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-admin.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-woocommerce.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-purchase.php';
+require_once ABT_PLUGIN_DIR . 'includes/class-abt-requests.php';
 
 /* ==================================================================
    Helpers
@@ -50,6 +51,7 @@ function abt_settings() {
 	$defaults = array(
 		'schema'         => '1',
 		'woo_tab'        => '0',
+		'review_requests' => '0',
 		'woo_collection' => '0',
 		'notify_email'   => '',
 		'accent'         => '#2457ff',
@@ -72,6 +74,7 @@ function abt_init() {
 	ABT_Editors::init();
 	ABT_Presets::init();
 	ABT_Purchase::init();
+	ABT_Requests::init();
 	ABT_Privacy::instance();
 	ABT_WooCommerce::instance();
 	abt_maybe_upgrade();

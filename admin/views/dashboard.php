@@ -166,6 +166,10 @@ $abt_render = ABT_Render::instance();
 							<?php endforeach; ?>
 						</select>
 					</div>
+					<div class="abt-field abt-field--check">
+						<label><input type="checkbox" name="review_requests" value="1" <?php checked( '1', $settings['review_requests'] ); ?> /> <?php esc_html_e( 'Let customers request one product review reminder', 'ashbi-testimonials' ); ?></label>
+						<p class="description"><?php esc_html_e( 'Off by default. Requires the product tab and review form above. Signed-in customers must opt in from their own completed order. One email is queued after seven days; cancellations, refunds and existing reviews suppress it. Your site sends the email using WordPress mail and WP-Cron. Enabling this authorizes those requested messages.', 'ashbi-testimonials' ); ?></p>
+					</div>
 				<?php endif; ?>
 				<div class="abt-field abt-field--check">
 					<label><input type="checkbox" name="delete_on_uninstall" value="1" <?php checked( '1', $settings['delete_on_uninstall'] ); ?> /> <?php esc_html_e( 'Permanently delete this site’s plugin data when deleting the plugin', 'ashbi-testimonials' ); ?></label>

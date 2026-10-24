@@ -460,6 +460,7 @@ class ABT_Admin {
 		$settings = array(
 			'schema'         => isset( $_POST['schema'] ) ? '1' : '0',
 			'woo_tab'        => isset( $_POST['woo_tab'] ) ? '1' : '0',
+			'review_requests' => isset( $_POST['review_requests'] ) && '1' === $_POST['review_requests'] ? '1' : '0',
 			'woo_collection' => isset( $_POST['woo_collection'] ) ? (string) absint( $_POST['woo_collection'] ) : '0',
 			'notify_email'   => isset( $_POST['notify_email'] ) ? sanitize_email( wp_unslash( $_POST['notify_email'] ) ) : '',
 			'accent'         => isset( $_POST['accent'] ) ? ( sanitize_hex_color( wp_unslash( $_POST['accent'] ) ) ?: '#2457ff' ) : '#2457ff',
