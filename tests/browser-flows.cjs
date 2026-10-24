@@ -5,7 +5,8 @@ const AxeBuilder = require('@axe-core/playwright').default;
 const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/ABT_BROWSER_FIXTURE=(\{[^\r\n]*\})/)[1]);
 (async () => {
  const browser = await chromium.launch({headless:true});
- const page = await browser.newPage();
+ const context = await browser.newContext();
+ const page = await context.newPage();
  const errors=[]; page.on('pageerror',e=>errors.push(e.message));
  fs.mkdirSync('browser-results',{recursive:true});
  try {
@@ -49,5 +50,6 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await page.screenshot({path:'browser-results/admin-1440.png',fullPage:true});
   assert.deepEqual(errors,[],'no browser runtime errors');
   console.log('OK: three viewport/accessibility checks, repeated forms, load more, keyboard, recovery and admin rendering');
- } finally { await browser.close(); }
+ } catch (error) { await page.screenshot({path:'browser-results/failure.png',fullPage:true}); throw error; }
+ finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});
