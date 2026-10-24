@@ -43,7 +43,7 @@ $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yel
 				<summary class="button"><?php esc_html_e( 'Import / export', 'ashbi-testimonials' ); ?></summary>
 				<div class="abt-menu__list">
 					<button type="button" data-abt-open="abt-import-dialog"><span class="dashicons dashicons-upload" aria-hidden="true"></span><?php esc_html_e( 'Import CSV', 'ashbi-testimonials' ); ?></button>
-					<a href="<?php echo esc_url( $abt_export ); ?>"><span class="dashicons dashicons-download" aria-hidden="true"></span><?php esc_html_e( 'Export CSV', 'ashbi-testimonials' ); ?></a>
+					<a download href="<?php echo esc_url( $abt_export ); ?>"><span class="dashicons dashicons-download" aria-hidden="true"></span><?php esc_html_e( 'Export CSV', 'ashbi-testimonials' ); ?></a>
 				</div>
 			</details>
 			<button type="button" class="button" data-abt-open="abt-builder-dialog"><span class="dashicons dashicons-shortcode" aria-hidden="true"></span> <?php esc_html_e( 'Get shortcode', 'ashbi-testimonials' ); ?></button>
