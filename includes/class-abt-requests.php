@@ -58,8 +58,14 @@ class ABT_Requests {
 	}
 	public static function cancel( $id, $user, $all = false ) {
 		$key = self::key( $id, $user );
-		$state = get_option( $key );
-		if ( is_array( $state ) ) { $next = $state; $next['state'] = 'suppressed'; ABT_Atomic::replace( $key, $state, $next ); }
+		global $wpdb;
+		$state = maybe_unserialize( $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $key ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Terminal cancellation must read current state, not a stale worker cache.
+		if ( is_array( $state ) ) {
+			do_action( 'abt_before_request_cancel', $id, $user );
+			$state['state'] = 'suppressed';
+			$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s", maybe_serialize( $state ), $key ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Terminal update overrides a concurrent queued retry but cannot recreate an erased record.
+			wp_cache_delete( $key, 'options' ); wp_cache_delete( 'notoptions', 'options' );
+		}
 		wp_clear_scheduled_hook( self::HOOK, array( (int) $id, (int) $user ) );
 		if ( $all ) { update_user_meta( $user, self::optout_key(), wp_generate_uuid4() ); }
 	}

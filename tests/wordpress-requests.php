@@ -50,6 +50,12 @@ $check( 3 === count( $mail ) && ! get_option( ABT_Requests::key( $global_race->g
 $unavailable = $make(); $cancel_retry = static function( $order_id, $customer ) use ( $unavailable ) { if ( $order_id === $unavailable->get_id() ) { ABT_Requests::cancel( $order_id, $customer ); } };
 add_filter( 'abt_request_order_api_available', '__return_false' ); add_action( 'abt_before_request_retry', $cancel_retry, 10, 2 ); ABT_Requests::send( $unavailable->get_id(), $user ); remove_action( 'abt_before_request_retry', $cancel_retry, 10 ); remove_filter( 'abt_request_order_api_available', '__return_false' );
 $check( 3 === count( $mail ) && 'suppressed' === get_option( ABT_Requests::key( $unavailable->get_id(), $user ) )['state'] && ! wp_next_scheduled( ABT_Requests::HOOK, array( $unavailable->get_id(), $user ) ), 'unavailable retry cannot overwrite cancellation or schedule after a lost CAS' );
+$reverse = $make(); $retry_during_cancel = static function( $order_id, $customer ) use ( $reverse ) {
+ if ( $order_id !== $reverse->get_id() ) { return; }
+ $key = ABT_Requests::key( $order_id, $customer ); $old = get_option( $key ); $next = $old; ++$next['attempts']; ABT_Atomic::replace( $key, $old, $next );
+};
+add_action( 'abt_before_request_cancel', $retry_during_cancel, 10, 2 ); ABT_Requests::cancel( $reverse->get_id(), $user ); remove_action( 'abt_before_request_cancel', $retry_during_cancel, 10 ); ABT_Requests::send( $reverse->get_id(), $user );
+$check( 3 === count( $mail ) && 'suppressed' === get_option( ABT_Requests::key( $reverse->get_id(), $user ) )['state'], 'terminal cancellation overrides a retry that wins between cancellation read and write' );
 $erased_race = $make(); $erase_at_claim = static function( $order_id, $customer ) use ( $erased_race, $user ) { if ( $order_id === $erased_race->get_id() ) { ABT_Requests::erase( get_userdata( $user )->user_email ); } };
 add_action( 'abt_before_request_claim', $erase_at_claim, 10, 2 ); ABT_Requests::send( $erased_race->get_id(), $user ); remove_action( 'abt_before_request_claim', $erase_at_claim, 10 );
 $check( 3 === count( $mail ) && ! get_option( ABT_Requests::key( $erased_race->get_id(), $user ) ), 'erasure before claim prevents sending and state resurrection' );
