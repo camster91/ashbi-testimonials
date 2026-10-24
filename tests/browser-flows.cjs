@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
 const AxeBuilder = require('@axe-core/playwright').default;
 const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/ABT_BROWSER_FIXTURE=(\{[^\r\n]*\})/)[1]);
 (async () => {
- const browser = await chromium.launch({headless:true});
+ const browser = await chromium.launch({channel:'chromium',headless:true});
  const context = await browser.newContext();
  const page = await context.newPage();
  const errors=[]; page.on('pageerror',e=>errors.push(e.message));

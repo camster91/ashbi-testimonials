@@ -186,7 +186,7 @@ jobs:
         with:
           node-version: '24'
       - run: npm install --no-save --ignore-scripts @wordpress/env playwright@1.61.0 @axe-core/playwright@4.14.0
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps --no-shell chromium
       - name: Start disposable browser fixture
         run: |
           echo '{"phpVersion":"8.3","testsEnvironment":false,"plugins":["."]}' > .wp-env.json
