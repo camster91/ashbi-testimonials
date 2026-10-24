@@ -4,7 +4,7 @@ Tags: testimonials, reviews, product reviews, star rating, shortcode
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,7 @@ Collect, organise and display testimonials and reviews for your store, products,
 
 == Description ==
 
-Ashbi Testimonials works for a freelancer with five client quotes and for a store with thousands of products and tens of thousands of reviews.
+Ashbi Testimonials collects, organises and displays directly collected reviews in your WordPress database. All features are free; no licence key, Ashbi account, telemetry or mandatory public credit.
 
 * Collections group reviews: store reviews, product reviews, software reviews, service reviews or general testimonials. Create as many as you need.
 * Attach any review to a WooCommerce product, page or post, or to a free-text label such as a plan name or SKU.
@@ -63,6 +63,16 @@ Deactivation and deletion keep reviews, collections and settings by default, inc
 Use WordPress Tools > Export Personal Data or Erase Personal Data with the email stored on the review. Published, pending, draft and trashed matching reviews are included. Erasure permanently removes entire matching reviews and their metadata. Media Library files, backups and external copies need separate review. The plugin adds suggested text to the WordPress privacy policy guide for administrators to adapt.
 
 == Changelog ==
+
+= 1.1.0 =
+* Free native Testimonials, Rating Summary and Review Form blocks and an optional free Elementor widget.
+* Reusable design presets with validated JSON portability; custom collection questions with private/public answer controls and CSV round trips.
+* Native WordPress privacy export/erasure, default data retention on deletion and explicit per-site cleanup.
+* Reliable form outcomes, bounded inputs, concurrent rate protection, exact retry deduplication and accessible browser recovery.
+* Conservative review provenance and schema eligibility; deterministic bounded public pagination.
+* Separate order-backed Verified purchase badge and default-off customer-requested WooCommerce reminder workflow.
+* Expanded real WordPress, WooCommerce HPOS/legacy, Elementor, multisite, browser/accessibility and upgrade/rollback checks.
+
 
 = 1.0.0 =
 * First release.

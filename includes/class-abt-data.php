@@ -549,11 +549,11 @@ class ABT_Data {
 		switch ( $args['orderby'] ) {
 			case 'rating':
 				$q['meta_query']['abt_rating'] = array( 'key' => self::META['rating'], 'type' => 'NUMERIC' );
-				$q['orderby']                  = array( 'abt_rating' => $order, 'date' => 'DESC' );
+				$q['orderby']                  = array( 'abt_rating' => $order, 'date' => 'DESC', 'ID' => 'DESC' );
 				break;
 			case 'featured':
 				$q['meta_query']['abt_featured'] = array( 'key' => self::META['featured'], 'type' => 'NUMERIC' );
-				$q['orderby']                    = array( 'abt_featured' => 'DESC', 'date' => $order );
+				$q['orderby']                    = array( 'abt_featured' => 'DESC', 'date' => $order, 'ID' => $order );
 				break;
 			case 'random':
 				$q['orderby'] = 'rand';

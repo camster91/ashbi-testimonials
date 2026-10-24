@@ -80,7 +80,7 @@ class ABT_Shortcode {
 		$data = ABT_Data::instance();
 
 		$collections = array();
-		foreach ( array_filter( array_map( 'trim', explode( ',', $atts['collection'] ) ) ) as $ref ) {
+		foreach ( array_filter( array_map( 'trim', array_slice( explode( ',', $atts['collection'] ), 0, 20 ) ) ) as $ref ) {
 			$term = $data->find_collection( $ref );
 			if ( $term ) {
 				$collections[] = $term;
@@ -102,7 +102,7 @@ class ABT_Shortcode {
 			$layout = 'grid';
 		}
 		$orderby = in_array( $atts['orderby'], array( 'date', 'rating', 'featured', 'random' ), true ) ? $atts['orderby'] : 'date';
-		$ids     = array_filter( array_map( 'absint', explode( ',', $atts['ids'] ) ) );
+		$ids     = array_filter( array_map( 'absint', array_slice( explode( ',', $atts['ids'] ), 0, 100 ) ) );
 		if ( $ids && 'date' === $orderby ) {
 			$orderby = 'ids';
 		}
@@ -261,19 +261,31 @@ class ABT_Shortcode {
 	 * nonce: a nonce would break on cached pages. Status is always forced to
 	 * published and private fields such as email are never rendered.
 	 */
-	public function ajax_load_more() {
-		$atts = isset( $_POST['atts'] ) ? json_decode( wp_unslash( (string) $_POST['atts'] ), true ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- Public read-only published data; decoded then sanitised attribute by attribute in parse().
-		$page = isset( $_POST['page'] ) ? max( 2, absint( $_POST['page'] ) ) : 2; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Public read-only published data; nonces would break cached pagination.
+	/** Validate a public request without allowing expensive unbounded offsets or random pagination. */
+	public function public_page( $raw, $page ) {
+		$error = new WP_Error( 'abt_page', __( 'This review page request is invalid or exceeds the public browsing limit.', 'ashbi-testimonials' ) );
+		if ( ! is_string( $raw ) || strlen( $raw ) > 8192 || ! is_string( $page ) || ! preg_match( '/^[0-9]{1,4}$/D', $page ) || (int) $page < 2 || (int) $page > 1000 ) { return $error; }
+		$atts = json_decode( wp_unslash( $raw ), true );
+		if ( ! is_array( $atts ) || ! preg_match( '/^\s*\{/', $raw ) || array_diff( array_keys( $atts ), array_keys( self::defaults() ) ) ) { return $error; }
+		foreach ( $atts as $value ) { if ( ! is_scalar( $value ) || strlen( (string) $value ) > 2000 ) { return $error; } }
+		if ( count( explode( ',', (string) ( $atts['ids'] ?? '' ) ) ) > 100 || count( explode( ',', (string) ( $atts['collection'] ?? '' ) ) ) > 20 || 'random' === ( $atts['orderby'] ?? '' ) || 'current' === ( $atts['product'] ?? '' ) ) { return $error; }
+		$parsed = $this->parse( $atts );
+		if ( (int) $page * $parsed['query']['per_page'] > 10000 ) { return $error; }
+		$parsed['query']['page'] = (int) $page;
+		return $parsed;
+	}
 
-		$parsed = $this->parse( is_array( $atts ) ? $atts : array() );
-		$parsed['query']['page'] = $page;
+	public function ajax_load_more() {
+		$parsed = $this->public_page( $_POST['atts'] ?? null, $_POST['page'] ?? '2' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- Read-only published endpoint; strict validation below before any query.
+		if ( is_wp_error( $parsed ) ) { wp_send_json_error( array( 'message' => $parsed->get_error_message() ), 400 ); }
+		$page = $parsed['query']['page'];
 		$result = ABT_Data::instance()->query( $parsed['query'] );
 		$render = ABT_Render::instance();
 
 		wp_send_json_success(
 			array(
 				'html'    => implode( '', array_map( fn( $item ) => $render->card( $item, $parsed['render'] ), $result['items'] ) ),
-				'hasMore' => $page < $result['pages'],
+				'hasMore' => $page < min( $result['pages'], 1000, (int) floor( 10000 / $parsed['query']['per_page'] ) ),
 				'page'    => $page + 1,
 			)
 		);
