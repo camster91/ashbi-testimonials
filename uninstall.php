@@ -41,7 +41,7 @@ $abt_cleanup_site = static function () {
 		// phpcs:enable
 	}
 
-	foreach ( array( 'abt_settings', 'abt_plugin_version', 'abt_cache_version' ) as $abt_key ) {
+	foreach ( array( 'abt_settings', 'abt_plugin_version', 'abt_cache_version', 'abt_design_presets' ) as $abt_key ) {
 		delete_option( $abt_key );
 	}
 

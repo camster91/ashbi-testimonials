@@ -40,6 +40,7 @@ class ABT_Shortcode {
 	/** Every supported attribute and its default. */
 	public static function defaults() {
 		return array(
+			'preset'      => '',
 			'collection'  => '',
 			'product'     => '',
 			'subject'     => '',
@@ -73,6 +74,7 @@ class ABT_Shortcode {
 	 * @return array{query: array, render: array, collections: WP_Term[], atts: array}
 	 */
 	public function parse( $atts ) {
+		$atts = ABT_Presets::apply( is_array( $atts ) ? $atts : array() );
 		$atts = shortcode_atts( self::defaults(), is_array( $atts ) ? $atts : array(), 'ashbi_testimonials' );
 		$atts = array_map( static fn( $v ) => is_scalar( $v ) ? trim( (string) $v ) : '', $atts );
 		$data = ABT_Data::instance();

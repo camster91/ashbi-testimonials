@@ -28,6 +28,10 @@ WordPress **Tools → Export Personal Data / Erase Personal Data** includes revi
 
 Deleting or deactivating the plugin keeps data by default, including for existing installations. Administrators may explicitly enable **Permanently delete this site’s plugin data** in Settings before deleting the plugin. Cleanup applies independently to each site on multisite and preserves Media Library files. Export a backup before enabling deletion.
 
+## Reusable designs
+
+Administrators can save, edit and transfer up to 30 designs in **Testimonials → Reusable designs**. Choose a preset in blocks or Elementor, or add `preset="your-key"` to a review shortcode. A selected preset overrides layout, columns, theme and accent. JSON transfers contain only validated design values; import adds designs and updates matching keys. Export a backup before import.
+
 ## Native editing
 
 Use **Testimonials**, **Rating Summary** or **Review Form** in the WordPress block inserter. Choose a collection and adjust layout, columns, theme, colour and pagination in the block settings. Use `current` in Product/page ID for a template's current item. An unconfigured block renders nothing publicly. Existing shortcodes remain compatible.

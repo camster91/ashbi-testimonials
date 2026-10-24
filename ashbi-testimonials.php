@@ -29,6 +29,7 @@ require_once ABT_PLUGIN_DIR . 'includes/class-abt-render.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-shortcode.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-form.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-editors.php';
+require_once ABT_PLUGIN_DIR . 'includes/class-abt-presets.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-privacy.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-admin.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-woocommerce.php';
@@ -67,6 +68,7 @@ function abt_init() {
 	ABT_Shortcode::instance();
 	ABT_Form::instance();
 	ABT_Editors::init();
+	ABT_Presets::init();
 	ABT_Privacy::instance();
 	ABT_WooCommerce::instance();
 	abt_maybe_upgrade();

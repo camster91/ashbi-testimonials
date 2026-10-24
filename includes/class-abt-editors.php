@@ -28,7 +28,9 @@ class ABT_Editors {
 				$collections[] = array( 'label' => $collection['name'], 'value' => (string) $collection['id'] );
 			}
 		}
-		wp_localize_script( 'abt-block-editor', 'abtBlocks', array( 'blocks' => $blocks, 'collections' => $collections ) );
+		$presets = array();
+		foreach ( ABT_Presets::all() as $key => $preset ) { $name = $preset['name']; unset( $preset['name'] ); $presets[] = array( 'label' => $name, 'value' => $key, 'settings' => $preset ); }
+		wp_localize_script( 'abt-block-editor', 'abtBlocks', array( 'blocks' => $blocks, 'collections' => $collections, 'presets' => $presets ) );
 	}
 	public static function render( $kind, array $attrs ) {
 		$attrs = array_filter( $attrs, 'is_scalar' );

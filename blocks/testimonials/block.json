@@ -60,6 +60,10 @@
     "button": {
       "type": "string",
       "default": "Submit review"
+    },
+    "preset": {
+      "type": "string",
+      "default": ""
     }
   },
   "usesContext": [

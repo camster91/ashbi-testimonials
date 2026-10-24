@@ -193,5 +193,6 @@ $abt_render = ABT_Render::instance();
 		</table>
 	</details>
 
+	<?php include ABT_PLUGIN_DIR . 'admin/views/presets.php'; ?>
 	<?php include ABT_PLUGIN_DIR . 'admin/views/collection-modal.php'; ?>
 </div>
