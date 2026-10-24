@@ -117,7 +117,8 @@ class ABT_Data {
 
 	/** Invalidate cached rating summaries after any change. */
 	public function flush() {
-		update_option( ABT_CACHE_OPTION, (int) get_option( ABT_CACHE_OPTION, 1 ) + 1 );
+		// A fresh token cannot reuse a cached generation when another worker held an old option value.
+		update_option( ABT_CACHE_OPTION, wp_generate_uuid4() );
 	}
 
 	/* ==================================================================

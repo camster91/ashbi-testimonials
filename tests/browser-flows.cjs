@@ -100,6 +100,15 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await page.keyboard.press('Tab');
   await page.mouse.move(40,40);
   console.log('Post-navigation input state',await page.evaluate(async()=>({raf:String(requestAnimationFrame).slice(0,100),focused:document.hasFocus(),timeline:document.timeline.currentTime,frames:await new Promise(resolve=>{let frames=0;const tick=()=>{frames++;if(frames===2)resolve(frames);else requestAnimationFrame(tick);};requestAnimationFrame(tick);setTimeout(()=>resolve(frames),1000);})})));
+  fs.writeFileSync('browser-results/collection-reload.html',await page.content());
+  const diagnosticPage=await context.newPage();
+  await diagnosticPage.goto(fixture.admin,{waitUntil:'networkidle'});
+  const diagnosticFrames=await diagnosticPage.evaluate(()=>new Promise(resolve=>{let n=0;const tick=()=>{if(++n===2)resolve(n);else requestAnimationFrame(tick);};requestAnimationFrame(tick);setTimeout(()=>resolve(n),1000);}));
+  console.log('Independent request animation frames',diagnosticFrames);
+  if(diagnosticFrames===2) { await diagnosticPage.getByRole('button',{name:'Collection settings',exact:true}).click(); await diagnosticPage.locator('#abt-collection-dialog').screenshot({path:'browser-results/collection-independent-request.png'}); }
+  await diagnosticPage.close(); await page.bringToFront();
+  await page.reload({waitUntil:'networkidle'});
+  console.log('Explicit reload animation frames',await page.evaluate(()=>new Promise(resolve=>{let n=0;const tick=()=>{if(++n===2)resolve(n);else requestAnimationFrame(tick);};requestAnimationFrame(tick);setTimeout(()=>resolve(n),1000);})));
   await page.getByRole('button',{name:'Collection settings',exact:true}).click();
   await collection.locator('[data-field-label]').last().waitFor();
   assert.equal(await collection.locator('[data-field-label]').last().inputValue(),'Extra question');

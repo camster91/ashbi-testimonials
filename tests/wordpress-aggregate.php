@@ -20,3 +20,15 @@ $cases = array(
 );
 foreach ( $cases as $i => $case ) { $r = $data->stats( $case[0] ); $check( $r['count'] === $case[1] && $r['rated'] === $case[2] && (float) $r['average'] === $case[3] && $r['ineligible'] === $case[4], 'all count/rating/provenance expectations for case ' . $i . ': ' . wp_json_encode( $r ) ); }
 fwrite( STDOUT, "OK: scoped aggregate filters, overlapping collections and unrated/provenance counts passed\n" );
+
+// A worker can retain the pre-change option value while another worker publishes.
+$stale_generation = get_option( ABT_CACHE_OPTION, 1 );
+$data->flush();
+$data->stats( array( 'collection' => $a['id'] ) );
+$data->save( array( 'author' => 'Concurrent publication', 'rating' => 5, 'origin' => 'direct', 'collections' => array( $a['id'] ) ) );
+$stale_worker = static fn() => $stale_generation;
+add_filter( 'pre_option_' . ABT_CACHE_OPTION, $stale_worker );
+$data->flush();
+remove_filter( 'pre_option_' . ABT_CACHE_OPTION, $stale_worker );
+$check( 8 === $data->stats( array( 'collection' => $a['id'] ) )['count'], 'a stale worker cannot reuse a cached generation from before a concurrent publication' );
+fwrite( STDOUT, "OK: stale-worker cache invalidation cannot reuse an earlier summary\n" );
