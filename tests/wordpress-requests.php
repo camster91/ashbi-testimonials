@@ -3,7 +3,7 @@
 if ( ! defined( 'ABSPATH' ) || ! class_exists( 'WooCommerce' ) ) { exit( 1 ); }
 $check = static function( $ok, $message ) { if ( ! $ok ) { throw new RuntimeException( 'Requests: ' . $message ); } };
 $check( class_exists( 'ABT_Requests' ), 'request workflow exists' );
-$accept = true; $mail = array(); $intercept = static function( $return, $args ) use ( &$mail, &$accept ) { $mail[] = $args; return $accept; }; add_filter( 'pre_wp_mail', $intercept, 10, 2 );
+$accept = true; $mail = array(); $intercept = static function( $return, $args ) use ( &$mail, &$accept ) { if ( __( 'Share your experience', 'ashbi-testimonials' ) === $args['subject'] ) { $mail[] = $args; return $accept; } return true; }; add_filter( 'pre_wp_mail', $intercept, 10, 2 );
 $user = wp_create_user( 'request_' . wp_generate_password( 8, false ), wp_generate_password(), 'request-' . wp_generate_password( 8, false ) . '@example.test' ); wp_set_current_user( $user );
 $product = new WC_Product_Simple(); $product->set_name( 'Reminder mug' ); $product->set_regular_price( '10' ); $product->set_status( 'publish' ); $pid = $product->save();
 $order = wc_create_order( array( 'customer_id' => $user ) ); $order->add_product( $product, 1 ); $order->set_billing_email( get_userdata( $user )->user_email ); $order->calculate_totals(); $order->set_date_paid( time() ); $order->set_status( 'completed' ); $order->save(); $id = $order->get_id();
