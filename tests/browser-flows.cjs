@@ -33,6 +33,8 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await form.locator('[name=email]').fill('browser@example.test');
   await form.locator('[name=content]').fill('Retain this text after a network failure.');
   await form.locator('[name=consent]').check();
+  await form.getByLabel('Project (public)').fill('Browser project');
+  await form.getByLabel('Private note (not published)').fill('Private browser answer');
   await page.route('**/admin-post.php',route=>route.abort());
   await form.getByRole('button',{name:'Submit review'}).click();
   await page.getByRole('alert').first().waitFor();
@@ -48,6 +50,15 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await page.waitForURL('**/wp-admin/**');
   await page.goto(fixture.admin,{waitUntil:'networkidle'});
   assert.ok((await page.locator('body').innerText()).includes('Demo reviewer'));
+  await page.getByRole('button',{name:'Add testimonial',exact:true}).first().click();
+  const editor=page.locator('#abt-editor');
+  await editor.getByLabel('Name',{exact:true}).fill('Custom browser manager');
+  await editor.locator('[name=content]').fill('Created in the native admin editor.');
+  await editor.getByLabel('Project (public)').fill('Manager project');
+  await editor.getByLabel('Private note (not published)').fill('Manager private note');
+  await editor.getByRole('button',{name:'Save',exact:true}).click();
+  await editor.waitFor({state:'hidden'});
+  await page.getByText('Custom browser manager',{exact:true}).first().waitFor();
   await page.screenshot({path:'browser-results/admin-1440.png',fullPage:true});
   assert.deepEqual(errors,[],'no browser runtime errors');
   console.log('OK: three viewport/accessibility checks, repeated forms, load more, keyboard, recovery and admin rendering');

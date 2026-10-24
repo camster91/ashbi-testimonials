@@ -265,6 +265,7 @@ $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yel
 					<fieldset class="abt-field">
 						<legend><?php esc_html_e( 'Collections', 'ashbi-testimonials' ); ?></legend>
 						<div class="abt-checklist" data-abt-collections></div>
+						<div data-abt-custom-values></div>
 					</fieldset>
 				</section>
 			</div>

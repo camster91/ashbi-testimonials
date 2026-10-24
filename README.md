@@ -68,3 +68,7 @@ Testimonials are a private post type (`abt_testimonial`) grouped by a private ta
 
 WordPress 6.6+, PHP 8.2+. WooCommerce is optional.
 
+
+### Custom collection questions
+
+Collection settings include up to ten text, long-text, choice, checkbox or URL fields. Mark each answer private or public and optionally required. Public forms validate the current definitions on the server. Making a field private, removing its definition or changing its type hides old public answers. The review editor preserves answer snapshots; CSV export/import transfers definitions and answers, and WordPress privacy exports include private answers. Treat CSV files as personal data. Avoid collecting sensitive information you do not need.

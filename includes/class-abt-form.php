@@ -128,7 +128,8 @@ class ABT_Form {
 					<p><label><?php esc_html_e( 'Headline', 'ashbi-testimonials' ); ?><input type="text" name="headline" maxlength="160" /></label></p>
 				<?php endif; ?>
 				<p><label><?php esc_html_e( 'Your review', 'ashbi-testimonials' ); ?> <span aria-hidden="true">*</span><textarea name="content" rows="5" required maxlength="5000"></textarea></label></p>
-				<p class="abt-form__consent"><label><input type="checkbox" name="consent" value="1" required /> <?php esc_html_e( 'I agree that my name and review may be published on this site.', 'ashbi-testimonials' ); ?></label></p>
+				<?php echo ABT_Fields::form( $term->term_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Provider escapes every definition. ?>
+				<p class="abt-form__consent"><label><input type="checkbox" name="consent" value="1" required /> <?php esc_html_e( 'I agree that my name, review, profile details and fields marked public may be published on this site.', 'ashbi-testimonials' ); ?></label></p>
 				<p><button type="submit" class="abt-form__submit"><?php echo esc_html( $atts['button'] ); ?></button></p>
 			</form>
 		</div>
@@ -251,6 +252,9 @@ class ABT_Form {
 		}
 		// phpcs:enable
 
+		$custom = ABT_Fields::submission( $term_id, isset( $_POST['abt_custom'] ) ? wp_unslash( $_POST['abt_custom'] ) : array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated against server definitions.
+		if ( is_wp_error( $custom ) ) { $go( 'invalid' ); }
+		$fields['custom_fields'] = $custom;
 		$fields['content']     = wp_strip_all_tags( (string) $fields['content'] );
 		$fields['status']      = 'pending';
 		$fields['product_id']  = $product_id;

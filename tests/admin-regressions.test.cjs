@@ -7,7 +7,7 @@ const source = fs.readFileSync(require('node:path').join(__dirname, '../assets/j
 test('opening an imported review preserves paragraphs and safe HTML', () => {
   const fields = new Proxy({}, { get: (target, key) => target[key] ||= { value: '', focus() {} } });
   const ctx = { eform: { elements: fields, reset() {} }, eerror: {}, etitle: { dataset: {} }, collectionId: 1,
-    collectionsBox: {}, editor: {}, $: () => ({}), $$: () => [], today: () => '2026-01-01',
+    collectionsBox: {}, editor: {}, customBox: { replaceChildren() {} }, customSnapshots: {}, renderCustom() {}, $: () => ({}), $$: () => [], today: () => '2026-01-01',
     setRating() {}, setAvatar() {}, setProduct() {}, openDialog() {} };
   vm.createContext(ctx);
   vm.runInContext(source.slice(source.indexOf('function openEditor('), source.indexOf('\n\tasync function saveEditor')), ctx);

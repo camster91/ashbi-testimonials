@@ -146,8 +146,36 @@
 	if ( collectionDialog ) {
 		const form = $( '[data-abt-collection-form]', collectionDialog );
 		const title = $( '#abt-collection-dialog-title' );
+		const definitions = $( '[data-abt-field-definitions]', form );
+		function addField( field = {} ) {
+			if ( definitions.children.length >= 10 ) { return; }
+			const row = document.createElement( 'fieldset' );
+			row.className = 'abt-custom-definition';
+			row.dataset.key = field.key || 'field_' + Date.now().toString( 36 ) + Math.random().toString( 36 ).slice( 2, 6 );
+			row.innerHTML = '<legend>' + esc( __( 'Review field', 'ashbi-testimonials' ) ) + '</legend>' +
+				'<label>' + esc( __( 'Label', 'ashbi-testimonials' ) ) + '<input data-field-label required maxlength="80" value="' + esc( field.label || '' ) + '" /></label>' +
+				'<label>' + esc( __( 'Type', 'ashbi-testimonials' ) ) + '<select data-field-type>' +
+				Object.entries( { text: __( 'Text', 'ashbi-testimonials' ), textarea: __( 'Long text', 'ashbi-testimonials' ), select: __( 'Choices', 'ashbi-testimonials' ), checkbox: __( 'Checkbox', 'ashbi-testimonials' ), url: __( 'Website URL', 'ashbi-testimonials' ) } ).map( ( [ value, label ] ) => '<option value="' + value + '">' + esc( label ) + '</option>' ).join( '' ) + '</select></label>' +
+				'<label data-field-choices>' + esc( __( 'Choices, one per line (maximum 20)', 'ashbi-testimonials' ) ) + '<textarea data-field-options rows="3">' + esc( ( field.options || [] ).join( '\n' ) ) + '</textarea></label>' +
+				'<label><input type="checkbox" data-field-required /> ' + esc( __( 'Required', 'ashbi-testimonials' ) ) + '</label> ' +
+				'<label><input type="checkbox" data-field-public /> ' + esc( __( 'Publish answers with approved reviews', 'ashbi-testimonials' ) ) + '</label> ' +
+				'<button type="button" class="button-link" data-field-remove>' + esc( __( 'Remove field', 'ashbi-testimonials' ) ) + '</button>';
+			$( '[data-field-type]', row ).value = field.type || 'text';
+			$( '[data-field-required]', row ).checked = !! field.required;
+			$( '[data-field-public]', row ).checked = !! field.public;
+			const choices = () => { $( '[data-field-choices]', row ).hidden = $( '[data-field-type]', row ).value !== 'select'; };
+			$( '[data-field-type]', row ).addEventListener( 'change', choices );
+			choices();
+			$( '[data-field-remove]', row ).addEventListener( 'click', () => { row.remove(); $( '[data-abt-add-field]', form ).focus(); } );
+			definitions.append( row );
+			return row;
+		}
+		$( '[data-abt-add-field]', form ).addEventListener( 'click', () => { const row = addField(); if ( row ) { $( '[data-field-label]', row ).focus(); } } );
+
 
 		const fill = ( c ) => {
+			definitions.replaceChildren();
+			Object.values( c.fields || {} ).forEach( addField );
 			const editing = !! c.id;
 			form.elements.id.value = c.id || 0;
 			form.elements.name.value = c.name || '';
@@ -200,6 +228,12 @@
 						type: ( $( 'input[name="type"]:checked', form ) || {} ).value,
 						layout: els.layout.value,
 						accent: els.accent_default.checked ? '' : els.accent.value,
+						fields: Array.from( definitions.children ).map( ( row ) => ( {
+							key: row.dataset.key, label: $( '[data-field-label]', row ).value,
+							type: $( '[data-field-type]', row ).value, required: $( '[data-field-required]', row ).checked,
+							public: $( '[data-field-public]', row ).checked,
+							options: $( '[data-field-type]', row ).value === 'select' ? $( '[data-field-options]', row ).value.split( /\r?\n/ ).map( ( x ) => x.trim() ).filter( Boolean ) : [],
+						} ) ),
 					},
 				} );
 				window.location.href = saved.url;
@@ -550,6 +584,43 @@
 	const avatarPreview = $( '[data-abt-avatar-preview]', editor );
 	const avatarRemove = $( '[data-abt-avatar-remove]', editor );
 	let avatarSrc = '';
+	let customSnapshots = {};
+	const customBox = $( '[data-abt-custom-values]', editor );
+	function customValues() {
+		const next = JSON.parse( JSON.stringify( customSnapshots ) );
+		$$( '[data-custom-key]', customBox ).forEach( ( input ) => {
+			const field = next[ input.dataset.customKey ];
+			field.value = input.type === 'checkbox' ? ( input.checked ? '1' : '0' ) : input.value;
+		} );
+		return next;
+	}
+	function renderCustom() {
+		customSnapshots = customValues();
+		const defs = {};
+		$$( 'input[name="collections"]:checked', collectionsBox ).forEach( ( input ) => {
+			const c = ( cfg.collections || [] ).find( ( entry ) => entry.id === Number( input.value ) );
+			Object.entries( c && c.fields || {} ).forEach( ( [ key, field ] ) => { if ( ! defs[ key ] ) { defs[ key ] = field; } } );
+		} );
+		Object.entries( defs ).forEach( ( [ key, field ] ) => {
+			if ( ! customSnapshots[ key ] ) { customSnapshots[ key ] = { label: field.label, type: field.type, public: field.public, value: '' }; }
+		} );
+		customBox.innerHTML = Object.entries( customSnapshots ).map( ( [ key, field ] ) => {
+			const label = esc( field.label ) + ' (' + esc( field.public ? __( 'public', 'ashbi-testimonials' ) : __( 'not published', 'ashbi-testimonials' ) ) + ')';
+			const attr = ' data-custom-key="' + esc( key ) + '"';
+			let control;
+			if ( field.type === 'textarea' ) {
+				control = '<textarea' + attr + ' maxlength="2000" rows="3">' + esc( field.value ) + '</textarea>';
+			} else if ( field.type === 'select' && defs[ key ] ) {
+				const options = Array.from( new Set( [ '', field.value, ...defs[ key ].options ] ) );
+				control = '<select' + attr + '>' + options.map( ( value ) => '<option value="' + esc( value ) + '"' + ( value === field.value ? ' selected' : '' ) + '>' + esc( value ) + '</option>' ).join( '' ) + '</select>';
+			} else {
+				control = '<input' + attr + ' type="' + ( field.type === 'checkbox' ? 'checkbox' : field.type === 'url' ? 'url' : 'text' ) + '" maxlength="500" value="' + esc( field.value ) + '"' + ( field.type === 'checkbox' && field.value === '1' ? ' checked' : '' ) + ' />';
+			}
+			return '<p class="abt-field"><label>' + label + control + '</label></p>';
+		} ).join( '' );
+	}
+	collectionsBox.addEventListener( 'change', renderCustom );
+
 
 	collectionsBox.innerHTML = ( cfg.collections || [] ).length
 		? cfg.collections.map( ( c ) => '<label class="abt-inline-check"><input type="checkbox" name="collections" value="' + c.id + '" /> ' + esc( c.name ) + '</label>' ).join( '' )
@@ -698,9 +769,12 @@
 		setAvatar( data.avatar || '' );
 		setProduct( data.product_id, data.product_title || ( data.product_id ? '#' + data.product_id : '' ) );
 
+		customBox.replaceChildren();
+		customSnapshots = data.custom_fields && ! Array.isArray( data.custom_fields ) ? data.custom_fields : {};
 		const assigned = editing ? data.collections || [] : collectionId > 0 ? [ collectionId ] : [];
 		$$( 'input[name="collections"]', collectionsBox ).forEach( ( box ) => ( box.checked = assigned.includes( parseInt( box.value, 10 ) ) ) );
 
+		renderCustom();
 		etitle.textContent = editing ? etitle.dataset.edit : etitle.dataset.new;
 		$( '[data-abt-editor-delete]', editor ).hidden = ! editing;
 		$( '[data-abt-save-new]', editor ).hidden = editing;
@@ -737,6 +811,7 @@
 			date: els.date.value,
 			verified: els.verified.checked ? 1 : 0,
 			featured: els.featured.checked ? 1 : 0,
+			custom_fields: customValues(),
 			collections: $$( 'input[name="collections"]:checked', collectionsBox ).map( ( b ) => parseInt( b.value, 10 ) ),
 		};
 		const buttons = $$( '.abt-dialog__foot button', editor );

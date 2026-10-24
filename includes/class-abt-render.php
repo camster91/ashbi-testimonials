@@ -125,7 +125,7 @@ class ABT_Render {
 	public function card( array $item, array $opts = array() ) {
 		$parts   = array_flip( $opts['parts'] ?? explode( ',', self::DEFAULT_PARTS ) );
 		$words   = (int) ( $opts['words'] ?? 0 );
-		$heading = in_array( $opts['heading'] ?? 'h3', array( 'h2', 'h3', 'h4', 'h5', 'h6', 'p' ), true ) ? $opts['heading'] : 'h3';
+		$heading = in_array( $opts['heading'] ?? 'h3', array( 'h2', 'h3', 'h4', 'h5', 'h6', 'p' ), true ) ? ( $opts['heading'] ?? 'h3' ) : 'h3';
 		$show    = static fn( $part ) => isset( $parts[ $part ] );
 
 		$classes = array( 'abt-card' );
@@ -157,6 +157,7 @@ class ABT_Render {
 			$html .= '</blockquote>';
 		}
 
+		$html .= ABT_Fields::card( $item );
 		if ( $show( 'product' ) && $item['product_title'] ) {
 			$html .= sprintf(
 				'<p class="abt-card__product">%s <a href="%s">%s</a></p>',

@@ -22,6 +22,7 @@ class ABT_Data {
 	 * ordering and filtering never miss posts that lack a value.
 	 */
 	const META = array(
+		'custom_fields' => '_abt_custom_fields',
 		'headline'   => '_abt_headline',
 		'rating'     => '_abt_rating',
 		'role'       => '_abt_role',
@@ -227,6 +228,7 @@ class ABT_Data {
 			'layout' => $this->clean_layout( get_term_meta( $term->term_id, 'abt_layout', true ) ),
 			'accent' => (string) ( sanitize_hex_color( (string) get_term_meta( $term->term_id, 'abt_accent', true ) ) ?: '' ),
 			'count'  => (int) $term->count,
+			'fields' => ABT_Fields::for_collection( $term->term_id ),
 		);
 	}
 
@@ -238,6 +240,8 @@ class ABT_Data {
 	 * @return array|WP_Error
 	 */
 	public function save_collection( array $data, $id = 0 ) {
+		$fields = ABT_Fields::definitions( $data['fields'] ?? ( $id ? ABT_Fields::for_collection( $id ) : array() ) );
+		if ( is_wp_error( $fields ) ) { return $fields; }
 		$name = sanitize_text_field( (string) ( $data['name'] ?? '' ) );
 		if ( '' === $name ) {
 			return new WP_Error( 'abt_collection_name', __( 'Give the collection a name.', 'ashbi-testimonials' ) );
@@ -258,6 +262,7 @@ class ABT_Data {
 		}
 
 		$term_id = (int) $result['term_id'];
+		update_term_meta( $term_id, 'abt_fields', $fields );
 		$type    = sanitize_key( (string) ( $data['type'] ?? 'general' ) );
 		update_term_meta( $term_id, 'abt_type', isset( self::types()[ $type ] ) ? $type : 'general' );
 		update_term_meta( $term_id, 'abt_layout', $this->clean_layout( $data['layout'] ?? '' ) );
@@ -373,7 +378,10 @@ class ABT_Data {
 		if ( $id && ! array_key_exists( 'origin', $raw ) ) {
 			$raw['origin'] = get_post_meta( $id, self::META['origin'], true );
 		}
+		$custom = ABT_Fields::snapshots( $raw['custom_fields'] ?? ( $id ? get_post_meta( $id, self::META['custom_fields'], true ) ?: array() : array() ) );
+		if ( is_wp_error( $custom ) ) { return $custom; }
 		$data = $this->sanitize( $raw );
+		$data['custom_fields'] = $custom;
 		if ( '' === $data['author'] ) {
 			return new WP_Error( 'abt_author', __( 'Add the reviewer’s name.', 'ashbi-testimonials' ) );
 		}
@@ -440,6 +448,8 @@ class ABT_Data {
 		foreach ( self::META as $field => $key ) {
 			$item[ $field ] = get_post_meta( $post->ID, $key, true );
 		}
+		$custom = ABT_Fields::snapshots( $item['custom_fields'] ?: array() );
+		$item['custom_fields'] = is_wp_error( $custom ) ? array() : $custom;
 		foreach ( array( 'rating', 'avatar_id', 'product_id', 'verified', 'featured' ) as $int_field ) {
 			$item[ $int_field ] = (int) $item[ $int_field ];
 		}

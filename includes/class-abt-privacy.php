@@ -94,6 +94,12 @@ class ABT_Privacy {
 					$data[] = array( 'name' => $label, 'value' => (string) $value );
 				}
 			}
+			$custom = ABT_Fields::snapshots( get_post_meta( $id, ABT_Data::META['custom_fields'], true ) ?: array() );
+			if ( ! is_wp_error( $custom ) ) {
+				foreach ( $custom as $field ) {
+					$data[] = array( 'name' => $field['label'], 'value' => $field['value'] );
+				}
+			}
 			// Historical author/text values are personal data too.
 			foreach ( wp_get_post_revisions( $id ) as $revision ) {
 				$data[] = array(

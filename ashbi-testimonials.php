@@ -24,6 +24,7 @@ define( 'ABT_VERSION_OPTION', 'abt_plugin_version' );
 define( 'ABT_SETTINGS_OPTION', 'abt_settings' );
 define( 'ABT_CACHE_OPTION', 'abt_cache_version' );
 
+require_once ABT_PLUGIN_DIR . 'includes/class-abt-fields.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-data.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-render.php';
 require_once ABT_PLUGIN_DIR . 'includes/class-abt-shortcode.php';

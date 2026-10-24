@@ -50,6 +50,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</span>
 				</div>
 			</div>
+			<fieldset class="abt-field">
+				<legend><?php esc_html_e( 'Custom review fields', 'ashbi-testimonials' ); ?></legend>
+				<p class="description"><?php esc_html_e( 'Add up to ten questions. Public answers appear beside approved reviews. Making a field private hides its previous answers.', 'ashbi-testimonials' ); ?></p>
+				<div data-abt-field-definitions></div>
+				<button type="button" class="button" data-abt-add-field><?php esc_html_e( 'Add field', 'ashbi-testimonials' ); ?></button>
+			</fieldset>
 			<div class="abt-field" data-abt-edit-only hidden>
 				<label for="abt-c-slug"><?php esc_html_e( 'Shortcode slug', 'ashbi-testimonials' ); ?></label>
 				<input type="text" id="abt-c-slug" name="slug" class="widefat" />
