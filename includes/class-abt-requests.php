@@ -25,7 +25,9 @@ class ABT_Requests {
 	public static function export( $email, $page = 1 ) { return self::privacy( $email, $page ); }
 	public static function erase( $email, $page = 1 ) {
 		$result = self::privacy( $email, $page, true );
-		return array( 'items_removed' => $result['items_removed'], 'items_retained' => true, 'messages' => array( __( 'A minimal account suppression preference is retained to prevent future reminders. WooCommerce orders are handled by WooCommerce privacy tools.', 'ashbi-testimonials' ) ), 'done' => $result['done'] );
+		$user = get_user_by( 'email', $email );
+		$retained = $user && (bool) get_user_meta( $user->ID, self::optout_key(), true );
+		return array( 'items_removed' => $result['items_removed'], 'items_retained' => $retained, 'messages' => $retained ? array( __( 'A minimal account suppression preference is retained to prevent future reminders. WooCommerce orders are handled by WooCommerce privacy tools.', 'ashbi-testimonials' ) ) : array(), 'done' => $result['done'] );
 	}
 	public static function key( $id, $user ) { return 'abt_request_' . absint( $user ) . '_' . absint( $id ); }
 	private static function optout_key() { return '_abt_request_optout_' . get_current_blog_id(); }
@@ -135,6 +137,9 @@ class ABT_Requests {
 		$prefix = self::key( 0, $user->ID ); $prefix = substr( $prefix, 0, -1 );
 		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND option_name NOT LIKE %s ORDER BY option_name LIMIT %d OFFSET %d", $wpdb->esc_like( $prefix ) . '%', '%' . $wpdb->esc_like( '_claim' ), self::BATCH, $erase ? 0 : ( max( 1, (int) $page ) - 1 ) * self::BATCH ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Bounded indexed prefix over plugin-owned private records for verified privacy requests.
 		$out = array();
+		if ( ! $erase && 1 === (int) $page && get_user_meta( $user->ID, self::optout_key(), true ) ) {
+			$out[] = array( 'group_id' => 'ashbi-review-requests', 'group_label' => __( 'Review reminders', 'ashbi-testimonials' ), 'item_id' => 'abt-reminder-preference-' . $user->ID, 'data' => array( array( 'name' => __( 'Account suppression preference', 'ashbi-testimonials' ), 'value' => __( 'Review reminders stopped unless explicitly requested again.', 'ashbi-testimonials' ) ) ) );
+		}
 		foreach ( $rows as $row ) {
 			$state = maybe_unserialize( $row->option_value );
 			if ( ! is_array( $state ) || (int) ( $state['user_id'] ?? 0 ) !== (int) $user->ID ) { continue; }

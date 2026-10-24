@@ -604,71 +604,54 @@ class ABT_Data {
 		$ids        = array_map( 'absint', (array) ( $args['ids'] ?? array() ) );
 		sort( $ids );
 
-		$key    = 'abt_stats_' . md5( wp_json_encode( array( 'eligibility-v1', $collections, $product_id, $subject, $rating, $min_rating, $featured, $verified, $ids, get_option( ABT_CACHE_OPTION, 1 ) ) ) );
+		$key    = 'abt_stats_' . md5( wp_json_encode( array( 'eligibility-pivot-v2', $collections, $product_id, $subject, $rating, $min_rating, $featured, $verified, $ids, get_option( ABT_CACHE_OPTION, 1 ) ) ) );
 		$cached = get_transient( $key );
 		if ( is_array( $cached ) ) {
 			return $cached;
 		}
 
-		$joins  = '';
-		$params = array( self::META['rating'] );
+		// Pivot only the needed metadata once per matching review. Four independent
+		// meta joins caused multiplicative work and unstable plans in the 100k fixture.
+		$fields = array( 'rating', 'origin', 'source', 'source_url' );
+		foreach ( array( 'product_id' => $product_id, 'subject' => '' !== $subject, 'featured' => $featured, 'verified' => $verified ) as $field => $needed ) {
+			if ( $needed ) { $fields[] = $field; }
+		}
+		$params = array(); $select = array();
+		foreach ( $fields as $field ) {
+			$select[] = "COALESCE(MAX(CASE WHEN pm.meta_key = %s THEN pm.meta_value END), '') AS {$field}";
+			$params[] = self::META[ $field ];
+		}
+		$placeholders = implode( ',', array_fill( 0, count( $fields ), '%s' ) );
+		foreach ( $fields as $field ) { $params[] = self::META[ $field ]; }
+		$joins = '';
 		if ( $collections ) {
 			$tt_ids = array();
 			foreach ( $collections as $term_id ) {
 				$term = get_term( $term_id, self::TAXONOMY );
-				if ( $term instanceof WP_Term ) {
-					$tt_ids[] = (int) $term->term_taxonomy_id;
-				}
+				if ( $term instanceof WP_Term ) { $tt_ids[] = (int) $term->term_taxonomy_id; }
 			}
-			if ( ! $tt_ids ) {
-				$tt_ids = array( 0 );
-			}
-			$joins .= " INNER JOIN {$wpdb->term_relationships} tr ON tr.object_id = p.ID AND tr.term_taxonomy_id IN (" . implode( ',', $tt_ids ) . ')';
-		}
-		if ( $product_id ) {
-			$joins   .= " INNER JOIN {$wpdb->postmeta} pp ON pp.post_id = p.ID AND pp.meta_key = %s AND pp.meta_value = %s";
-			$params[] = self::META['product_id'];
-			$params[] = (string) $product_id;
-		}
-		if ( '' !== $subject ) {
-			$joins   .= " INNER JOIN {$wpdb->postmeta} ps ON ps.post_id = p.ID AND ps.meta_key = %s AND ps.meta_value = %s";
-			$params[] = self::META['subject'];
-			$params[] = $subject;
-		}
-		foreach ( array( 'featured' => $featured, 'verified' => $verified ) as $field => $enabled ) {
-			if ( $enabled ) {
-				$alias = 'p_' . $field;
-				$joins .= " INNER JOIN {$wpdb->postmeta} {$alias} ON {$alias}.post_id = p.ID AND {$alias}.meta_key = %s AND {$alias}.meta_value = '1'";
-				$params[] = self::META[ $field ];
-			}
-		}
-		foreach ( array( 'origin' => 'po', 'source' => 'psource', 'source_url' => 'purl' ) as $field => $alias ) {
-			$joins .= " LEFT JOIN {$wpdb->postmeta} {$alias} ON {$alias}.post_id = p.ID AND {$alias}.meta_key = %s";
-			$params[] = self::META[ $field ];
+			$joins = " INNER JOIN {$wpdb->term_relationships} tr ON tr.object_id = p.ID AND tr.term_taxonomy_id IN (" . implode( ',', $tt_ids ?: array( 0 ) ) . ')';
 		}
 		$params[] = self::POST_TYPE;
-		$where = '';
-		if ( $rating > 0 ) {
-			$where .= ' AND CAST(pm.meta_value AS UNSIGNED) = %d';
-			$params[] = $rating;
-		} elseif ( $min_rating > 0 ) {
-			$where .= ' AND CAST(pm.meta_value AS UNSIGNED) >= %d';
-			$params[] = $min_rating;
+		$post_where = $ids ? ' AND p.ID IN (' . implode( ',', $ids ) . ')' : '';
+		$where = array();
+		if ( $product_id ) { $where[] = 'r.product_id = %s'; $params[] = (string) $product_id; }
+		if ( '' !== $subject ) { $where[] = 'r.subject = %s'; $params[] = $subject; }
+		foreach ( array( 'featured' => $featured, 'verified' => $verified ) as $field => $enabled ) {
+			if ( $enabled ) { $where[] = "r.{$field} = '1'"; }
 		}
-		if ( $ids ) {
-			$where .= ' AND p.ID IN (' . implode( ',', $ids ) . ')';
-		}
-
-		// Integer IDs are cast above; every other value is a placeholder.
-		$sql  = "SELECT CAST(pm.meta_value AS UNSIGNED) AS rating, COUNT(DISTINCT p.ID) AS n,
-			COUNT(DISTINCT CASE WHEN CAST(pm.meta_value AS UNSIGNED) BETWEEN 1 AND 5 AND
-			( COALESCE(po.meta_value, '') <> 'direct' OR COALESCE(purl.meta_value, '') <> '' OR
-			LOWER(TRIM(COALESCE(psource.meta_value, ''))) NOT IN ('', 'website', 'email', 'survey') ) THEN p.ID END) AS ineligible FROM {$wpdb->posts} p
-			LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key = %s
-			{$joins}
-			WHERE p.post_type = %s AND p.post_status = 'publish' {$where}
-			GROUP BY rating";
-		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Cached in a versioned transient; dynamic parts are cast integers and core table names.
+		if ( $rating > 0 ) { $where[] = 'CAST(r.rating AS UNSIGNED) = %d'; $params[] = $rating; }
+		elseif ( $min_rating > 0 ) { $where[] = 'CAST(r.rating AS UNSIGNED) >= %d'; $params[] = $min_rating; }
+		$filter = $where ? 'WHERE ' . implode( ' AND ', $where ) : '';
+		$select_sql = implode( ',', $select );
+		$sql = "SELECT CAST(r.rating AS UNSIGNED) AS rating, COUNT(*) AS n,
+			SUM(CASE WHEN CAST(r.rating AS UNSIGNED) BETWEEN 1 AND 5 AND
+			(r.origin <> 'direct' OR r.source_url <> '' OR LOWER(TRIM(r.source)) NOT IN ('', 'website', 'email', 'survey')) THEN 1 ELSE 0 END) AS ineligible
+			FROM (SELECT p.ID, {$select_sql} FROM {$wpdb->posts} p
+			LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key IN ({$placeholders})
+			{$joins} WHERE p.post_type = %s AND p.post_status = 'publish' {$post_where} GROUP BY p.ID) r
+			{$filter} GROUP BY CAST(r.rating AS UNSIGNED)";
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Cached transient; fields are a static allowlist, IDs cast, other values prepared.
 
 		$breakdown = array( 5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0 );
 		$count     = 0;

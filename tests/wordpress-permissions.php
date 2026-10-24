@@ -85,8 +85,11 @@ $call( $admin, 'ajax_delete', array( 'ids' => wp_json_encode( array( $post ) ) )
 $check( 'publish' === get_post_status( $post ), 'review trash cannot mutate another post type' );
 $public_second = $data->save( array( 'author' => 'Second public reviewer', 'content' => 'Second public permission text', 'email' => 'PRIVATE-EMAIL@example.test', 'rating' => 5 ) );
 wp_set_current_user( 0 );
-$result = $call( ABT_Shortcode::instance(), 'ajax_load_more', array( 'page' => 2, 'atts' => wp_json_encode( array( 'ids' => "$review,$pending,$public_second", 'limit' => 1, 'status' => 'pending', 'post_status' => 'any', 'show' => 'email,content' ) ) ) );
+$result = $call( ABT_Shortcode::instance(), 'ajax_load_more', array( 'page' => '2', 'atts' => wp_json_encode( array( 'ids' => "$review,$pending,$public_second", 'limit' => 1, 'show' => 'email,content' ) ) ) );
 $check( true === $result['json']['success'] && false !== strpos( $result['json']['data']['html'], 'Second public permission text' ) && false === strpos( $result['output'], 'PRIVATE PENDING REVIEW TEXT' ) && false === strpos( $result['output'], 'PRIVATE-EMAIL' ), 'anonymous load-more excludes unpublished text and email' );
+
+$bad_public = ABT_Shortcode::instance()->public_page( wp_json_encode( array( 'status' => 'pending', 'post_status' => 'any' ) ), '2' );
+$check( is_wp_error( $bad_public ), 'public status injection is rejected before querying' );
 
 // A custom testimonial capability does not grant access to private pages.
 wp_set_current_user( $administrator );
