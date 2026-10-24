@@ -13,4 +13,11 @@ class ABT_Atomic {
 		wp_cache_delete( 'notoptions', 'options' );
 		return 1 === $result;
 	}
+	/** Never resurrect an erased or cancelled record after an in-flight operation. */
+	public static function replace( $key, array $expected, array $next ) {
+		global $wpdb;
+		$result = $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s", maybe_serialize( $next ), $key, maybe_serialize( $expected ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Compare-and-set preserves concurrent suppression/erasure.
+		wp_cache_delete( $key, 'options' ); wp_cache_delete( 'notoptions', 'options' );
+		return 1 === $result;
+	}
 }

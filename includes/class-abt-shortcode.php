@@ -268,9 +268,10 @@ class ABT_Shortcode {
 		$atts = json_decode( wp_unslash( $raw ), true );
 		if ( ! is_array( $atts ) || ! preg_match( '/^\s*\{/', $raw ) || array_diff( array_keys( $atts ), array_keys( self::defaults() ) ) ) { return $error; }
 		foreach ( $atts as $value ) { if ( ! is_scalar( $value ) || strlen( (string) $value ) > 2000 ) { return $error; } }
+		$atts = array_map( static fn( $value ) => trim( (string) $value ), $atts );
 		if ( count( explode( ',', (string) ( $atts['ids'] ?? '' ) ) ) > 100 || count( explode( ',', (string) ( $atts['collection'] ?? '' ) ) ) > 20 || 'random' === ( $atts['orderby'] ?? '' ) || 'current' === ( $atts['product'] ?? '' ) ) { return $error; }
 		$parsed = $this->parse( $atts );
-		if ( (int) $page * $parsed['query']['per_page'] > 10000 ) { return $error; }
+		if ( 'random' === $parsed['query']['orderby'] || (int) $page * $parsed['query']['per_page'] > 10000 ) { return $error; }
 		$parsed['query']['page'] = (int) $page;
 		return $parsed;
 	}

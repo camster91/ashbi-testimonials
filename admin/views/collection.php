@@ -259,7 +259,7 @@ $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yel
 						<p class="description"><?php esc_html_e( 'Confirm direct collection only for original reviews you received yourself. External source links and platform ratings remain excluded from review schema.', 'ashbi-testimonials' ); ?></p>
 					</div>
 					<div class="abt-toggles">
-						<label class="abt-toggle"><input type="checkbox" name="verified" value="1" /> <span><?php esc_html_e( 'Verified customer', 'ashbi-testimonials' ); ?></span></label>
+						<label class="abt-toggle"><input type="checkbox" name="verified" value="1" /> <span><?php esc_html_e( 'Manually checked', 'ashbi-testimonials' ); ?></span></label>
 						<label class="abt-toggle"><input type="checkbox" name="featured" value="1" /> <span><?php esc_html_e( 'Featured', 'ashbi-testimonials' ); ?></span></label>
 					</div>
 					<fieldset class="abt-field">
@@ -333,7 +333,7 @@ $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yel
 						<label class="abt-toggle"><input type="checkbox" name="summary" value="1" /> <span><?php esc_html_e( 'Rating summary', 'ashbi-testimonials' ); ?></span></label>
 						<label class="abt-toggle"><input type="checkbox" name="load_more" value="1" /> <span><?php esc_html_e( 'Load more button', 'ashbi-testimonials' ); ?></span></label>
 						<label class="abt-toggle"><input type="checkbox" name="featured" value="1" /> <span><?php esc_html_e( 'Featured only', 'ashbi-testimonials' ); ?></span></label>
-						<label class="abt-toggle"><input type="checkbox" name="verified" value="1" /> <span><?php esc_html_e( 'Verified only', 'ashbi-testimonials' ); ?></span></label>
+						<label class="abt-toggle"><input type="checkbox" name="verified" value="1" /> <span><?php esc_html_e( 'Manually checked only', 'ashbi-testimonials' ); ?></span></label>
 						<label class="abt-toggle"><input type="checkbox" name="product_current" value="1" /> <span><?php esc_html_e( 'Only the product being viewed', 'ashbi-testimonials' ); ?></span></label>
 					</div>
 				</div>

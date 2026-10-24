@@ -585,6 +585,7 @@
 	const avatarRemove = $( '[data-abt-avatar-remove]', editor );
 	let avatarSrc = '';
 	let customSnapshots = {};
+	let customSkipped = new Set();
 	const customBox = $( '[data-abt-custom-values]', editor );
 	function customValues() {
 		const next = JSON.parse( JSON.stringify( customSnapshots ) );
@@ -595,7 +596,7 @@
 		} );
 		return next;
 	}
-	function renderCustom() {
+	function renderCustom( populate = true ) {
 		customSnapshots = customValues();
 		const defs = {};
 		$$( 'input[name="collections"]:checked', collectionsBox ).forEach( ( input ) => {
@@ -603,7 +604,7 @@
 			Object.entries( c && c.fields || {} ).forEach( ( [ key, field ] ) => { if ( ! defs[ key ] ) { defs[ key ] = field; } } );
 		} );
 		Object.entries( defs ).forEach( ( [ key, field ] ) => {
-			if ( ! customSnapshots[ key ] ) { customSnapshots[ key ] = { label: field.label, type: field.type, public: field.public, value: '' }; }
+			if ( populate && ! customSnapshots[ key ] && ! customSkipped.has( key ) && Object.keys( customSnapshots ).length < 10 ) { customSnapshots[ key ] = { label: field.label, type: field.type, public: field.public, value: '' }; }
 		} );
 		customBox.innerHTML = Object.entries( customSnapshots ).map( ( [ key, field ] ) => {
 			const isPublic = field.public && defs[ key ] && defs[ key ].public && defs[ key ].type === field.type;
@@ -618,13 +619,23 @@
 			} else {
 				control = '<input' + attr + ' type="' + ( field.type === 'checkbox' ? 'checkbox' : field.type === 'url' ? 'url' : 'text' ) + '" maxlength="500" value="' + esc( field.value ) + '"' + ( field.type === 'checkbox' && field.value === '1' ? ' checked' : '' ) + ' />';
 			}
-			return '<div class="abt-field"><label>' + label + control + '</label>' + ( ! defs[ key ] ? '<button type="button" class="button-link" data-custom-remove="' + esc( key ) + '">' + esc( __( 'Remove retired answer', 'ashbi-testimonials' ) ) + '</button>' : '' ) + '</div>';
+			return '<div class="abt-field"><label>' + label + control + '</label>' + '<button type="button" class="button-link" data-custom-remove="' + esc( key ) + '">' + esc( __( 'Remove stored answer', 'ashbi-testimonials' ) ) + '</button>' + '</div>';
 		} ).join( '' );
+		const missing = Object.entries( defs ).filter( ( [ key ] ) => ! customSnapshots[ key ] );
+		customBox.insertAdjacentHTML( 'beforeend', '<p class="description">' + esc( sprintf( __( '%s of 10 stored answers. Remove an answer to make room for another question.', 'ashbi-testimonials' ), Object.keys( customSnapshots ).length ) ) + '</p>' );
+		if ( missing.length ) {
+			customBox.insertAdjacentHTML( 'beforeend', '<label>' + esc( __( 'Additional question', 'ashbi-testimonials' ) ) + '<select data-custom-choice>' + missing.map( ( [ key, field ] ) => '<option value="' + esc( key ) + '">' + esc( field.label ) + '</option>' ).join( '' ) + '</select></label><button type="button" class="button" data-custom-add' + ( Object.keys( customSnapshots ).length >= 10 ? ' disabled' : '' ) + '>' + esc( __( 'Add stored answer', 'ashbi-testimonials' ) ) + '</button>' );
+			$( '[data-custom-add]', customBox ).addEventListener( 'click', () => {
+				customSnapshots = customValues(); const key = $( '[data-custom-choice]', customBox ).value; const field = defs[ key ];
+				if ( ! field || Object.keys( customSnapshots ).length >= 10 ) { return; }
+				customSkipped.delete( key ); customSnapshots[ key ] = { label: field.label, type: field.type, public: field.public, value: '' }; customBox.replaceChildren(); renderCustom( false );
+			} );
+		}
 	}
 	customBox.addEventListener( 'click', ( event ) => {
 		const button = event.target.closest( '[data-custom-remove]' );
 		if ( ! button ) { return; }
-		customSnapshots = customValues(); delete customSnapshots[ button.dataset.customRemove ]; customBox.replaceChildren(); renderCustom();
+		customSnapshots = customValues(); customSkipped.add( button.dataset.customRemove ); delete customSnapshots[ button.dataset.customRemove ]; customBox.replaceChildren(); renderCustom( false );
 	} );
 	collectionsBox.addEventListener( 'change', renderCustom );
 
@@ -777,6 +788,7 @@
 		setProduct( data.product_id, data.product_title || ( data.product_id ? '#' + data.product_id : '' ) );
 
 		customBox.replaceChildren();
+		customSkipped = new Set();
 		customSnapshots = data.custom_fields && ! Array.isArray( data.custom_fields ) ? data.custom_fields : {};
 		const assigned = editing ? data.collections || [] : collectionId > 0 ? [ collectionId ] : [];
 		$$( 'input[name="collections"]', collectionsBox ).forEach( ( box ) => ( box.checked = assigned.includes( parseInt( box.value, 10 ) ) ) );

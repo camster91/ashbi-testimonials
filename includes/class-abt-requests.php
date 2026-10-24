@@ -39,6 +39,7 @@ class ABT_Requests {
 		if ( ! $order instanceof WC_Order || ! $order->has_status( 'completed' ) || ! $order->is_paid() || ! $order->get_date_paid() || $order->get_refunds() ) { return null; }
 		foreach ( $order->get_items() as $id => $line ) {
 			$product = $line->get_product();
+			if ( $product && $product->is_type( 'variation' ) ) { $product = wc_get_product( $product->get_parent_id() ); }
 			if ( $product && $line->get_quantity() + $order->get_qty_refunded_for_item( $id ) > 0 && is_post_publicly_viewable( $product->get_id() ) && ! post_password_required( $product->get_id() ) ) { return $product; }
 		}
 		return null;
@@ -50,8 +51,7 @@ class ABT_Requests {
 		if ( ! self::enabled() || ! $user || ! $order instanceof WC_Order || (int) $order->get_customer_id() !== $user || ! self::product( $order ) || strtolower( $order->get_billing_email() ) !== strtolower( wp_get_current_user()->user_email ) ) { return new WP_Error( 'abt_request', __( 'This order is not eligible for a review reminder.', 'ashbi-testimonials' ) ); }
 		$key = self::key( $id, $user );
 		if ( get_option( $key ) || get_option( $key . '_claim' ) ) { return true; }
-		delete_user_meta( $user, self::optout_key() );
-		$state = array( 'user_id' => $user, 'order_id' => (int) $id, 'consented_at' => time(), 'due' => time() + 7 * DAY_IN_SECONDS, 'attempts' => 0, 'state' => 'queued' );
+		$state = array( 'user_id' => $user, 'order_id' => (int) $id, 'consented_at' => time(), 'suppression_generation' => (string) get_user_meta( $user, self::optout_key(), true ), 'due' => time() + 7 * DAY_IN_SECONDS, 'attempts' => 0, 'state' => 'queued' );
 		if ( ! ABT_Atomic::insert( $key, $state ) ) { return true; }
 		if ( ! wp_schedule_single_event( $state['due'], self::HOOK, array( (int) $id, $user ) ) ) { $state['state'] = 'schedule_failed'; update_option( $key, $state, false ); return new WP_Error( 'abt_schedule', __( 'The reminder could not be scheduled. Contact the site owner.', 'ashbi-testimonials' ) ); }
 		return true;
@@ -61,10 +61,21 @@ class ABT_Requests {
 		$state = get_option( $key );
 		if ( is_array( $state ) ) { $state['state'] = 'suppressed'; update_option( $key, $state, false ); }
 		wp_clear_scheduled_hook( self::HOOK, array( (int) $id, (int) $user ) );
-		if ( $all ) { update_user_meta( $user, self::optout_key(), '1' ); }
+		if ( $all ) { update_user_meta( $user, self::optout_key(), wp_generate_uuid4() ); }
 	}
 	public static function changed( $id, $from, $to, $order ) {
 		if ( 'completed' !== $to && $order instanceof WC_Order ) { self::cancel( $id, $order->get_customer_id() ); }
+	}
+	/** The atomic claim must still match both order consent and account suppression. */
+	private static function claim( $key, array $expected ) {
+		global $wpdb;
+		$claim = $key . '_claim';
+		$result = $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload)
+			SELECT %s, %s, 'no' FROM {$wpdb->options} WHERE option_name = %s AND option_value = %s
+			AND COALESCE((SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s ORDER BY umeta_id ASC LIMIT 1), '') = %s",
+			$claim, (string) time(), $key, maybe_serialize( $expected ), $expected['user_id'], self::optout_key(), $expected['suppression_generation'] ?? '' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Atomic consent/suppression comparison cannot use cached options or separate reads.
+		wp_cache_delete( $claim, 'options' ); wp_cache_delete( 'notoptions', 'options' );
+		return 1 === $result;
 	}
 	/** Queue replay is safe; never retry an ambiguous mail attempt. */
 	public static function send( $id, $user ) {
@@ -80,15 +91,20 @@ class ABT_Requests {
 		$order = wc_get_order( $id );
 		$account = get_userdata( $user );
 		$product = self::product( $order );
-		if ( ! self::enabled() || ! $account || get_user_meta( $user, self::optout_key(), true ) || ! $product || (int) $order->get_customer_id() !== (int) $user || strtolower( $order->get_billing_email() ) !== strtolower( $account->user_email ) ) { self::cancel( $id, $user ); return; }
+		$generation = (string) get_user_meta( $user, self::optout_key(), true );
+		if ( ! self::enabled() || ! $account || ( $generation && $generation !== ( $state['suppression_generation'] ?? '' ) ) || ! $product || (int) $order->get_customer_id() !== (int) $user || strtolower( $order->get_billing_email() ) !== strtolower( $account->user_email ) ) { self::cancel( $id, $user ); return; }
 		$reviews = get_posts( array( 'post_type' => ABT_Data::POST_TYPE, 'post_status' => ABT_Data::STATUSES, 'posts_per_page' => 1, 'fields' => 'ids', 'no_found_rows' => true, 'meta_query' => array( array( 'key' => ABT_Data::META['email'], 'value' => $account->user_email ), array( 'key' => ABT_Data::META['product_id'], 'value' => $product->get_id() ) ) ) ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Bounded check before an explicitly opted-in reminder.
 		if ( $reviews ) { self::cancel( $id, $user ); return; }
-		if ( ! ABT_Atomic::insert( $key . '_claim', time() ) ) { return; }
+		do_action( 'abt_before_request_claim', $id, $user );
+		if ( ! self::claim( $key, $state ) ) { return; }
+		$sending = $state; $sending['state'] = 'sending';
+		if ( ! ABT_Atomic::replace( $key, $state, $sending ) ) { return; }
+		$state = $sending;
 		$stop = add_query_arg( array( 'action' => 'abt_request_stop', 'order' => (int) $id, 'customer' => (int) $user, 'token' => wp_hash( 'abt_stop|' . $id . '|' . $user ) ), admin_url( 'admin-post.php' ) );
 		/* translators: 1: product name, 2: review link, 3: unsubscribe confirmation link */
 		$message = sprintf( __( "You requested one review reminder for %1\$s. Share your honest experience, positive or negative:\n\n%2\$s\n\nStop review reminders (confirmation required):\n%3\$s", 'ashbi-testimonials' ), wp_strip_all_tags( $product->get_name() ), $product->get_permalink(), $stop );
 		$state['state'] = wp_mail( $account->user_email, __( 'Share your experience', 'ashbi-testimonials' ), $message ) ? 'accepted' : 'mail_failed';
-		$state['attempted_at'] = time(); update_option( $key, $state, false );
+		$state['attempted_at'] = time(); ABT_Atomic::replace( $key, $sending, $state );
 		wp_clear_scheduled_hook( self::HOOK, array( (int) $id, (int) $user ) );
 	}
 	public static function controls( $order ) {

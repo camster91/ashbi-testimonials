@@ -178,7 +178,7 @@ class ABT_Render {
 		}
 		$html .= '<span class="abt-card__who"><cite class="abt-card__name">' . esc_html( $item['author'] ) . '</cite>';
 		if ( $show( 'verified' ) && $item['verified'] ) {
-			$html .= '<span class="abt-badge-verified"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>' . esc_html__( 'Verified', 'ashbi-testimonials' ) . '</span>';
+			$html .= '<span class="abt-badge-verified"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>' . esc_html__( 'Checked by site owner', 'ashbi-testimonials' ) . '</span>';
 		}
 
 		$meta = array();

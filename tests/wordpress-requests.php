@@ -34,8 +34,31 @@ $check( 2 === count( $mail ) && 'mail_failed' === get_option( ABT_Requests::key(
 $disabled = $make(); update_option( ABT_SETTINGS_OPTION, array() ); ABT_Requests::send( $disabled->get_id(), $user );
 $check( 2 === count( $mail ), 'disabling configuration suppresses an already queued reminder' );
 update_option( ABT_SETTINGS_OPTION, array( 'woo_tab' => '1', 'woo_collection' => (string) $col['id'], 'review_requests' => '1' ) );
+// New explicit consent applies only to that order; it cannot revive older queues.
+$stopped_a = $make(); $stopped_b = $make(); ABT_Requests::cancel( $stopped_a->get_id(), $user, true ); $new_consent = $make();
+ABT_Requests::send( $stopped_b->get_id(), $user );
+$check( 2 === count( $mail ), 'new order consent does not revive older stopped orders' );
+ABT_Requests::send( $new_consent->get_id(), $user );
+$check( 3 === count( $mail ), 'explicit new consent applies to the new order only' );
+// Deterministic cancellation/erasure between eligibility checks and the atomic claim.
+$raced = $make(); $cancel_at_claim = static function( $order_id, $customer ) use ( $raced ) { if ( $order_id === $raced->get_id() ) { ABT_Requests::cancel( $order_id, $customer ); } };
+add_action( 'abt_before_request_claim', $cancel_at_claim, 10, 2 ); ABT_Requests::send( $raced->get_id(), $user ); remove_action( 'abt_before_request_claim', $cancel_at_claim, 10 );
+$check( 3 === count( $mail ) && ! get_option( ABT_Requests::key( $raced->get_id(), $user ) . '_claim' ), 'cancellation before claim prevents sending' );
+$global_race = $make(); $stop_at_claim = static function( $order_id, $customer ) use ( $global_race, $stopped_a ) { if ( $order_id === $global_race->get_id() ) { ABT_Requests::cancel( $stopped_a->get_id(), $customer, true ); } };
+add_action( 'abt_before_request_claim', $stop_at_claim, 10, 2 ); ABT_Requests::send( $global_race->get_id(), $user ); remove_action( 'abt_before_request_claim', $stop_at_claim, 10 );
+$check( 3 === count( $mail ) && ! get_option( ABT_Requests::key( $global_race->get_id(), $user ) . '_claim' ), 'account-wide suppression committed before claim prevents sending' );
+$erased_race = $make(); $erase_at_claim = static function( $order_id, $customer ) use ( $erased_race, $user ) { if ( $order_id === $erased_race->get_id() ) { ABT_Requests::erase( get_userdata( $user )->user_email ); } };
+add_action( 'abt_before_request_claim', $erase_at_claim, 10, 2 ); ABT_Requests::send( $erased_race->get_id(), $user ); remove_action( 'abt_before_request_claim', $erase_at_claim, 10 );
+$check( 3 === count( $mail ) && ! get_option( ABT_Requests::key( $erased_race->get_id(), $user ) ), 'erasure before claim prevents sending and state resurrection' );
+// A variation links to the public parent product while retaining line refund checks.
+$parent = new WC_Product_Variable(); $parent->set_name( 'Variable reminder item' ); $parent->set_status( 'publish' ); $parent_id = $parent->save();
+$variant = new WC_Product_Variation(); $variant->set_parent_id( $parent_id ); $variant->set_regular_price( '15' ); $variant->set_status( 'publish' ); $variant->save();
+$variation_order = wc_create_order( array( 'customer_id' => $user ) ); $variation_order->add_product( $variant, 1 ); $variation_order->set_billing_email( get_userdata( $user )->user_email ); $variation_order->set_date_paid( time() ); $variation_order->set_status( 'completed' ); $variation_order->save();
+$check( true === ABT_Requests::consent( $variation_order->get_id() ), 'public parent supports variation-only orders' );
+$parent->set_status( 'private' ); $parent->save(); $variation_state = get_option( ABT_Requests::key( $variation_order->get_id(), $user ) ); $variation_state['due'] = time() - 1; update_option( ABT_Requests::key( $variation_order->get_id(), $user ), $variation_state, false ); ABT_Requests::send( $variation_order->get_id(), $user );
+$check( 3 === count( $mail ), 'private parent suppresses a variation reminder' );
 $reviewed = $make(); ABT_Data::instance()->save( array( 'author' => 'Already reviewed', 'email' => get_userdata( $user )->user_email, 'rating' => 4, 'product_id' => $pid, 'status' => 'pending' ) ); ABT_Requests::send( $reviewed->get_id(), $user );
-$check( 2 === count( $mail ), 'existing pending review suppresses reminders' );
+$check( 3 === count( $mail ), 'existing pending review suppresses reminders' );
 $privacy = ABT_Requests::export( get_userdata( $user )->user_email );
 $check( ! empty( $privacy['data'] ), 'request state participates in account-scoped privacy export' );
 $erased = ABT_Requests::erase( get_userdata( $user )->user_email );
