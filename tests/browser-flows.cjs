@@ -96,6 +96,10 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await page.bringToFront();
   console.log('Collection reload state',await page.evaluate(async()=>({ready:document.readyState,visible:document.visibilityState,width:innerWidth,height:innerHeight,frames:await new Promise(resolve=>{let frames=0;const tick=()=>{frames++;if(frames===2)resolve(frames);else requestAnimationFrame(tick);};requestAnimationFrame(tick);setTimeout(()=>resolve(frames),1000);})})));
   await collection.waitFor({state:'hidden'});
+  // Continue with ordinary keyboard/pointer input after the full document navigation.
+  await page.keyboard.press('Tab');
+  await page.mouse.move(40,40);
+  console.log('Post-navigation input state',await page.evaluate(async()=>({raf:String(requestAnimationFrame).slice(0,100),focused:document.hasFocus(),timeline:document.timeline.currentTime,frames:await new Promise(resolve=>{let frames=0;const tick=()=>{frames++;if(frames===2)resolve(frames);else requestAnimationFrame(tick);};requestAnimationFrame(tick);setTimeout(()=>resolve(frames),1000);})})));
   await page.getByRole('button',{name:'Collection settings',exact:true}).click();
   await collection.locator('[data-field-label]').last().waitFor();
   assert.equal(await collection.locator('[data-field-label]').last().inputValue(),'Extra question');
