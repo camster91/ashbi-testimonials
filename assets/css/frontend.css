@@ -172,7 +172,7 @@
 	display: grid;
 	place-items: center;
 	background: hsl(var(--abt-hue, 220) 70% 92%);
-	color: hsl(var(--abt-hue, 220) 55% 32%);
+	color: hsl(var(--abt-hue, 220) 55% 24%);
 	font-weight: 700;
 	font-size: .95em;
 }

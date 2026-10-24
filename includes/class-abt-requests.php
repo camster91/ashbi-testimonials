@@ -53,13 +53,13 @@ class ABT_Requests {
 		if ( get_option( $key ) || get_option( $key . '_claim' ) ) { return true; }
 		$state = array( 'user_id' => $user, 'order_id' => (int) $id, 'consented_at' => time(), 'suppression_generation' => (string) get_user_meta( $user, self::optout_key(), true ), 'due' => time() + 7 * DAY_IN_SECONDS, 'attempts' => 0, 'state' => 'queued' );
 		if ( ! ABT_Atomic::insert( $key, $state ) ) { return true; }
-		if ( ! wp_schedule_single_event( $state['due'], self::HOOK, array( (int) $id, $user ) ) ) { $state['state'] = 'schedule_failed'; update_option( $key, $state, false ); return new WP_Error( 'abt_schedule', __( 'The reminder could not be scheduled. Contact the site owner.', 'ashbi-testimonials' ) ); }
+		if ( ! wp_schedule_single_event( $state['due'], self::HOOK, array( (int) $id, $user ) ) ) { $failed = $state; $failed['state'] = 'schedule_failed'; ABT_Atomic::replace( $key, $state, $failed ); return new WP_Error( 'abt_schedule', __( 'The reminder could not be scheduled. Contact the site owner.', 'ashbi-testimonials' ) ); }
 		return true;
 	}
 	public static function cancel( $id, $user, $all = false ) {
 		$key = self::key( $id, $user );
 		$state = get_option( $key );
-		if ( is_array( $state ) ) { $state['state'] = 'suppressed'; update_option( $key, $state, false ); }
+		if ( is_array( $state ) ) { $next = $state; $next['state'] = 'suppressed'; ABT_Atomic::replace( $key, $state, $next ); }
 		wp_clear_scheduled_hook( self::HOOK, array( (int) $id, (int) $user ) );
 		if ( $all ) { update_user_meta( $user, self::optout_key(), wp_generate_uuid4() ); }
 	}
@@ -82,11 +82,15 @@ class ABT_Requests {
 		$key = self::key( $id, $user );
 		$state = get_option( $key );
 		if ( ! is_array( $state ) || 'queued' !== $state['state'] || time() < $state['due'] || get_option( $key . '_claim' ) ) { return; }
-		if ( ! function_exists( 'wc_get_order' ) ) {
-			++$state['attempts'];
-			$state['due'] = time() + HOUR_IN_SECONDS;
-			if ( $state['attempts'] >= 3 || ! wp_schedule_single_event( $state['due'], self::HOOK, array( (int) $id, (int) $user ) ) ) { $state['state'] = 'unavailable'; }
-			update_option( $key, $state, false ); return;
+		if ( ! apply_filters( 'abt_request_order_api_available', function_exists( 'wc_get_order' ) ) ) {
+			$retry = $state; ++$retry['attempts']; $retry['due'] = time() + HOUR_IN_SECONDS;
+			if ( $retry['attempts'] >= 3 ) { $retry['state'] = 'unavailable'; }
+			do_action( 'abt_before_request_retry', $id, $user );
+			if ( ! ABT_Atomic::replace( $key, $state, $retry ) ) { return; }
+			if ( 'queued' === $retry['state'] && ! wp_schedule_single_event( $retry['due'], self::HOOK, array( (int) $id, (int) $user ) ) ) {
+				$failed = $retry; $failed['state'] = 'unavailable'; ABT_Atomic::replace( $key, $retry, $failed );
+			}
+			return;
 		}
 		$order = wc_get_order( $id );
 		$account = get_userdata( $user );
