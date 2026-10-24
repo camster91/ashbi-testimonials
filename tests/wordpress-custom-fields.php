@@ -8,6 +8,8 @@ $definitions = array(
  array( 'key' => 'private_note', 'label' => 'Private note', 'type' => 'textarea', 'required' => false, 'public' => false ),
  array( 'key' => 'tier', 'label' => 'Plan', 'type' => 'select', 'required' => true, 'public' => true, 'options' => array( 'Basic', 'Advanced' ) ),
 );
+$invalid_label = $definitions; $invalid_label[0]['label'] = '<b></b>';
+$check( is_wp_error( ABT_Fields::definitions( $invalid_label ) ), 'labels must remain nonempty after sanitization' );
 $data = ABT_Data::instance();
 $col = $data->save_collection( array( 'name' => 'Portable custom fields', 'fields' => $definitions ) );
 $check( ! is_wp_error( $col ) && 3 === count( $col['fields'] ), 'collection retains its field definitions' );

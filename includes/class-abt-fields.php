@@ -16,7 +16,7 @@ class ABT_Fields {
 		foreach ( $input as $field ) {
 			if ( ! is_array( $field ) || array_diff( array_keys( $field ), array( 'key', 'label', 'type', 'required', 'public', 'options' ) ) ) { return self::error(); }
 			$key = $field['key'] ?? '';
-			if ( ! is_string( $key ) || ! preg_match( '/^[a-z][a-z0-9_]{0,39}$/D', $key ) || isset( $out[ $key ] ) || ! self::text( $field['label'] ?? null, 80 ) || '' === trim( $field['label'] ) || ! in_array( $field['type'] ?? '', self::TYPES, true ) || ! is_bool( $field['required'] ?? null ) || ! is_bool( $field['public'] ?? null ) ) { return self::error(); }
+			if ( ! is_string( $key ) || ! preg_match( '/^[a-z][a-z0-9_]{0,39}$/D', $key ) || isset( $out[ $key ] ) || ! self::text( $field['label'] ?? null, 80 ) || '' === trim( sanitize_text_field( $field['label'] ) ) || ! in_array( $field['type'] ?? '', self::TYPES, true ) || ! is_bool( $field['required'] ?? null ) || ! is_bool( $field['public'] ?? null ) ) { return self::error(); }
 			$options = $field['options'] ?? array();
 			if ( ! is_array( $options ) || count( $options ) > 20 || ( 'select' === $field['type'] && ! $options ) ) { return self::error(); }
 			foreach ( $options as $option ) { if ( ! self::text( $option, 80 ) || '' === trim( $option ) || sanitize_text_field( $option ) !== $option ) { return self::error(); } }
@@ -52,7 +52,7 @@ class ABT_Fields {
 		if ( ! is_array( $input ) || count( $input ) > 10 ) { return self::error(); }
 		$out = array();
 		foreach ( $input as $key => $field ) {
-			if ( ! is_string( $key ) || ! preg_match( '/^[a-z][a-z0-9_]{0,39}$/D', $key ) || ! is_array( $field ) || array_diff( array_keys( $field ), array( 'label', 'type', 'public', 'value' ) ) || ! self::text( $field['label'] ?? null, 80 ) || ! in_array( $field['type'] ?? '', self::TYPES, true ) || ! is_bool( $field['public'] ?? null ) ) { return self::error(); }
+			if ( ! is_string( $key ) || ! preg_match( '/^[a-z][a-z0-9_]{0,39}$/D', $key ) || ! is_array( $field ) || array_diff( array_keys( $field ), array( 'label', 'type', 'public', 'value' ) ) || ! self::text( $field['label'] ?? null, 80 ) || '' === trim( sanitize_text_field( $field['label'] ) ) || ! in_array( $field['type'] ?? '', self::TYPES, true ) || ! is_bool( $field['public'] ?? null ) ) { return self::error(); }
 			$value = self::value( $field['value'] ?? null, $field['type'] );
 			if ( is_wp_error( $value ) ) { return $value; }
 			$out[ $key ] = array( 'label' => sanitize_text_field( $field['label'] ), 'type' => $field['type'], 'public' => $field['public'], 'value' => $value );

@@ -82,7 +82,7 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await importer.locator('#abt-i-file').setInputFiles({name:'fictional-review.csv',mimeType:'text/csv',buffer:Buffer.from('author,content,rating\nCSV browser reviewer,Imported fictional feedback,4\n')});
   await importer.getByRole('button',{name:'Import',exact:true}).click();
   await importer.getByRole('status').filter({hasText:'Imported 1 testimonial.'}).waitFor();
-  await importer.getByRole('button',{name:'Close',exact:true}).click();
+  await importer.locator('.abt-dialog__foot').getByRole('button',{name:'Close',exact:true}).click();
   await page.getByText('CSV browser reviewer',{exact:true}).first().waitFor();
   await page.getByRole('button',{name:'Collection settings',exact:true}).click();
   const collection=page.locator('#abt-collection-dialog');
