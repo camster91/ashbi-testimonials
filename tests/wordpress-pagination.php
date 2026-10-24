@@ -13,6 +13,8 @@ foreach ( array( array( array(), '2' ), array( '{}', array() ), array( '{}', '99
 }
 $valid = $shortcode->public_page( '{"limit":"20","orderby":"rating"}', '2' );
 $check( ! is_wp_error( $valid ) && 'publish' === $valid['query']['status'] && 2 === $valid['query']['page'], 'valid bounded request remains published-only' );
+$quoted = $shortcode->public_page( wp_json_encode( array( 'label' => 'A \"quoted\" label' ) ), '2' );
+$check( ! is_wp_error( $quoted ), 'unslashed JSON retains escaped label characters' );
 $col = $data->save_collection( array( 'name' => 'Stable page ties' ) ); $ids = array();
 foreach ( range( 1, 6 ) as $i ) { $ids[] = $data->save( array( 'author' => 'Tied reviewer ' . $i, 'rating' => 5, 'featured' => 1, 'date' => '2025-01-01', 'collections' => array( $col['id'] ) ) ); }
 foreach ( array( 'date', 'rating', 'featured' ) as $sort ) {

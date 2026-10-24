@@ -265,7 +265,7 @@ class ABT_Shortcode {
 	public function public_page( $raw, $page ) {
 		$error = new WP_Error( 'abt_page', __( 'This review page request is invalid or exceeds the public browsing limit.', 'ashbi-testimonials' ) );
 		if ( ! is_string( $raw ) || strlen( $raw ) > 8192 || ! is_string( $page ) || ! preg_match( '/^[0-9]{1,4}$/D', $page ) || (int) $page < 2 || (int) $page > 1000 ) { return $error; }
-		$atts = json_decode( wp_unslash( $raw ), true );
+		$atts = json_decode( $raw, true );
 		if ( ! is_array( $atts ) || ! preg_match( '/^\s*\{/', $raw ) || array_diff( array_keys( $atts ), array_keys( self::defaults() ) ) ) { return $error; }
 		foreach ( $atts as $value ) { if ( ! is_scalar( $value ) || strlen( (string) $value ) > 2000 ) { return $error; } }
 		$atts = array_map( static fn( $value ) => trim( (string) $value ), $atts );
@@ -277,7 +277,9 @@ class ABT_Shortcode {
 	}
 
 	public function ajax_load_more() {
-		$parsed = $this->public_page( $_POST['atts'] ?? null, $_POST['page'] ?? '2' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- Read-only published endpoint; strict validation below before any query.
+		$raw = isset( $_POST['atts'] ) ? wp_unslash( $_POST['atts'] ) : null; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- Read-only published endpoint; strict validation in public_page before any query.
+		$page = isset( $_POST['page'] ) ? wp_unslash( $_POST['page'] ) : '2'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- Strict numeric bounds in public_page below.
+		$parsed = $this->public_page( $raw, $page );
 		if ( is_wp_error( $parsed ) ) { wp_send_json_error( array( 'message' => $parsed->get_error_message() ), 400 ); }
 		$page = $parsed['query']['page'];
 		$result = ABT_Data::instance()->query( $parsed['query'] );

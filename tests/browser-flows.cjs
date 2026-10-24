@@ -8,6 +8,7 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
  const context = await browser.newContext();
  const page = await context.newPage();
  const errors=[]; page.on('pageerror',e=>errors.push(e.message));
+ page.on('dialog',async dialog=>{console.error('Unexpected browser dialog:',dialog.message());errors.push(dialog.message());await dialog.dismiss();});
  page.on('response',async response=>{if(response.url().includes('admin-post.php')){const headers=await response.allHeaders();console.log('Form transport',response.status(),headers.location||response.url());}});
  fs.mkdirSync('browser-results',{recursive:true});
  try {
@@ -89,6 +90,7 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   assert.equal(await collection.locator('[data-field-label]').count(),2);
   await collection.getByRole('button',{name:'Add field',exact:true}).click();
   await collection.locator('[data-field-label]').last().fill('Extra question');
+  console.log('Saving collection question configuration');
   await collection.getByRole('button',{name:'Save collection',exact:true}).click();
   await collection.waitFor({state:'hidden'});
   await page.getByRole('button',{name:'Collection settings',exact:true}).click();
@@ -110,6 +112,6 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await rtl.close();
   assert.deepEqual(errors,[],'no browser runtime errors');
   console.log('OK: responsive/axe checks, repeated forms, real keyboard scrolling, recovery, create/edit/approve, CSV, collection fields and RTL direction smoke');
- } catch (error) { console.log('Form notices:',await page.locator('.abt-form__notice').allTextContents()); await page.screenshot({path:'browser-results/failure.png',fullPage:true}); throw error; }
+ } catch (error) { console.error('Original browser failure:',error); console.log('Form notices:',await page.locator('.abt-form__notice').allTextContents()); try { await page.screenshot({path:'browser-results/failure.png',fullPage:true,timeout:5000,animations:'disabled'}); } catch (capture) { console.log('Failure capture:',capture.message); } throw error; }
  finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

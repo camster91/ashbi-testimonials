@@ -252,7 +252,7 @@ class ABT_Form {
 		}
 		// phpcs:enable
 
-		$custom = ABT_Fields::submission( $term_id, isset( $_POST['abt_custom'] ) ? wp_unslash( $_POST['abt_custom'] ) : array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated against server definitions.
+		$custom = ABT_Fields::submission( $term_id, isset( $_POST['abt_custom'] ) ? wp_unslash( $_POST['abt_custom'] ) : array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- Target-bound form token checked above; validated against server definitions.
 		if ( is_wp_error( $custom ) ) { $go( 'invalid' ); }
 		$fields['custom_fields'] = $custom;
 		$fields['content']     = wp_strip_all_tags( (string) $fields['content'] );

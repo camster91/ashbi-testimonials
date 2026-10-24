@@ -76,10 +76,12 @@ class ABT_Requests {
 	private static function claim( $key, array $expected ) {
 		global $wpdb;
 		$claim = $key . '_claim';
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Atomic consent/suppression claim requires a conditional insert, never a cached option API.
 		$result = $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload)
 			SELECT %s, %s, 'no' FROM {$wpdb->options} WHERE option_name = %s AND option_value = %s
 			AND COALESCE((SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s ORDER BY umeta_id ASC LIMIT 1), '') = %s",
 			$claim, (string) time(), $key, maybe_serialize( $expected ), $expected['user_id'], self::optout_key(), $expected['suppression_generation'] ?? '' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Atomic consent/suppression comparison cannot use cached options or separate reads.
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery
 		wp_cache_delete( $claim, 'options' ); wp_cache_delete( 'notoptions', 'options' );
 		return 1 === $result;
 	}
@@ -151,7 +153,8 @@ class ABT_Requests {
 		$token = isset( $_REQUEST['token'] ) && is_string( $_REQUEST['token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ! $id || ! $user || ! hash_equals( wp_hash( 'abt_stop|' . $id . '|' . $user ), $token ) ) { wp_die( esc_html__( 'This confirmation link is invalid.', 'ashbi-testimonials' ) ); }
 		nocache_headers(); header( 'Referrer-Policy: no-referrer' );
-		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) { self::cancel( $id, $user, true ); wp_die( esc_html__( 'Review reminders are stopped. You can explicitly request a new reminder from your account in future.', 'ashbi-testimonials' ) ); }
+		$method = isset( $_SERVER['REQUEST_METHOD'] ) && is_string( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
+		if ( 'POST' === $method ) { self::cancel( $id, $user, true ); wp_die( esc_html__( 'Review reminders are stopped. You can explicitly request a new reminder from your account in future.', 'ashbi-testimonials' ) ); }
 		$html = '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="abt_request_stop" /><input type="hidden" name="order" value="' . $id . '" /><input type="hidden" name="customer" value="' . $user . '" /><input type="hidden" name="token" value="' . esc_attr( $token ) . '" /><button type="submit">' . esc_html__( 'Stop review reminders', 'ashbi-testimonials' ) . '</button></form>';
 		wp_die( $html, esc_html__( 'Review reminder preferences', 'ashbi-testimonials' ), array( 'response' => 200 ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Every dynamic form value escaped above.
 	}
