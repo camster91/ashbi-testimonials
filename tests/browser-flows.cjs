@@ -94,7 +94,7 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await Promise.all([page.waitForEvent('framenavigated',{predicate:frame=>frame===page.mainFrame()}),collection.getByRole('button',{name:'Save collection',exact:true}).click()]);
   await page.waitForLoadState('networkidle');
   await page.bringToFront();
-  console.log('Collection reload state',await page.evaluate(()=>({ready:document.readyState,visible:document.visibilityState,width:innerWidth,height:innerHeight})));
+  console.log('Collection reload state',await page.evaluate(async()=>({ready:document.readyState,visible:document.visibilityState,width:innerWidth,height:innerHeight,frames:await new Promise(resolve=>{let frames=0;const tick=()=>{frames++;if(frames===2)resolve(frames);else requestAnimationFrame(tick);};requestAnimationFrame(tick);setTimeout(()=>resolve(frames),1000);})})));
   await collection.waitFor({state:'hidden'});
   await page.getByRole('button',{name:'Collection settings',exact:true}).click();
   await collection.locator('[data-field-label]').last().waitFor();

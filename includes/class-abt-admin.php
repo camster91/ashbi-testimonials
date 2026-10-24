@@ -397,7 +397,7 @@ class ABT_Admin {
 			}
 		}
 		$item['collections'] = wp_json_encode( $groups );
-		$item['custom_fields'] = wp_json_encode( $item['custom_fields'] ?? array() );
+		$item['custom_fields'] = wp_json_encode( $item['custom_fields'] ?? array(), JSON_UNESCAPED_UNICODE );
 		$row = array();
 		foreach ( self::CSV_COLUMNS as $column ) {
 			$value = 'avatar_url' === $column ? $item['avatar'] : ( $item[ $column ] ?? '' );

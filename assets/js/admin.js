@@ -236,6 +236,7 @@
 						} ) ),
 					},
 				} );
+				collectionDialog.close();
 				window.location.href = saved.url;
 			} catch ( err ) {
 				submit.disabled = false;

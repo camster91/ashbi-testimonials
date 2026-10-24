@@ -262,7 +262,7 @@ class ABT_Data {
 		}
 
 		$term_id = (int) $result['term_id'];
-		update_term_meta( $term_id, 'abt_fields', $fields );
+		update_term_meta( $term_id, 'abt_fields', wp_slash( $fields ) );
 		$type    = sanitize_key( (string) ( $data['type'] ?? 'general' ) );
 		update_term_meta( $term_id, 'abt_type', isset( self::types()[ $type ] ) ? $type : 'general' );
 		update_term_meta( $term_id, 'abt_layout', $this->clean_layout( $data['layout'] ?? '' ) );
@@ -417,7 +417,7 @@ class ABT_Data {
 		}
 
 		foreach ( self::META as $field => $key ) {
-			update_post_meta( $post_id, $key, $data[ $field ] );
+			update_post_meta( $post_id, $key, wp_slash( $data[ $field ] ) );
 		}
 		wp_set_object_terms( $post_id, $data['collections'], self::TAXONOMY );
 		$this->flush();

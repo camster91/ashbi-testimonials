@@ -37,3 +37,15 @@ $f = $data->collection_to_array( $new_col ); $f['fields']['project']['public'] =
 $data->save_collection( $f, $new_col->term_id );
 $check( false === strpos( ABT_Render::instance()->card( $data->get( $restored ) ), 'Public project' ), 'making a definition private hides historic public values' );
 fwrite( STDOUT, "OK: custom field validation, privacy and CSV portability passed\n" );
+
+// WordPress metadata APIs strip slashes; preserve legitimate text across writes and CSV.
+$slash_values = $values; $slash_values['project']['value'] = 'C:\project\notes';
+$slash_id = $data->save( array( 'author' => 'Portable text reviewer', 'rating' => 5, 'custom_fields' => $slash_values ) );
+$check( 'C:\project\notes' === $data->get( $slash_id )['custom_fields']['project']['value'], 'literal backslashes survive metadata storage' );
+$wide = array();
+foreach ( range( 1, 10 ) as $i ) { $wide[ 'wide_' . $i ] = array( 'label' => 'Unicode answer', 'type' => 'textarea', 'public' => false, 'value' => str_repeat( '🌿', 2000 ) ); }
+$wide_id = $data->save( array( 'author' => 'Unicode reviewer', 'rating' => 5, 'custom_fields' => $wide ) );
+$wide_row = array_combine( ABT_Admin::CSV_COLUMNS, $admin->export_row( $data->get( $wide_id ) ) );
+$wide_restored = $admin->import_row( $wide_row );
+$check( ! is_wp_error( $wide_restored ) && $wide === $data->get( $wide_restored )['custom_fields'], 'maximum supported Unicode answers survive CSV export and import' );
+fwrite( STDOUT, "OK: literal text and maximum Unicode answer portability passed\n" );
