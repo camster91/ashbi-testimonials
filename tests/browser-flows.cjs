@@ -91,7 +91,10 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await collection.getByRole('button',{name:'Add field',exact:true}).click();
   await collection.locator('[data-field-label]').last().fill('Extra question');
   console.log('Saving collection question configuration');
-  await collection.getByRole('button',{name:'Save collection',exact:true}).click();
+  await Promise.all([page.waitForEvent('framenavigated',{predicate:frame=>frame===page.mainFrame()}),collection.getByRole('button',{name:'Save collection',exact:true}).click()]);
+  await page.waitForLoadState('networkidle');
+  await page.bringToFront();
+  console.log('Collection reload state',await page.evaluate(()=>({ready:document.readyState,visible:document.visibilityState,width:innerWidth,height:innerHeight})));
   await collection.waitFor({state:'hidden'});
   await page.getByRole('button',{name:'Collection settings',exact:true}).click();
   await collection.locator('[data-field-label]').last().waitFor();
