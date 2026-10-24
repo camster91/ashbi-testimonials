@@ -1,5 +1,8 @@
 # Proposed delivery backlog: Ashbi Testimonials — fully free
 
+> Current implementation/remaining gates: [FINISH-ROADMAP.md](FINISH-ROADMAP.md). Historical checkboxes below define acceptance criteria; they are not the current merge or release status. Real pilot/source access, human design approval and high-volume hosting evidence are still outstanding.
+
+
 Draft, 23 October 2026. No GitHub issues have been created from this list. Cameron has confirmed that all features are free and the product should build Ashbi credibility. Module boundaries in `plan.md` still need technical review before module specifications and implementation. An unchecked item has not completed its full acceptance and release process; implementation in review is tracked below.
 
 ## Current implementation
