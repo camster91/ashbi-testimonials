@@ -118,7 +118,7 @@
 		button.textContent = t( 'loading', 'Loading…' );
 		let status = 'error';
 		try {
-			const response = await fetch( form.action, { method: 'POST', body: new FormData( form ), credentials: 'same-origin', signal: controller.signal } );
+			const response = await fetch( form.getAttribute( 'action' ), { method: 'POST', body: new FormData( form ), credentials: 'same-origin', signal: controller.signal } );
 			if ( response.ok ) { status = new URL( response.url ).searchParams.get( 'abt_status' ) || 'error'; }
 		} catch ( error ) { status = 'error'; }
 		finally { clearTimeout( timeout ); form.removeAttribute( 'aria-busy' ); button.disabled = false; button.textContent = label; }

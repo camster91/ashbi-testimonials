@@ -23,7 +23,7 @@ jobs:
       - name: Avatar without mbstring uppercase support
         run: php -d disable_functions=mb_strtoupper tests/avatar-without-mbstring.php
       - name: Admin JavaScript regressions
-        run: node --test tests/admin-regressions.test.cjs
+        run: node --test tests/*test.cjs
       - name: JavaScript syntax
         run: node --check assets/js/admin.js && node --check assets/js/frontend.js && node --check assets/js/blocks.js
       - name: Package
