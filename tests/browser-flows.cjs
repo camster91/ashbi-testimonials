@@ -16,6 +16,12 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
  watch(page);
  fs.mkdirSync('browser-results',{recursive:true});
  try {
+  const noScript=await browser.newContext({javaScriptEnabled:false});
+  const fallback=await noScript.newPage();
+  await fallback.goto(fixture.url);
+  assert.ok(await fallback.locator('.abt--grid .abt-card__full').first().isVisible(),'the full review is available without JavaScript');
+  assert.equal(await fallback.locator('.abt-card__more:visible,.abt__more:visible,.abt-slider__nav:visible').count(),0,'script-dependent controls are hidden without JavaScript');
+  await noScript.close();
   for(const width of [375,768,1440]) {
    await page.setViewportSize({width,height:1000});
    await page.goto(fixture.url,{waitUntil:'networkidle'});
@@ -28,13 +34,29 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
    await page.screenshot({path:`browser-results/reviews-${width}.png`,fullPage:true});
   }
   const grid=page.locator('.abt--grid').first();
+  const read=grid.locator('.abt-card__more').first();
+  await read.focus();
+  await page.keyboard.press('Enter');
+  assert.equal(await read.getAttribute('aria-expanded'),'true');
+  assert.ok(await grid.locator('.abt-card__full').first().isVisible(),'keyboard opens the full quote');
+  await page.keyboard.press('Enter');
+  assert.equal(await read.getAttribute('aria-expanded'),'false');
   const count=await grid.locator('.abt-card').count();
   await grid.getByRole('button',{name:'Load more'}).click();
   await page.waitForFunction(n=>document.querySelector('.abt--grid').querySelectorAll('.abt-card').length>n,count);
+  assert.ok(await grid.locator('.abt-card').nth(count).getByRole('button',{name:'Read more',exact:true}).isVisible(),'new quotes are enhanced after pagination');
+  const quoteIds=await grid.locator('.abt-card__full').evaluateAll(nodes=>nodes.map(n=>n.id));
+  assert.equal(new Set(quoteIds).size,quoteIds.length,'pagination keeps unique disclosure IDs');
   const slider=page.locator('.abt-slider__track').first();
   await slider.focus(); await page.keyboard.press('ArrowRight');
   await page.waitForFunction(()=>Math.abs(document.querySelector('.abt-slider__track').scrollLeft)>0);
   const form=page.locator('.abt-form').first();
+  const selectedStar=form.locator('[name=rating]:checked');
+  await selectedStar.focus();
+  await page.keyboard.press('ArrowLeft');
+  assert.equal(await selectedStar.inputValue(),'4','left arrow moves one star lower in LTR');
+  const focusStyle=await form.locator('[name=rating]:focus-visible + label').evaluate(label=>getComputedStyle(label).outlineStyle);
+  assert.equal(focusStyle,'solid','keyboard star focus has a visible outline');
   await form.locator('[name=author]').fill('Browser test reviewer');
   await form.locator('[name=email]').fill('browser@example.test');
   await form.locator('[name=content]').fill('Retain this text after a network failure.');
