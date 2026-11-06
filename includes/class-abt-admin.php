@@ -236,30 +236,35 @@ class ABT_Admin {
 	/** Bulk status change, feature toggle or collection assignment. */
 	public function ajax_bulk() {
 		$this->guard();
-		$ids    = array_filter( array_map( 'absint', (array) $this->json_field( 'ids' ) ) );
+		$ids    = array_unique( array_filter( array_map( 'absint', $this->json_field( 'ids' ) ) ) );
 		$action = sanitize_key( (string) $this->post( 'bulk', '' ) );
 		$value  = sanitize_key( (string) $this->post( 'value', '' ) );
 
+		$updated = 0;
 		foreach ( $ids as $id ) {
 			if ( ABT_Data::POST_TYPE !== get_post_type( $id ) ) {
 				continue;
 			}
+			$result = false;
 			if ( 'restore' === $action ) {
-				wp_untrash_post( $id );
+				$result = wp_untrash_post( $id );
 			} elseif ( 'purge' === $action && 'trash' === get_post_status( $id ) ) {
-				wp_delete_post( $id, true );
+				$result = wp_delete_post( $id, true );
 			} elseif ( 'status' === $action && in_array( $value, ABT_Data::STATUSES, true ) ) {
-				wp_update_post( array( 'ID' => $id, 'post_status' => $value ) );
+				$result = wp_update_post( array( 'ID' => $id, 'post_status' => $value ) );
 			} elseif ( 'featured' === $action ) {
-				update_post_meta( $id, ABT_Data::META['featured'], '1' === $value ? 1 : 0 );
+				$result = update_post_meta( $id, ABT_Data::META['featured'], '1' === $value ? 1 : 0 );
 			} elseif ( 'add_collection' === $action && absint( $value ) ) {
-				wp_set_object_terms( $id, absint( $value ), ABT_Data::TAXONOMY, true );
+				$result = wp_set_object_terms( $id, absint( $value ), ABT_Data::TAXONOMY, true );
 			} elseif ( 'remove_collection' === $action && absint( $value ) ) {
-				wp_remove_object_terms( $id, absint( $value ), ABT_Data::TAXONOMY );
+				$result = wp_remove_object_terms( $id, absint( $value ), ABT_Data::TAXONOMY );
+			}
+			if ( $result && ! is_wp_error( $result ) ) {
+				++$updated;
 			}
 		}
 		ABT_Data::instance()->flush();
-		wp_send_json_success( array( 'updated' => count( $ids ) ) );
+		wp_send_json_success( array( 'updated' => $updated ) );
 	}
 
 	public function ajax_collection_save() {
