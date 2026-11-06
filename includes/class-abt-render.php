@@ -60,6 +60,7 @@ class ABT_Render {
 					'less'    => __( 'Show less', 'ashbi-testimonials' ),
 					'loading' => __( 'Loading…', 'ashbi-testimonials' ),
 					'error'   => __( 'Could not load more reviews. Try again.', 'ashbi-testimonials' ),
+					'end'     => __( 'All available reviews are shown.', 'ashbi-testimonials' ),
 				),
 			)
 		);
@@ -146,11 +147,11 @@ class ABT_Render {
 		if ( '' !== trim( $content ) ) {
 			$full = wpautop( wp_kses_post( $content ) );
 			$html .= '<blockquote class="abt-card__quote">';
-			$plain = wp_strip_all_tags( $content );
-			if ( $words > 0 && str_word_count( $plain ) > $words ) {
-				$html .= '<div class="abt-card__excerpt"><p>' . esc_html( wp_trim_words( $plain, $words, '…' ) ) . '</p></div>';
-				$html .= '<div class="abt-card__full" hidden>' . $full . '</div>';
-				$html .= '<button type="button" class="abt-card__more" aria-expanded="false">' . esc_html__( 'Read more', 'ashbi-testimonials' ) . '</button>';
+			$excerpt = $words > 0 ? wp_trim_words( $content, $words, '…' ) : '';
+			if ( $words > 0 && $excerpt !== wp_trim_words( $content, $words, '' ) ) {
+				$html .= '<div class="abt-card__excerpt" hidden><p>' . esc_html( $excerpt ) . '</p></div>';
+				$html .= '<div class="abt-card__full">' . $full . '</div>';
+				$html .= '<button type="button" class="abt-card__more" hidden>' . esc_html__( 'Read more', 'ashbi-testimonials' ) . '</button>';
 			} else {
 				$html .= $full;
 			}
@@ -272,8 +273,23 @@ class ABT_Render {
 			$classes[] = $layout['class'];
 		}
 		$style = '--abt-cols:' . (int) $layout['columns'] . ';';
-		if ( $layout['accent'] ) {
-			$style .= '--abt-accent:' . $layout['accent'] . ';';
+		$accent = sanitize_hex_color( $layout['accent'] );
+		if ( $accent ) {
+			$style .= '--abt-accent:' . $accent . ';';
+			$hex = ltrim( $accent, '#' );
+			if ( 3 === strlen( $hex ) ) {
+				$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+			}
+			$rgb = array_map(
+				static function ( $channel ) {
+					$value = hexdec( $channel ) / 255;
+					return $value <= 0.04045 ? $value / 12.92 : ( ( $value + 0.055 ) / 1.055 ) ** 2.4;
+				},
+				str_split( $hex, 2 )
+			);
+			// Pick the foreground with the higher contrast against a custom action colour.
+			$luminance = 0.2126 * $rgb[0] + 0.7152 * $rgb[1] + 0.0722 * $rgb[2];
+			$style .= '--abt-action-text:' . ( $luminance > 0.179 ? '#000' : '#fff' ) . ';';
 		}
 
 		$html = sprintf(
@@ -286,8 +302,8 @@ class ABT_Render {
 		$html .= $layout['before'];
 
 		if ( 'slider' === $type ) {
-			$html .= '<div class="abt-slider__track" tabindex="0">' . implode( '', array_map( static fn( $c ) => '<div class="abt-slider__slide">' . $c . '</div>', $cards ) ) . '</div>';
-			$html .= '<div class="abt-slider__nav"><button type="button" class="abt-slider__prev" aria-label="' . esc_attr__( 'Previous testimonials', 'ashbi-testimonials' ) . '"><span aria-hidden="true">&larr;</span></button>';
+			$html .= '<div class="abt-slider__track" tabindex="0" role="group" aria-label="' . esc_attr__( 'Scrollable testimonials', 'ashbi-testimonials' ) . '">' . implode( '', array_map( static fn( $c ) => '<div class="abt-slider__slide">' . $c . '</div>', $cards ) ) . '</div>';
+			$html .= '<div class="abt-slider__nav" hidden><button type="button" class="abt-slider__prev" aria-label="' . esc_attr__( 'Previous testimonials', 'ashbi-testimonials' ) . '"><span aria-hidden="true">&larr;</span></button>';
 			$html .= '<button type="button" class="abt-slider__next" aria-label="' . esc_attr__( 'Next testimonials', 'ashbi-testimonials' ) . '"><span aria-hidden="true">&rarr;</span></button></div>';
 		} else {
 			$html .= '<div class="abt__items">' . implode( '', $cards ) . '</div>';
@@ -295,7 +311,7 @@ class ABT_Render {
 
 		if ( ! empty( $layout['more'] ) ) {
 			$html .= sprintf(
-				'<div class="abt__more"><button type="button" class="abt-load-more" data-abt-more="%s">%s</button></div>',
+				'<div class="abt__more" hidden><button type="button" class="abt-load-more" data-abt-more="%s">%s</button></div>',
 				esc_attr( wp_json_encode( $layout['more'] ) ),
 				esc_html__( 'Load more reviews', 'ashbi-testimonials' )
 			);

@@ -4,16 +4,15 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class ABT_Editors {
 	public static function init() {
 		add_action( 'init', array( __CLASS__, 'register' ) );
+		add_action( 'enqueue_block_editor_assets', array( __CLASS__, 'editor_settings' ) );
 		add_action( 'elementor/widgets/register', array( __CLASS__, 'elementor' ) );
 	}
 	public static function register() {
 		ABT_Render::instance()->register_assets();
 		wp_register_script( 'abt-block-editor', ABT_PLUGIN_URL . 'assets/js/blocks.js', array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n', 'wp-server-side-render' ), ABT_VERSION, true );
 		wp_set_script_translations( 'abt-block-editor', 'ashbi-testimonials', ABT_PLUGIN_DIR . 'languages' );
-		$blocks = array();
 		foreach ( array( 'testimonials', 'rating', 'review-form' ) as $kind ) {
 			$path = ABT_PLUGIN_DIR . 'blocks/' . $kind;
-			$blocks[] = json_decode( file_get_contents( $path . '/block.json' ), true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local bundled metadata only.
 			register_block_type( $path, array( 'render_callback' => static function ( $attrs, $content, $block ) use ( $kind ) {
 				if ( 'current' === ( $attrs['product'] ?? '' ) && ! empty( $block->context['postId'] ) ) {
 					$attrs['product'] = (string) $block->context['postId'];
@@ -22,10 +21,24 @@ class ABT_Editors {
 				return $html ? '<div ' . get_block_wrapper_attributes() . '>' . $html . '</div>' : '';
 			} ) );
 		}
+	}
+	public static function editor_settings() {
+		$blocks = array();
+		foreach ( array( 'testimonials', 'rating', 'review-form' ) as $kind ) {
+			$path = ABT_PLUGIN_DIR . 'blocks/' . $kind . '/block.json';
+			$blocks[] = json_decode( file_get_contents( $path ), true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local bundled metadata only.
+		}
 		$collections = array();
 		if ( current_user_can( abt_capability() ) ) {
-			foreach ( ABT_Data::instance()->collections() as $collection ) {
-				$collections[] = array( 'label' => $collection['name'], 'value' => (string) $collection['id'] );
+			$terms = get_terms( array( 'taxonomy' => ABT_Data::TAXONOMY, 'hide_empty' => false, 'orderby' => 'name' ) );
+			if ( ! is_wp_error( $terms ) ) {
+				foreach ( $terms as $term ) {
+					$collections[] = array(
+						'label' => $term->name,
+						'value' => (string) $term->term_id,
+						'slug'  => $term->slug,
+					);
+				}
 			}
 		}
 		$presets = array();
@@ -33,9 +46,9 @@ class ABT_Editors {
 		wp_localize_script( 'abt-block-editor', 'abtBlocks', array( 'blocks' => $blocks, 'collections' => $collections, 'presets' => $presets ) );
 	}
 	public static function render( $kind, array $attrs ) {
-		$attrs = array_filter( $attrs, 'is_scalar' );
+		$attrs = array_map( static fn( $value ) => trim( (string) $value ), array_filter( $attrs, 'is_scalar' ) );
+		if ( 'review-form' === $kind && empty( $attrs['collection'] ) ) { return ''; }
 		if ( empty( $attrs['collection'] ) && empty( $attrs['product'] ) ) { return ''; }
-		$attrs = array_map( 'strval', $attrs );
 		if ( 'review-form' === $kind ) { return ABT_Form::instance()->shortcode( $attrs ); }
 		if ( 'rating' === $kind ) { return ABT_Shortcode::instance()->rating( $attrs ); }
 		return ABT_Shortcode::instance()->testimonials( $attrs );

@@ -16,6 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $abt_types = ABT_Data::types();
 $abt_render = ABT_Render::instance();
+$abt_page   = admin_url( 'admin.php?page=' . ABT_Admin::SLUG );
+$abt_target = $collections ? reset( $collections ) : null;
 ?>
 <div class="wrap abt-wrap abt-dashboard">
 	<header class="abt-dash-header">
@@ -23,7 +25,7 @@ $abt_render = ABT_Render::instance();
 			<img src="<?php echo esc_url( ABT_PLUGIN_URL . 'assets/brand/icon.svg' ); ?>" width="44" height="44" alt="" />
 			<div>
 				<h1><?php esc_html_e( 'Ashbi Testimonials', 'ashbi-testimonials' ); ?></h1>
-				<p class="abt-admin-intro"><?php esc_html_e( 'Collect, organise and display reviews anywhere with a shortcode.', 'ashbi-testimonials' ); ?></p>
+				<p class="abt-admin-intro"><?php esc_html_e( 'Collect, manage and display reviews on your WordPress site.', 'ashbi-testimonials' ); ?></p>
 			</div>
 		</div>
 		<?php if ( $collections ) : ?>
@@ -36,6 +38,15 @@ $abt_render = ABT_Render::instance();
 			</div>
 		<?php endif; ?>
 	</header>
+	<hr class="wp-header-end" />
+	<nav class="abt-page-links" aria-label="<?php esc_attr_e( 'Testimonials workspace', 'ashbi-testimonials' ); ?>">
+		<a href="#abt-collections"><span class="dashicons dashicons-screenoptions" aria-hidden="true"></span><?php esc_html_e( 'Collections', 'ashbi-testimonials' ); ?></a>
+		<?php if ( current_user_can( 'manage_options' ) ) : ?>
+			<a href="#abt-design-presets"><span class="dashicons dashicons-layout" aria-hidden="true"></span><?php esc_html_e( 'Reusable designs', 'ashbi-testimonials' ); ?></a>
+			<a href="#abt-settings"><span class="dashicons dashicons-admin-generic" aria-hidden="true"></span><?php esc_html_e( 'Settings', 'ashbi-testimonials' ); ?></a>
+		<?php endif; ?>
+		<a href="#abt-shortcode-reference"><span class="dashicons dashicons-editor-help" aria-hidden="true"></span><?php esc_html_e( 'Shortcode reference', 'ashbi-testimonials' ); ?></a>
+	</nav>
 
 	<?php if ( isset( $_GET['settings-updated'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only flag. ?>
 		<div class="abt-status is-visible" role="status"><?php esc_html_e( 'Settings saved.', 'ashbi-testimonials' ); ?></div>
@@ -43,9 +54,9 @@ $abt_render = ABT_Render::instance();
 	<div class="abt-status" id="abt-status" role="status" aria-live="polite" tabindex="-1"></div>
 
 	<?php if ( ! $collections ) : ?>
-		<section class="abt-welcome" aria-labelledby="abt-welcome-title">
-			<h2 id="abt-welcome-title"><?php esc_html_e( 'What would you like to collect?', 'ashbi-testimonials' ); ?></h2>
-			<p><?php esc_html_e( 'Pick a starting point. You can add as many collections as you need: one for your store, one per product line, or one for every app you sell.', 'ashbi-testimonials' ); ?></p>
+		<section class="abt-welcome" id="abt-collections" aria-labelledby="abt-welcome-title">
+			<h2 id="abt-welcome-title"><?php esc_html_e( 'Create your first collection', 'ashbi-testimonials' ); ?></h2>
+			<p><?php esc_html_e( 'A collection groups reviews you want to manage or display together. Start with one for your store, a product, or a service.', 'ashbi-testimonials' ); ?></p>
 			<div class="abt-welcome__choices">
 				<?php foreach ( $abt_types as $abt_key => $abt_type ) : ?>
 					<button type="button" class="abt-choice" data-abt-new-collection="<?php echo esc_attr( $abt_key ); ?>">
@@ -58,7 +69,7 @@ $abt_render = ABT_Render::instance();
 			<ol class="abt-how">
 				<li><span aria-hidden="true">1</span><?php esc_html_e( 'Create a collection', 'ashbi-testimonials' ); ?></li>
 				<li><span aria-hidden="true">2</span><?php esc_html_e( 'Add, import or collect reviews', 'ashbi-testimonials' ); ?></li>
-				<li><span aria-hidden="true">3</span><?php esc_html_e( 'Paste the shortcode on any page', 'ashbi-testimonials' ); ?></li>
+				<li><span aria-hidden="true">3</span><?php esc_html_e( 'Display them with a block, widget or shortcode', 'ashbi-testimonials' ); ?></li>
 			</ol>
 		</section>
 	<?php else : ?>
@@ -82,7 +93,17 @@ $abt_render = ABT_Render::instance();
 			</div>
 		</div>
 
-		<div class="abt-section-head">
+		<?php if ( $pending || ! $all_stats['count'] ) : ?>
+			<section class="abt-guide abt-panel" aria-labelledby="abt-next-step-title">
+				<div>
+					<h2 id="abt-next-step-title"><?php echo $pending ? esc_html__( 'Review submissions waiting for approval', 'ashbi-testimonials' ) : esc_html__( 'Add your first testimonial', 'ashbi-testimonials' ); ?></h2>
+					<p><?php echo $pending ? esc_html__( 'Open the pending queue to check each submission before it appears on your site.', 'ashbi-testimonials' ) : esc_html__( 'Open a collection to add a testimonial, import a CSV or copy a form for visitors.', 'ashbi-testimonials' ); ?></p>
+				</div>
+				<a class="button" href="<?php echo esc_url( add_query_arg( $pending ? array( 'collection' => 'all', 'status' => 'pending' ) : array( 'collection' => $abt_target['id'] ), $abt_page ) ); ?>"><?php echo $pending ? esc_html__( 'Review pending', 'ashbi-testimonials' ) : esc_html__( 'Open a collection', 'ashbi-testimonials' ); ?></a>
+			</section>
+		<?php endif; ?>
+
+		<div class="abt-section-head" id="abt-collections">
 			<h2><?php esc_html_e( 'Your collections', 'ashbi-testimonials' ); ?></h2>
 			<label class="abt-filter-cards">
 				<span class="screen-reader-text"><?php esc_html_e( 'Filter collections', 'ashbi-testimonials' ); ?></span>
@@ -127,11 +148,12 @@ $abt_render = ABT_Render::instance();
 				</article>
 			<?php endforeach; ?>
 		</div>
+		<p class="abt-empty abt-panel" data-abt-no-collections role="status" hidden><?php esc_html_e( 'No collections match your search.', 'ashbi-testimonials' ); ?></p>
 	<?php endif; ?>
 
-	<details class="abt-panel abt-settings"<?php echo isset( $_GET['settings-updated'] ) ? ' open' : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only flag. ?>>
-		<summary><span class="dashicons dashicons-admin-generic" aria-hidden="true"></span> <?php esc_html_e( 'Settings', 'ashbi-testimonials' ); ?></summary>
-		<?php if ( current_user_can( 'manage_options' ) ) : ?>
+	<?php if ( current_user_can( 'manage_options' ) ) : ?>
+		<details class="abt-panel abt-settings" id="abt-settings"<?php echo isset( $_GET['settings-updated'] ) ? ' open' : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only flag. ?>>
+			<summary><span class="dashicons dashicons-admin-generic" aria-hidden="true"></span> <?php esc_html_e( 'Settings', 'ashbi-testimonials' ); ?></summary>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="abt-settings__form">
 				<input type="hidden" name="action" value="abt_save_settings" />
 				<?php wp_nonce_field( 'abt_save_settings' ); ?>
@@ -177,11 +199,11 @@ $abt_render = ABT_Render::instance();
 				</div>
 				<p><button type="submit" class="button button-primary"><?php esc_html_e( 'Save settings', 'ashbi-testimonials' ); ?></button></p>
 			</form>
-		<?php else : ?>
-			<p><?php esc_html_e( 'Ask an administrator to change plugin settings.', 'ashbi-testimonials' ); ?></p>
-		<?php endif; ?>
+		</details>
+	<?php endif; ?>
 
-		<h3><?php esc_html_e( 'Shortcode reference', 'ashbi-testimonials' ); ?></h3>
+	<details class="abt-panel abt-settings" id="abt-shortcode-reference">
+		<summary><span class="dashicons dashicons-editor-help" aria-hidden="true"></span><?php esc_html_e( 'Shortcode reference', 'ashbi-testimonials' ); ?></summary>
 		<table class="widefat striped abt-ref">
 			<tbody>
 				<tr><td><code>[ashbi_testimonials collection="slug"]</code></td><td><?php esc_html_e( 'Show a collection. Use commas for several.', 'ashbi-testimonials' ); ?></td></tr>
@@ -198,7 +220,7 @@ $abt_render = ABT_Render::instance();
 	</details>
 
 	<?php if ( current_user_can( 'manage_options' ) ) : ?>
-		<details class="abt-settings"><summary><?php esc_html_e( 'Private support diagnostics', 'ashbi-testimonials' ); ?></summary>
+		<details class="abt-panel abt-settings"><summary><?php esc_html_e( 'Private support diagnostics', 'ashbi-testimonials' ); ?></summary>
 			<p><?php esc_html_e( 'Copy these versions and configuration flags when requesting support. Nothing is sent automatically. Check screenshots and logs separately for personal data before sharing.', 'ashbi-testimonials' ); ?></p>
 			<label for="abt-diagnostics"><?php esc_html_e( 'Diagnostics (select and copy)', 'ashbi-testimonials' ); ?></label>
 			<textarea id="abt-diagnostics" readonly rows="14" class="widefat"><?php echo esc_textarea( wp_json_encode( ABT_Admin::diagnostics(), JSON_PRETTY_PRINT ) ); ?></textarea>

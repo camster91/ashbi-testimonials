@@ -56,8 +56,46 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await page.waitForURL('**/wp-admin/**');
   // Keep anonymous network-abort/viewport instrumentation out of authenticated manager flows.
   await page.close(); page=await context.newPage(); watch(page);
+  const dashboardUrl = new URL(fixture.admin);
+  dashboardUrl.searchParams.delete('collection');
+  await page.goto(dashboardUrl.href,{waitUntil:'networkidle'});
+  const workspace=page.getByRole('navigation',{name:'Testimonials workspace'});
+  await workspace.getByRole('link',{name:'Shortcode reference'}).click();
+  assert.equal(await page.locator('#abt-shortcode-reference').getAttribute('open'),'');
+  await page.getByRole('searchbox',{name:'Filter collections'}).fill('no matching collection name 123');
+  await page.getByRole('status').filter({hasText:'No collections match'}).waitFor();
+  await page.getByRole('searchbox',{name:'Filter collections'}).fill('');
+  await page.getByRole('status').filter({hasText:'No collections match'}).waitFor({state:'hidden'});
+  for (const width of [375,768,1440]) {
+   await page.setViewportSize({width,height:1000});
+   assert.equal(await page.locator('.abt-wrap').evaluate(node=>node.scrollWidth<=node.clientWidth+1),true,'dashboard fits the viewport');
+  }
   await page.goto(fixture.admin,{waitUntil:'networkidle'});
   assert.ok((await page.locator('body').innerText()).includes('Demo reviewer'));
+  const place=page.getByRole('button',{name:'Place on site',exact:true});
+  const placement=page.getByRole('dialog',{name:'Place on site',exact:true});
+  for (const width of [375,768,1440]) {
+   await page.setViewportSize({width,height:1000});
+   assert.equal(await page.locator('.abt-wrap').evaluate(node=>node.scrollWidth<=node.clientWidth+1),true,'collection fits the viewport');
+   await place.click();
+   assert.equal(await placement.locator('code').count(),3);
+   assert.match(await placement.locator('code').last().innerText(),/^\[ashbi_testimonial_form collection=/);
+   assert.equal(await placement.evaluate(node=>node.scrollWidth<=node.clientWidth+1),true,'placement dialog fits the viewport');
+   await page.screenshot({path:`browser-results/placement-${width}.png`});
+   await page.keyboard.press('Escape');
+   assert.equal(await place.evaluate(node=>document.activeElement===node),true,'closing placement returns focus to its opener');
+  }
+  await place.click();
+  await placement.getByRole('button',{name:'Customize display'}).click();
+  const builder=page.getByRole('dialog',{name:'Customize display'});
+  await builder.locator('[data-abt-builder-preview][aria-busy=false]').waitFor();
+  assert.match(await builder.locator('[data-abt-builder-code]').innerText(),/^\[ashbi_testimonials collection=/);
+  await builder.getByText('More display options',{exact:true}).click();
+  await builder.getByLabel('Theme',{exact:true}).selectOption('dark');
+  assert.match(await builder.locator('[data-abt-builder-code]').innerText(),/theme="dark"/);
+  await page.keyboard.press('Escape');
+  assert.equal(await placement.getByRole('button',{name:'Customize display'}).evaluate(node=>document.activeElement===node),true,'closing the builder returns to placement');
+  await page.keyboard.press('Escape');
   await page.getByRole('button',{name:'Add testimonial',exact:true}).first().click();
   const editor=page.locator('#abt-editor');
   await editor.getByLabel('Name',{exact:true}).fill('Custom browser manager');

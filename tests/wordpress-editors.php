@@ -13,6 +13,13 @@ $attrs = array( 'collection' => (string) $col['id'], 'layout' => 'list', 'summar
 $html = render_block( array( 'blockName' => 'ashbi/testimonials', 'attrs' => $attrs, 'innerBlocks' => array(), 'innerHTML' => '', 'innerContent' => array() ) );
 $check( false !== strpos( $html, 'Editor public review' ) && false !== strpos( $html, 'abt-summary' ) && false === strpos( $html, 'SECRET-EDITOR' ), 'native block renders public review and summary without email' );
 $check( '' === ABT_Editors::render( 'testimonials', array() ), 'unconfigured block never exposes all reviews by default' );
+$check( '' === ABT_Editors::render( 'testimonials', array( 'product' => '  ' ) ), 'blank product scope does not expose all reviews' );
+$check( '' === ABT_Editors::render( 'testimonials', array( 'product' => 'invalid' ) ), 'invalid product scope does not expose all reviews' );
+$check( '' === ABT_Editors::render( 'review-form', array( 'product' => 'current' ) ), 'a product alone cannot configure a form' );
+$shortcodes = ABT_Shortcode::instance();
+$check( '' === $shortcodes->rating( array( 'product' => '-1' ) ), 'invalid product scope cannot fall back to the aggregate across all reviews' );
+$check( is_wp_error( $shortcodes->public_page( '{"product":"invalid"}', '2' ) ), 'pagination rejects invalid product scope' );
+$check( is_wp_error( $shortcodes->public_page( '{"collection":"abt-no-such-collection"}', '2' ) ), 'pagination rejects unresolved collection scope' );
 $rating = ABT_Editors::render( 'rating', $attrs );
 $check( false !== strpos( $rating, 'abt-summary' ), 'rating renderer reuses the canonical summary' );
 $form = ABT_Editors::render( 'review-form', $attrs );
