@@ -22,6 +22,7 @@ $abt_cleanup_site = static function () {
 	}
 
 	delete_metadata( 'user', 0, '_abt_request_optout_' . get_current_blog_id(), '', true );
+	delete_post_meta_by_key( '_abt_review_form_collections' );
 
 	// Posts with their meta, revisions and term relationships.
 	$abt_ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time uninstall enumeration.
