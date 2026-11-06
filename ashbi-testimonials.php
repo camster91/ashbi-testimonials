@@ -73,6 +73,7 @@ function abt_init() {
 	ABT_Shortcode::instance();
 	ABT_Form::instance();
 	ABT_Editors::init();
+	add_action( 'save_post_page', array( ABT_Admin::class, 'index_review_form_page' ), 10, 2 );
 	ABT_Presets::init();
 	ABT_Purchase::init();
 	ABT_Requests::init();

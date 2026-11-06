@@ -35,7 +35,6 @@ class ABT_Admin {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
 		add_action( 'load-post-new.php', array( $this, 'prepare_review_form_page' ) );
-		add_action( 'save_post_page', array( $this, 'index_review_form_page' ), 10, 2 );
 		add_filter( 'plugin_action_links_' . plugin_basename( ABT_PLUGIN_FILE ), array( $this, 'action_links' ) );
 
 		foreach ( array( 'list', 'get', 'save', 'delete', 'bulk', 'collection_save', 'collection_delete', 'search_posts', 'import', 'preview' ) as $action ) {
@@ -81,7 +80,7 @@ class ABT_Admin {
 	}
 
 	/** Record explicit collection references when a page is saved. */
-	public function index_review_form_page( $post_id, $post ) {
+	public static function index_review_form_page( $post_id, $post ) {
 		if ( 'auto-draft' === $post->post_status || wp_is_post_autosave( $post_id ) ) {
 			return;
 		}
