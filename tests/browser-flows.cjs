@@ -118,7 +118,7 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await place.click();
   const createFormPage=placement.getByRole('link',{name:'Create a review form page',exact:true});
   const formPageUrl=new URL(await createFormPage.getAttribute('href'),page.url());
-  assert.equal(await placement.getByRole('button',{name:'Copy review link',exact:true}).count(),0);
+  const initialReviewLink=await placement.getByRole('button',{name:'Copy review link',exact:true}).getAttribute('data-abt-copy');
   const formPage=await context.newPage();
   let publishedFormUrl;
   try {
@@ -135,7 +135,7 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
     await editor.savePost();
     return window.wp.data.select('core/editor').getCurrentPost().link;
    });
-   assert.ok(publishedFormUrl,'the new form page was published in the test site');
+   assert.ok(publishedFormUrl && publishedFormUrl!==initialReviewLink,'the new form page was published in the test site');
   } finally {
    await formPage.close();
   }

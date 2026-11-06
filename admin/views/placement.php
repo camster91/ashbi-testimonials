@@ -58,8 +58,9 @@ if ( ! $abt_is_all ) {
 							<button type="button" class="button button-primary" data-abt-copy="<?php echo esc_attr( $abt_placement['link'] ); ?>"><?php esc_html_e( 'Copy review link', 'ashbi-testimonials' ); ?></button>
 							<a class="button" href="<?php echo esc_url( $abt_placement['link'] ); ?>"><?php esc_html_e( 'Open review form', 'ashbi-testimonials' ); ?></a>
 						</p>
-					<?php elseif ( ! empty( $abt_placement['page'] ) ) : ?>
-						<p><a class="button button-primary" href="<?php echo esc_url( $abt_placement['page'] ); ?>"><?php esc_html_e( 'Create a review form page', 'ashbi-testimonials' ); ?></a></p>
+					<?php endif; ?>
+					<?php if ( ! empty( $abt_placement['page'] ) ) : ?>
+						<p><a class="button<?php echo empty( $abt_placement['link'] ) ? ' button-primary' : ''; ?>" href="<?php echo esc_url( $abt_placement['page'] ); ?>"><?php esc_html_e( 'Create a review form page', 'ashbi-testimonials' ); ?></a></p>
 						<p><?php esc_html_e( 'The new page opens in the editor. Add a title and review it before publishing.', 'ashbi-testimonials' ); ?></p>
 					<?php endif; ?>
 					<div class="abt-placement-option__code">
