@@ -25,4 +25,22 @@ $check( false !== strpos( $rating, 'abt-summary' ), 'rating renderer reuses the 
 $form = ABT_Editors::render( 'review-form', $attrs );
 $check( false !== strpos( $form, 'name="abt_target" value="' . $col['id'] . ':0"' ), 'form renderer binds to the selected collection' );
 $check( ! wp_script_is( 'abt-block-editor', 'enqueued' ), 'editor script is not enqueued on the frontend' );
+
+$admin = ABT_Admin::instance();
+$block = '<!-- wp:ashbi/review-form {"collection":"' . $col['id'] . '"} /-->';
+$page_id = wp_insert_post( array( 'post_type' => 'page', 'post_title' => 'Review link lifecycle', 'post_content' => $block, 'post_status' => 'draft' ), true );
+$check( is_int( $page_id ) && $page_id > 0, 'form page fixture created' );
+$check( '' === $admin->review_form_page_url( $col['id'] ), 'draft form page has no share link' );
+wp_update_post( array( 'ID' => $page_id, 'post_status' => 'publish' ) );
+$check( get_permalink( $page_id ) === $admin->review_form_page_url( $col['id'] ), 'published form page is shareable' );
+wp_update_post( array( 'ID' => $page_id, 'post_password' => 'test-password' ) );
+$check( '' === $admin->review_form_page_url( $col['id'] ), 'password-protected page is excluded' );
+wp_update_post( array( 'ID' => $page_id, 'post_status' => 'draft', 'post_password' => '' ) );
+$check( '' === $admin->review_form_page_url( $col['id'] ), 'unpublishing the page removes its share link' );
+wp_update_post( array( 'ID' => $page_id, 'post_status' => 'publish', 'post_content' => '[ashbi_testimonial_form collection="' . $col['id'] . '"]' ) );
+$check( get_permalink( $page_id ) === $admin->review_form_page_url( $col['id'] ), 'published Classic Editor form is shareable' );
+wp_update_post( array( 'ID' => $page_id, 'post_content' => 'The form has been removed.' ) );
+$check( '' === $admin->review_form_page_url( $col['id'] ), 'removing the form removes its share link' );
+$check( '' === get_post_meta( $page_id, '_abt_review_form_collections', true ), 'removing the form clears the page index' );
+
 fwrite( STDOUT, "OK: native editor registration/rendering passed\n" );

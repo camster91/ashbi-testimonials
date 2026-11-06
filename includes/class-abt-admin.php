@@ -79,6 +79,81 @@ class ABT_Admin {
 		);
 	}
 
+	/** Record explicit collection references when a page is saved. */
+	public static function index_review_form_page( $post_id, $post ) {
+		if ( 'auto-draft' === $post->post_status || wp_is_post_autosave( $post_id ) ) {
+			return;
+		}
+		$ids = self::review_form_collections( $post->post_content );
+		if ( $ids ) {
+			update_post_meta( $post_id, '_abt_review_form_collections', ',' . implode( ',', $ids ) . ',' );
+		} else {
+			delete_post_meta( $post_id, '_abt_review_form_collections' );
+		}
+	}
+
+	/** Find forms directly embedded in a page, including forms inside nested blocks. */
+	private static function review_form_collections( $content ) {
+		if ( ! str_contains( $content, 'ashbi/review-form' ) && ! str_contains( $content, 'ashbi_testimonial_form' ) ) {
+			return array();
+		}
+		$refs = array();
+		$walk = static function ( $blocks ) use ( &$walk, &$refs ) {
+			foreach ( $blocks as $block ) {
+				if ( 'ashbi/review-form' === $block['blockName'] ) {
+					$refs[] = $block['attrs']['collection'] ?? '';
+				} elseif ( in_array( $block['blockName'], array( null, 'core/freeform', 'core/shortcode' ), true ) ) {
+					preg_match_all( '/' . get_shortcode_regex( array( 'ashbi_testimonial_form' ) ) . '/s', $block['innerHTML'], $matches, PREG_SET_ORDER );
+					foreach ( $matches as $match ) {
+						if ( '[' !== $match[1] || ']' !== $match[6] ) {
+							$attrs  = shortcode_parse_atts( $match[3] );
+							$refs[] = $attrs['collection'] ?? '';
+						}
+					}
+				}
+				$walk( $block['innerBlocks'] );
+			}
+		};
+		$walk( parse_blocks( $content ) );
+
+		$ids = array();
+		foreach ( $refs as $ref ) {
+			if ( is_string( $ref ) && '' !== $ref ) {
+				$term = ABT_Data::instance()->find_collection( $ref );
+				if ( $term ) {
+					$ids[] = (int) $term->term_id;
+				}
+			}
+		}
+		return array_unique( $ids );
+	}
+
+	/** Return a public page that still contains this collection's form. */
+	public function review_form_page_url( $collection_id ) {
+		$pages = get_posts(
+			array(
+				'post_type'    => 'page',
+				'post_status'  => 'publish',
+				'has_password' => false,
+				'numberposts'  => 10,
+				'orderby'      => 'modified ID',
+				'meta_query'   => array(
+					array(
+						'key'     => '_abt_review_form_collections',
+						'value'   => ',' . (int) $collection_id . ',',
+						'compare' => 'LIKE',
+					),
+				),
+			)
+		);
+		foreach ( $pages as $page ) {
+			if ( in_array( (int) $collection_id, self::review_form_collections( $page->post_content ), true ) ) {
+				return get_permalink( $page ) ?: '';
+			}
+		}
+		return '';
+	}
+
 	public function register_menu() {
 		$pending = $this->pending_total();
 		$badge   = $pending ? ' <span class="awaiting-mod">' . number_format_i18n( $pending ) . '</span>' : '';
