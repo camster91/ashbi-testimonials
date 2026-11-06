@@ -95,7 +95,8 @@ class ABT_Privacy {
 				}
 			}
 			$proof = get_post_meta( $id, ABT_Purchase::META, true );
-			if ( is_array( $proof ) && $proof ) {
+			$customer = is_array( $proof ) && ! empty( $proof['customer_id'] ) ? get_userdata( (int) $proof['customer_id'] ) : false;
+			if ( $customer && 0 === strcasecmp( $customer->user_email, $email_address ) ) {
 				$data[] = array( 'name' => __( 'Purchase evidence', 'ashbi-testimonials' ), 'value' => wp_json_encode( $proof ) );
 			}
 			$custom = ABT_Fields::snapshots( get_post_meta( $id, ABT_Data::META['custom_fields'], true ) ?: array() );
@@ -104,13 +105,7 @@ class ABT_Privacy {
 					$data[] = array( 'name' => $field['label'], 'value' => $field['value'] );
 				}
 			}
-			// Historical author/text values are personal data too.
-			foreach ( wp_get_post_revisions( $id ) as $revision ) {
-				$data[] = array(
-					'name' => __( 'Review revision', 'ashbi-testimonials' ),
-					'value' => $revision->post_date . "\n" . $revision->post_title . "\n" . $revision->post_content,
-				);
-			}
+			// Legacy revisions have no reviewer identity. Leave them for manual privacy review.
 			$terms = wp_get_object_terms( $id, ABT_Data::TAXONOMY, array( 'fields' => 'names' ) );
 			if ( ! is_wp_error( $terms ) && $terms ) {
 				$data[] = array( 'name' => __( 'Collections', 'ashbi-testimonials' ), 'value' => implode( ', ', $terms ) );

@@ -596,8 +596,8 @@
 			return;
 		}
 		try {
-			await request( 'delete', { ids } );
-			status( __( 'Moved to the trash. Restore it from the Trash tab.', 'ashbi-testimonials' ) );
+			const res = await request( 'delete', { ids } );
+			status( sprintf( _n( '%s testimonial moved to Trash.', '%s testimonials moved to Trash.', res.deleted, 'ashbi-testimonials' ), res.deleted ) );
 			load();
 		} catch ( err ) {
 			status( err.message, true );
@@ -761,8 +761,10 @@
 	const pickInput = $( '[data-abt-picker-input]', picker );
 	const pickResults = $( '[data-abt-picker-results]', picker );
 	const pickChip = $( '[data-abt-picker-chip]', picker );
+	let pickRequest = 0;
 
 	function setProduct( id, label ) {
+		++pickRequest;
 		eform.elements.product_id.value = id || 0;
 		$( '[data-abt-picker-label]', picker ).textContent = label || '';
 		pickChip.hidden = ! id;
@@ -772,27 +774,34 @@
 	}
 	pickInput.addEventListener(
 		'input',
-		debounce( async () => {
-			const q = pickInput.value.trim();
+		( () => {
+			const search = debounce( async ( q, sequence ) => {
 			if ( q.length < 2 && ! /^\d+$/.test( q ) ) {
 				pickResults.hidden = true;
 				return;
 			}
 			try {
 				const found = await request( 'search_posts', { q } );
+				if ( sequence !== pickRequest ) { return; }
 				pickResults.innerHTML = found.length
 					? found.map( ( p ) => '<li role="option" tabindex="-1" data-id="' + p.id + '" data-label="' + esc( p.title ) + '">' + esc( p.title ) + ' <small>' + esc( p.type ) + ' #' + p.id + '</small></li>' ).join( '' )
 					: '<li class="is-empty">' + esc( __( 'No matches', 'ashbi-testimonials' ) ) + '</li>';
 				pickResults.hidden = false;
 			} catch ( err ) {
-				pickResults.hidden = true;
+				if ( sequence === pickRequest ) { pickResults.hidden = true; }
 			}
-		}, 250 )
+			}, 250 );
+			return () => {
+				pickResults.hidden = true;
+				search( pickInput.value.trim(), ++pickRequest );
+			};
+		} )()
 	);
 	pickResults.addEventListener( 'click', ( e ) => {
 		const li = e.target.closest( 'li[data-id]' );
 		if ( li ) {
 			setProduct( li.dataset.id, li.dataset.label );
+			$( '[data-abt-picker-clear]', picker ).focus();
 		}
 	} );
 	pickInput.addEventListener( 'keydown', ( e ) => {
@@ -825,11 +834,6 @@
 		pickInput.focus();
 	} );
 
-	function today() {
-		const d = new Date();
-		return d.getFullYear() + '-' + String( d.getMonth() + 1 ).padStart( 2, '0' ) + '-' + String( d.getDate() ).padStart( 2, '0' );
-	}
-
 	function openEditor( item ) {
 		const editing = !! ( item && item.id );
 		const data = item || {};
@@ -842,7 +846,7 @@
 		els.avatar_id.value = data.avatar_id || 0;
 		els.origin.value = data.origin || 'manual';
 		els.status.value = data.status || 'publish';
-		els.date.value = data.date || today();
+		els.date.value = data.date || cfg.siteDate || '';
 		els.verified.checked = !! data.verified;
 		els.featured.checked = !! data.featured;
 		setRating( editing ? data.rating || 0 : 5 );
@@ -935,12 +939,6 @@
 	} );
 	document.addEventListener( 'click', ( e ) => {
 		if ( e.target.closest( '[data-abt-add]' ) ) {
-			openEditor( null );
-		}
-	} );
-	document.addEventListener( 'keydown', ( e ) => {
-		// "N" adds a testimonial when focus is not in a field.
-		if ( 'n' === e.key && ! e.metaKey && ! e.ctrlKey && ! e.target.closest( 'input,textarea,select,[contenteditable],dialog' ) ) {
 			openEditor( null );
 		}
 	} );
@@ -1104,6 +1102,15 @@
 		return rows.filter( ( r ) => r.some( ( v ) => v.trim() !== '' ) );
 	}
 
+	// Stable across page reloads and file renames, including on HTTP WordPress sites.
+	function importFingerprint( text ) {
+		let hash = 0xcbf29ce484222325n;
+		for ( let i = 0; i < text.length; i++ ) {
+			hash = BigInt.asUintN( 64, ( hash ^ BigInt( text.charCodeAt( i ) ) ) * 0x100000001b3n );
+		}
+		return hash.toString( 16 ).padStart( 16, '0' );
+	}
+
 	const importForm = $( '[data-abt-import]' );
 	const importCollection = $( '[data-abt-import-collection]', importForm );
 	if ( importCollection ) {
@@ -1123,28 +1130,42 @@
 			return;
 		}
 
-		const rows = parseCsv( await file.text() );
+		if ( submit.disabled ) { return; }
+		submit.disabled = true;
+		let csv;
+		try {
+			csv = await file.text();
+		} catch ( err ) {
+			result.textContent = __( 'The CSV file could not be read.', 'ashbi-testimonials' );
+			submit.disabled = false;
+			return;
+		}
+		const rows = parseCsv( csv );
 		if ( rows.length < 2 ) {
 			result.textContent = __( 'That file has no rows to import.', 'ashbi-testimonials' );
+			submit.disabled = false;
 			return;
 		}
 		const head = rows.shift().map( ( h ) => h.trim().toLowerCase().replace( /\s+/g, '_' ) );
 		const records = rows.map( ( r ) => Object.fromEntries( head.map( ( h, i ) => [ h, r[ i ] ?? '' ] ) ) );
 		const target = collectionId > 0 ? collectionId : importCollection ? importCollection.value : 0;
 
-		submit.disabled = true;
+		const fingerprint = importFingerprint( csv );
 		progress.hidden = false;
+		$( 'span', progress ).style.width = '0%';
 		let created = 0;
 		const errors = [];
 		const size = 100;
 		for ( let i = 0; i < records.length; i += size ) {
 			try {
-				const res = await request( 'import', { rows: records.slice( i, i + size ), collection: target } );
+				const res = await request( 'import', { rows: records.slice( i, i + size ), collection: target, file: fingerprint, offset: i } );
 				created += res.created;
 				res.errors.forEach( ( er ) => errors.push( sprintf( __( 'Row %1$s: %2$s', 'ashbi-testimonials' ), i + er.row + 2, er.message ) ) );
 			} catch ( err ) {
-				errors.push( err.message );
-				break;
+				result.textContent = sprintf( __( 'Import paused at row %1$s. Retry the same file and collection to resume. %2$s', 'ashbi-testimonials' ), i + 2, err.message );
+				submit.disabled = false;
+				load();
+				return;
 			}
 			const done = Math.min( records.length, i + size );
 			$( 'span', progress ).style.width = Math.round( ( done / records.length ) * 100 ) + '%';

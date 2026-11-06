@@ -49,7 +49,7 @@ $abt_cleanup_site = static function () {
 	}
 
 	// Cached rating summaries and submission rate limits use hashed keys.
-	foreach ( array( 'abt_request_', 'abt_submit_lock_', '_transient_abt_', '_transient_timeout_abt_' ) as $abt_prefix ) {
+	foreach ( array( 'abt_request_', 'abt_submit_lock_', 'abt_import_', '_transient_abt_', '_transient_timeout_abt_' ) as $abt_prefix ) {
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $wpdb->esc_like( $abt_prefix ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transient keys are unpredictable.
 	}
 };

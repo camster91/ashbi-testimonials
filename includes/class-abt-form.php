@@ -43,7 +43,7 @@ class ABT_Form {
 	 * proof of form provenance, not permission to publish or edit a review.
 	 */
 	private function token( $time, $target ) {
-		return $time . '.' . substr( wp_hash( 'abt_form|' . $time . '|' . $target ), 0, 20 );
+		return $time . '.' . substr( wp_hash( 'abt_form|' . ( is_multisite() ? get_current_blog_id() . '|' : '' ) . $time . '|' . $target ), 0, 20 );
 	}
 
 	/**
@@ -74,7 +74,7 @@ class ABT_Form {
 		$fields     = array_map( 'trim', explode( ',', (string) $atts['fields'] ) );
 		$form_id    = 'abt-form-' . $term->term_id . ( $product_id ? '-' . $product_id : '' );
 		$this->form_counts[ $form_id ] = ( $this->form_counts[ $form_id ] ?? 0 ) + 1;
-		$form_id .= $this->form_counts[ $form_id ] > 1 ? '-' . $this->form_counts[ $form_id ] : '';
+		$form_id .= $this->form_counts[ $form_id ] > 1 ? '-instance-' . $this->form_counts[ $form_id ] : '';
 		ABT_Render::instance()->enqueue();
 
 		$status = isset( $_GET['abt_status'], $_GET['abt_form'] ) && $form_id === sanitize_key( wp_unslash( $_GET['abt_form'] ) ) ? sanitize_key( wp_unslash( $_GET['abt_status'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only status flag.

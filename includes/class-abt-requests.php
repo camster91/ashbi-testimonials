@@ -112,7 +112,7 @@ class ABT_Requests {
 		$sending = $state; $sending['state'] = 'sending';
 		if ( ! ABT_Atomic::replace( $key, $state, $sending ) ) { return; }
 		$state = $sending;
-		$stop = add_query_arg( array( 'action' => 'abt_request_stop', 'order' => (int) $id, 'customer' => (int) $user, 'token' => wp_hash( 'abt_stop|' . $id . '|' . $user ) ), admin_url( 'admin-post.php' ) );
+		$stop = add_query_arg( array( 'action' => 'abt_request_stop', 'order' => (int) $id, 'customer' => (int) $user, 'token' => wp_hash( 'abt_stop|' . ( is_multisite() ? get_current_blog_id() . '|' : '' ) . $id . '|' . $user ) ), admin_url( 'admin-post.php' ) );
 		/* translators: 1: product name, 2: review link, 3: unsubscribe confirmation link */
 		$message = sprintf( __( "You requested one review reminder for %1\$s. Share your honest experience, positive or negative:\n\n%2\$s\n\nStop review reminders (confirmation required):\n%3\$s", 'ashbi-testimonials' ), wp_strip_all_tags( $product->get_name() ), $product->get_permalink(), $stop );
 		$state['state'] = wp_mail( $account->user_email, __( 'Share your experience', 'ashbi-testimonials' ), $message ) ? 'accepted' : 'mail_failed';
@@ -151,7 +151,7 @@ class ABT_Requests {
 		$id = isset( $_REQUEST['order'] ) && is_string( $_REQUEST['order'] ) ? absint( $_REQUEST['order'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Signed action token below, no session dependency.
 		$user = isset( $_REQUEST['customer'] ) && is_string( $_REQUEST['customer'] ) ? absint( $_REQUEST['customer'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$token = isset( $_REQUEST['token'] ) && is_string( $_REQUEST['token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( ! $id || ! $user || ! hash_equals( wp_hash( 'abt_stop|' . $id . '|' . $user ), $token ) ) { wp_die( esc_html__( 'This confirmation link is invalid.', 'ashbi-testimonials' ) ); }
+		if ( ! $id || ! $user || ! hash_equals( wp_hash( 'abt_stop|' . ( is_multisite() ? get_current_blog_id() . '|' : '' ) . $id . '|' . $user ), $token ) ) { wp_die( esc_html__( 'This confirmation link is invalid.', 'ashbi-testimonials' ) ); }
 		nocache_headers(); header( 'Referrer-Policy: no-referrer' );
 		$method = isset( $_SERVER['REQUEST_METHOD'] ) && is_string( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
 		if ( 'POST' === $method ) { self::cancel( $id, $user, true ); wp_die( esc_html__( 'Review reminders are stopped. You can explicitly request a new reminder from your account in future.', 'ashbi-testimonials' ) ); }

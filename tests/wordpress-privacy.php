@@ -54,7 +54,7 @@ $check( 100 === count( $first['data'] ) && ! $first['done'] && 5 === count( $sec
 $all = array_merge( $first['data'], $second['data'] );
 $check( 105 === count( array_unique( array_column( $all, 'item_id' ) ) ), 'export pages have no duplicates or missing items' );
 $json = wp_json_encode( $all );
-$check( false !== strpos( $json, 'Historical personal review text' ) && false !== strpos( $json, 'Personal company' ) && false !== strpos( $json, 'Personal text' ) && false === strpos( $json, 'UNRELATED PRIVATE TEXT' ) && false === strpos( $json, 'SIBLING PRIVATE TEXT' ), 'export includes personal fields and isolates reviewers' );
+$check( false === strpos( $json, 'Historical personal review text' ) && false !== strpos( $json, 'Personal company' ) && false !== strpos( $json, 'Personal text' ) && false === strpos( $json, 'UNRELATED PRIVATE TEXT' ) && false === strpos( $json, 'SIBLING PRIVATE TEXT' ), 'export includes personal fields and isolates reviewers' );
 $check( array() === call_user_func( $export, '', 1 )['data'], 'empty email never exports unassigned reviews' );
 $check( call_user_func( $erase, 'invalid-email', 1 )['done'] && get_post( $ids[0] ), 'invalid email cannot erase reviews' );
 $before = $data->stats( array( 'collection' => $col['id'] ) );

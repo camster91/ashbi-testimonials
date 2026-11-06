@@ -214,10 +214,28 @@
 		}
 	} );
 
+	function start() {
+		init();
+		if ( ! document.body || 'undefined' === typeof MutationObserver ) { return; }
+		const observer = new MutationObserver( ( records ) => {
+			for ( const record of records ) {
+				for ( const node of record.addedNodes ) {
+					if ( 1 !== node.nodeType ) { continue; }
+					if ( node.matches( '[data-abt-slider], .abt-card__more, .abt__more' ) ) {
+						init( node.parentElement || node );
+					} else if ( node.querySelector( '[data-abt-slider], .abt-card__more, .abt__more' ) ) {
+						init( node );
+					}
+				}
+			}
+		} );
+		observer.observe( document.body, { childList: true, subtree: true } );
+	}
+
 	window.abtInitFrontend = init;
 	if ( 'loading' === document.readyState ) {
-		document.addEventListener( 'DOMContentLoaded', () => init() );
+		document.addEventListener( 'DOMContentLoaded', start );
 	} else {
-		init();
+		start();
 	}
 } )();

@@ -93,6 +93,7 @@ class ABT_Admin {
 				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
 				'nonce'       => wp_create_nonce( 'abt_admin' ),
 				'pageUrl'     => admin_url( 'admin.php?page=' . self::SLUG ),
+				'siteDate'    => wp_date( 'Y-m-d' ),
 				'collection'  => $this->current_collection_id(),
 				'collections' => array_map(
 					static fn( $c ) => array( 'id' => $c['id'], 'name' => $c['name'], 'slug' => $c['slug'], 'fields' => $c['fields'] ),
@@ -219,42 +220,51 @@ class ABT_Admin {
 
 	public function ajax_delete() {
 		$this->guard();
-		$ids = array_filter( array_map( 'absint', (array) $this->json_field( 'ids' ) ) );
+		if ( ! EMPTY_TRASH_DAYS ) {
+			wp_send_json_error( array( 'message' => __( 'Trash is disabled on this site. No testimonials were moved.', 'ashbi-testimonials' ) ), 409 );
+		}
+		$ids = array_unique( array_filter( array_map( 'absint', $this->json_field( 'ids' ) ) ) );
+		$deleted = 0;
 		foreach ( $ids as $id ) {
-			if ( ABT_Data::POST_TYPE === get_post_type( $id ) ) {
-				wp_trash_post( $id );
+			if ( ABT_Data::POST_TYPE === get_post_type( $id ) && wp_trash_post( $id ) ) {
+				++$deleted;
 			}
 		}
-		wp_send_json_success( array( 'deleted' => count( $ids ) ) );
+		wp_send_json_success( array( 'deleted' => $deleted ) );
 	}
 
 	/** Bulk status change, feature toggle or collection assignment. */
 	public function ajax_bulk() {
 		$this->guard();
-		$ids    = array_filter( array_map( 'absint', (array) $this->json_field( 'ids' ) ) );
+		$ids    = array_unique( array_filter( array_map( 'absint', $this->json_field( 'ids' ) ) ) );
 		$action = sanitize_key( (string) $this->post( 'bulk', '' ) );
 		$value  = sanitize_key( (string) $this->post( 'value', '' ) );
 
+		$updated = 0;
 		foreach ( $ids as $id ) {
 			if ( ABT_Data::POST_TYPE !== get_post_type( $id ) ) {
 				continue;
 			}
+			$result = false;
 			if ( 'restore' === $action ) {
-				wp_untrash_post( $id );
+				$result = wp_untrash_post( $id );
 			} elseif ( 'purge' === $action && 'trash' === get_post_status( $id ) ) {
-				wp_delete_post( $id, true );
+				$result = wp_delete_post( $id, true );
 			} elseif ( 'status' === $action && in_array( $value, ABT_Data::STATUSES, true ) ) {
-				wp_update_post( array( 'ID' => $id, 'post_status' => $value ) );
+				$result = wp_update_post( array( 'ID' => $id, 'post_status' => $value ) );
 			} elseif ( 'featured' === $action ) {
-				update_post_meta( $id, ABT_Data::META['featured'], '1' === $value ? 1 : 0 );
+				$result = update_post_meta( $id, ABT_Data::META['featured'], '1' === $value ? 1 : 0 );
 			} elseif ( 'add_collection' === $action && absint( $value ) ) {
-				wp_set_object_terms( $id, absint( $value ), ABT_Data::TAXONOMY, true );
+				$result = wp_set_object_terms( $id, absint( $value ), ABT_Data::TAXONOMY, true );
 			} elseif ( 'remove_collection' === $action && absint( $value ) ) {
-				wp_remove_object_terms( $id, absint( $value ), ABT_Data::TAXONOMY );
+				$result = wp_remove_object_terms( $id, absint( $value ), ABT_Data::TAXONOMY );
+			}
+			if ( $result && ! is_wp_error( $result ) ) {
+				++$updated;
 			}
 		}
 		ABT_Data::instance()->flush();
-		wp_send_json_success( array( 'updated' => count( $ids ) ) );
+		wp_send_json_success( array( 'updated' => $updated ) );
 	}
 
 	public function ajax_collection_save() {
@@ -311,8 +321,36 @@ class ABT_Admin {
 	/** Import one chunk of CSV rows (the browser splits big files). */
 	public function ajax_import() {
 		$this->guard();
-		$rows       = array_slice( $this->json_field( 'rows' ), 0, 250 );
-		$collection = absint( $this->post( 'collection', 0 ) );
+		$rows   = $this->json_field( 'rows' );
+		$file   = $this->post( 'file', '' );
+		$offset = $this->post( 'offset', '' );
+		if ( ! is_string( $file ) || ! preg_match( '/\A[0-9a-f]{16}\z/', $file ) || ! is_string( $offset ) || ! preg_match( '/\A[0-9]{1,9}\z/', $offset ) || ! $rows || count( $rows ) > 100 ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid import batch. Reload the page and retry the same file.', 'ashbi-testimonials' ) ), 400 );
+		}
+		$result = $this->import_batch( $rows, absint( $this->post( 'collection', 0 ) ), $file, (int) $offset );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ), 409 );
+		}
+		wp_send_json_success( $result );
+	}
+
+	/** An atomic receipt prevents replay after a lost response or an interrupted PHP worker. */
+	public function import_batch( array $rows, $collection, $file, $offset ) {
+		$key = 'abt_import_' . hash( 'sha256', wp_json_encode( array( $file, $offset, $collection ) ) );
+		$claim = array( 'fingerprint' => hash( 'sha256', wp_json_encode( $rows ) ) );
+		if ( ! ABT_Atomic::insert( $key, $claim ) ) {
+			$receipt = get_option( $key );
+			if ( is_array( $receipt ) && ( $receipt['fingerprint'] ?? '' ) === $claim['fingerprint'] && isset( $receipt['created'], $receipt['rejected'] ) ) {
+				return array(
+					'created' => $receipt['created'],
+					'errors'  => array_map(
+						static fn( $row ) => array( 'row' => $row, 'message' => __( 'This row was rejected in the earlier attempt.', 'ashbi-testimonials' ) ),
+						$receipt['rejected']
+					),
+				);
+			}
+			return new WP_Error( 'abt_import_unconfirmed', __( 'This batch is in progress or its outcome is uncertain. If retrying the same file still shows this message, reconcile the saved reviews before importing again.', 'ashbi-testimonials' ) );
+		}
 		$created    = 0;
 		$errors     = array();
 
@@ -330,7 +368,11 @@ class ABT_Admin {
 		}
 		wp_defer_term_counting( false );
 
-		wp_send_json_success( array( 'created' => $created, 'errors' => $errors ) );
+		$receipt = $claim + array( 'created' => $created, 'rejected' => array_column( $errors, 'row' ) );
+		if ( ! ABT_Atomic::replace( $key, $claim, $receipt ) ) {
+			return new WP_Error( 'abt_import_receipt', __( 'The import result could not be recorded. Reconcile saved reviews before importing again.', 'ashbi-testimonials' ) );
+		}
+		return array( 'created' => $created, 'errors' => $errors );
 	}
 
 	/** Import a single decoded CSV record, restoring collections by slug. */
@@ -348,7 +390,10 @@ class ABT_Admin {
 
 		if ( isset( $row['custom_fields'] ) && is_string( $row['custom_fields'] ) ) {
 			if ( strlen( $row['custom_fields'] ) > 100000 ) { return new WP_Error( 'abt_fields', __( 'The custom fields column is too large.', 'ashbi-testimonials' ) ); }
-			$row['custom_fields'] = '' === $row['custom_fields'] ? array() : json_decode( $row['custom_fields'], true );
+			$row['custom_fields'] = '' === trim( $row['custom_fields'] ) ? array() : json_decode( $row['custom_fields'], true );
+			if ( ! is_array( $row['custom_fields'] ) ) {
+				return new WP_Error( 'abt_fields', __( 'The custom fields column must contain valid JSON fields.', 'ashbi-testimonials' ) );
+			}
 		}
 		$custom = ABT_Fields::snapshots( $row['custom_fields'] ?? array() );
 		if ( is_wp_error( $custom ) ) { return $custom; }
@@ -402,7 +447,7 @@ class ABT_Admin {
 		foreach ( self::CSV_COLUMNS as $column ) {
 			$value = 'avatar_url' === $column ? $item['avatar'] : ( $item[ $column ] ?? '' );
 			// Neutralise spreadsheet formulas.
-			$row[] = is_string( $value ) && preg_match( '/^[=+\-@]/', $value ) ? "'" . $value : $value;
+			$row[] = is_string( $value ) && preg_match( '/^(?:[\x00-\x20]*[=+\-@＝＋－＠]|[\x00-\x1f])/u', $value ) ? "'" . $value : $value;
 		}
 		return $row;
 	}
