@@ -321,8 +321,36 @@ class ABT_Admin {
 	/** Import one chunk of CSV rows (the browser splits big files). */
 	public function ajax_import() {
 		$this->guard();
-		$rows       = array_slice( $this->json_field( 'rows' ), 0, 250 );
-		$collection = absint( $this->post( 'collection', 0 ) );
+		$rows   = $this->json_field( 'rows' );
+		$file   = $this->post( 'file', '' );
+		$offset = $this->post( 'offset', '' );
+		if ( ! is_string( $file ) || ! preg_match( '/\A[0-9a-f]{16}\z/', $file ) || ! is_string( $offset ) || ! preg_match( '/\A[0-9]{1,9}\z/', $offset ) || ! $rows || count( $rows ) > 100 ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid import batch. Reload the page and retry the same file.', 'ashbi-testimonials' ) ), 400 );
+		}
+		$result = $this->import_batch( $rows, absint( $this->post( 'collection', 0 ) ), $file, (int) $offset );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ), 409 );
+		}
+		wp_send_json_success( $result );
+	}
+
+	/** An atomic receipt prevents replay after a lost response or an interrupted PHP worker. */
+	public function import_batch( array $rows, $collection, $file, $offset ) {
+		$key = 'abt_import_' . hash( 'sha256', wp_json_encode( array( $file, $offset, $collection ) ) );
+		$claim = array( 'fingerprint' => hash( 'sha256', wp_json_encode( $rows ) ) );
+		if ( ! ABT_Atomic::insert( $key, $claim ) ) {
+			$receipt = get_option( $key );
+			if ( is_array( $receipt ) && ( $receipt['fingerprint'] ?? '' ) === $claim['fingerprint'] && isset( $receipt['created'], $receipt['rejected'] ) ) {
+				return array(
+					'created' => $receipt['created'],
+					'errors'  => array_map(
+						static fn( $row ) => array( 'row' => $row, 'message' => __( 'This row was rejected in the earlier attempt.', 'ashbi-testimonials' ) ),
+						$receipt['rejected']
+					),
+				);
+			}
+			return new WP_Error( 'abt_import_unconfirmed', __( 'This batch is in progress or its outcome is uncertain. If retrying the same file still shows this message, reconcile the saved reviews before importing again.', 'ashbi-testimonials' ) );
+		}
 		$created    = 0;
 		$errors     = array();
 
@@ -340,7 +368,11 @@ class ABT_Admin {
 		}
 		wp_defer_term_counting( false );
 
-		wp_send_json_success( array( 'created' => $created, 'errors' => $errors ) );
+		$receipt = $claim + array( 'created' => $created, 'rejected' => array_column( $errors, 'row' ) );
+		if ( ! ABT_Atomic::replace( $key, $claim, $receipt ) ) {
+			return new WP_Error( 'abt_import_receipt', __( 'The import result could not be recorded. Reconcile saved reviews before importing again.', 'ashbi-testimonials' ) );
+		}
+		return array( 'created' => $created, 'errors' => $errors );
 	}
 
 	/** Import a single decoded CSV record, restoring collections by slug. */

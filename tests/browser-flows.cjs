@@ -147,10 +147,21 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await page.getByRole('button',{name:'Import CSV',exact:true}).click();
   const importer=page.locator('#abt-import-dialog');
   await importer.locator('#abt-i-file').setInputFiles({name:'fictional-review.csv',mimeType:'text/csv',buffer:Buffer.from('author,content,rating\nCSV browser reviewer,Imported fictional feedback,4\n')});
+  const loseImportResponse = async route => {
+   if (!/name="action"\r?\n\r?\nabt_import\r?\n/.test(route.request().postData() || '')) return route.continue();
+   const response = await route.fetch();
+   assert.equal(response.ok(),true,'WordPress processed the batch before losing the response');
+   await route.abort();
+  };
+  await page.route('**/admin-ajax.php',loseImportResponse);
+  await importer.getByRole('button',{name:'Import',exact:true}).click();
+  await importer.getByRole('status').filter({hasText:'Import paused at row 2.'}).waitFor();
+  await page.unroute('**/admin-ajax.php',loseImportResponse);
   await importer.getByRole('button',{name:'Import',exact:true}).click();
   await importer.getByRole('status').filter({hasText:'Imported 1 testimonial.'}).waitFor();
   await importer.locator('.abt-dialog__foot').getByRole('button',{name:'Close',exact:true}).click();
   await page.getByText('CSV browser reviewer',{exact:true}).first().waitFor();
+  assert.equal(await page.getByText('CSV browser reviewer',{exact:true}).count(),1,'retrying after a committed batch must not duplicate reviews');
   await page.getByRole('button',{name:'Collection settings',exact:true}).click();
   const collection=page.locator('#abt-collection-dialog');
   assert.equal(await collection.locator('[data-field-label]').count(),2);
