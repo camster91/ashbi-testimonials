@@ -4,7 +4,7 @@ Tags: testimonials, reviews, product reviews, star rating, shortcode
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -63,6 +63,12 @@ Deactivation and deletion keep reviews, collections and settings by default, inc
 Use WordPress Tools > Export Personal Data or Erase Personal Data with the email stored on the review. Published, pending, draft and trashed matching reviews are included. Erasure permanently removes entire matching reviews and their metadata. Media Library files, backups and external copies need separate review. The plugin adds suggested text to the WordPress privacy policy guide for administrators to adapt.
 
 == Changelog ==
+
+= 1.1.2 =
+* Simplify testimonial editing, protect unsaved changes, and label publishing actions clearly.
+* Create a prefilled review form page and share its link after publishing. Save existing pages with embedded review forms once to register their links.
+* Identify rejected custom answers while preserving visitor input when JavaScript is enabled.
+* Keep keyboard focus in the moderation flow and simplify editor controls.
 
 = 1.1.1 =
 * Protect reviews shared across collections and prevent accidental permanent deletion when WordPress Trash is disabled.
