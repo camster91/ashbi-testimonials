@@ -43,5 +43,9 @@ jobs:
             awk -v heading="= $version =" '$0 == heading { show=1; next } show && /^= / { exit } show { print }' readme.txt
             printf '\n## Install or upgrade\n\nUpload the plugin ZIP in WordPress under **Plugins → Add New → Upload Plugin**. Requires WordPress 6.6+ and PHP 8.2+. Back up the site before upgrading and replace the existing plugin in place. See the [upgrade and recovery guide](https://github.com/camster91/ashbi-testimonials/blob/main/docs/OPERATIONS.md).\n'
           } > release-notes.md
-          gh release create "v$version" "$package" --target "$GITHUB_SHA" \
+          tag="v$version"
+          if ! gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$tag" -f sha="$GITHUB_SHA"; then
+            test "$(gh api "repos/$GITHUB_REPOSITORY/commits/$tag" --jq .sha)" = "$GITHUB_SHA"
+          fi
+          gh release create "$tag" "$package" --verify-tag \
             --title "Ashbi Testimonials $version" --notes-file release-notes.md --latest
