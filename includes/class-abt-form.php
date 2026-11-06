@@ -140,6 +140,8 @@ class ABT_Form {
 	private function message( $code ) {
 		$messages = array(
 			'invalid' => __( 'Please fill in your name, email and review, and accept the consent box.', 'ashbi-testimonials' ),
+			'custom_invalid' => __( 'Check the additional questions on the review form and try again.', 'ashbi-testimonials' ),
+			'custom_url' => __( 'Enter a complete website address starting with https:// or http://.', 'ashbi-testimonials' ),
 			'expired' => __( 'The form expired. Please reload the page and try again.', 'ashbi-testimonials' ),
 			'limit'   => __( 'Too many reviews were sent from your connection. Please try again later.', 'ashbi-testimonials' ),
 			'busy'    => __( 'Another review is being processed from your connection. Please try again in a moment.', 'ashbi-testimonials' ),
@@ -201,9 +203,13 @@ class ABT_Form {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Anonymous form verified by a signed target-bound token below.
 		$form_id = isset( $_POST['abt_form'] ) && is_string( $_POST['abt_form'] ) ? sanitize_key( wp_unslash( $_POST['abt_form'] ) ) : '';
 		$back    = wp_get_referer() ?: home_url( '/' );
-		$back    = remove_query_arg( array( 'abt_status', 'abt_form' ), $back );
-		$go      = static function ( $status ) use ( $back, $form_id ) {
-			wp_safe_redirect( add_query_arg( array( 'abt_status' => $status, 'abt_form' => $form_id ), $back ) . '#' . $form_id );
+		$back    = remove_query_arg( array( 'abt_status', 'abt_form', 'abt_field' ), $back );
+		$go      = static function ( $status, $field = '' ) use ( $back, $form_id ) {
+			$args = array( 'abt_status' => $status, 'abt_form' => $form_id );
+			if ( '' !== $field ) {
+				$args['abt_field'] = sanitize_key( $field );
+			}
+			wp_safe_redirect( add_query_arg( $args, $back ) . '#' . $form_id );
 			exit;
 		};
 
@@ -253,7 +259,10 @@ class ABT_Form {
 		// phpcs:enable
 
 		$custom = ABT_Fields::submission( $term_id, isset( $_POST['abt_custom'] ) ? wp_unslash( $_POST['abt_custom'] ) : array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- Target-bound form token checked above; validated against server definitions.
-		if ( is_wp_error( $custom ) ) { $go( 'invalid' ); }
+		if ( is_wp_error( $custom ) ) {
+			$error = $custom->get_error_data();
+			$go( 'url' === ( $error['type'] ?? '' ) ? 'custom_url' : 'custom_invalid', $error['field'] ?? '' );
+		}
 		$fields['custom_fields'] = $custom;
 		$fields['content']     = wp_strip_all_tags( (string) $fields['content'] );
 		$fields['status']      = 'pending';

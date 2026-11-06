@@ -43,7 +43,11 @@ class ABT_Fields {
 		$out = array();
 		foreach ( $defs as $key => $field ) {
 			$value = self::value( $input[ $key ] ?? '', $field['type'] );
-			if ( is_wp_error( $value ) || ( $field['required'] && ( '' === $value || ( 'checkbox' === $field['type'] && '1' !== $value ) ) ) || ( 'select' === $field['type'] && '' !== $value && ! in_array( $value, $field['options'], true ) ) ) { return self::error(); }
+			if ( is_wp_error( $value ) || ( $field['required'] && ( '' === $value || ( 'checkbox' === $field['type'] && '1' !== $value ) ) ) || ( 'select' === $field['type'] && '' !== $value && ! in_array( $value, $field['options'], true ) ) ) {
+				$error = self::error();
+				$error->add_data( array( 'field' => $key, 'type' => $field['type'] ) );
+				return $error;
+			}
 			$out[ $key ] = array( 'label' => $field['label'], 'type' => $field['type'], 'public' => $field['public'], 'value' => $value );
 		}
 		return $out;

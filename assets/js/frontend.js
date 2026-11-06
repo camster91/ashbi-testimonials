@@ -156,6 +156,11 @@
 		const button = form.querySelector( '[type="submit"]' );
 		const label = button.textContent;
 		const wrapper = form.closest( '.abt-form-wrap' );
+		const previousField = form.querySelector( '[aria-errormessage="' + wrapper.id + '-notice"]' );
+		if ( previousField ) {
+			previousField.removeAttribute( 'aria-invalid' );
+			previousField.removeAttribute( 'aria-errormessage' );
+		}
 		let note = wrapper.querySelector( '.abt-form__notice' );
 		if ( ! note ) { note = document.createElement( 'p' ); wrapper.prepend( note ); }
 		const controller = new AbortController();
@@ -163,6 +168,7 @@
 		form.setAttribute( 'aria-busy', 'true' ); button.disabled = true;
 		button.textContent = t( 'loading', 'Loading…' );
 		let status = 'error';
+		let invalidField = '';
 		try {
 			const body = new FormData( form );
 			if ( Number( form.dataset && form.dataset.abtProduct ) > 0 ) {
@@ -176,7 +182,13 @@
 				} catch ( error ) { /* Purchase proof is optional; the review still submits. */ } finally { clearTimeout( proofTimeout ); }
 			}
 			const response = await fetch( form.getAttribute( 'action' ), { method: 'POST', body, credentials: 'same-origin', signal: controller.signal } );
-			if ( response.ok ) { status = new URL( response.url ).searchParams.get( 'abt_status' ) || 'error'; }
+			if ( response.ok ) {
+				const params = new URL( response.url ).searchParams;
+				status = params.get( 'abt_status' ) || 'error';
+				if ( status === 'custom_invalid' || status === 'custom_url' ) {
+					invalidField = params.get( 'abt_field' ) || '';
+				}
+			}
 		} catch ( error ) { status = 'error'; }
 		finally { clearTimeout( timeout ); form.removeAttribute( 'aria-busy' ); button.disabled = false; button.textContent = label; }
 		const messages = cfg.form || {};
@@ -186,7 +198,19 @@
 		note.setAttribute( 'tabindex', '-1' );
 		note.textContent = messages[ status ] || messages.error || 'Your review could not be saved. Please try again.';
 		if ( success ) { form.reset(); }
-		note.focus();
+		const field = invalidField && form.elements.namedItem( 'abt_custom[' + invalidField + ']' );
+		if ( field ) {
+			note.id = wrapper.id + '-notice';
+			field.setAttribute( 'aria-invalid', 'true' );
+			field.setAttribute( 'aria-errormessage', note.id );
+			field.addEventListener( 'input', () => {
+				field.removeAttribute( 'aria-invalid' );
+				field.removeAttribute( 'aria-errormessage' );
+			}, { once: true } );
+			field.focus();
+		} else {
+			note.focus();
+		}
 	}
 
 	document.addEventListener( 'submit', ( event ) => {
