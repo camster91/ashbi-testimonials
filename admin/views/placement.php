@@ -15,11 +15,13 @@ $abt_collection_attr = $abt_is_all ? '' : ' collection="' . ( is_numeric( $colle
 $abt_placements = array(
 	array(
 		'title' => __( 'Display testimonials', 'ashbi-testimonials' ),
+		'copy'  => __( 'Copy testimonials shortcode', 'ashbi-testimonials' ),
 		'text'  => __( 'Show published testimonials on a page.', 'ashbi-testimonials' ),
 		'code'  => '[ashbi_testimonials' . $abt_collection_attr . ']',
 	),
 	array(
 		'title' => __( 'Show a rating summary', 'ashbi-testimonials' ),
+		'copy'  => __( 'Copy rating shortcode', 'ashbi-testimonials' ),
 		'text'  => __( 'Show an average rating and a count of published ratings.', 'ashbi-testimonials' ),
 		'code'  => '[ashbi_rating' . $abt_collection_attr . ']',
 	),
@@ -27,8 +29,13 @@ $abt_placements = array(
 if ( ! $abt_is_all ) {
 	$abt_placements[] = array(
 		'title' => __( 'Collect new reviews', 'ashbi-testimonials' ),
+		'copy'  => __( 'Copy review form shortcode', 'ashbi-testimonials' ),
 		'text'  => __( 'Add a form to your site. Submissions wait for approval before they appear publicly.', 'ashbi-testimonials' ),
 		'code'  => '[ashbi_testimonial_form' . $abt_collection_attr . ']',
+		'page'  => current_user_can( 'edit_pages' ) ? add_query_arg(
+			array( 'post_type' => 'page', 'abt_review_form_collection' => (int) $collection['id'] ),
+			admin_url( 'post-new.php' )
+		) : '',
 	);
 }
 ?>
@@ -45,9 +52,13 @@ if ( ! $abt_is_all ) {
 				<section class="abt-placement-option">
 					<h3><?php echo esc_html( $abt_placement['title'] ); ?></h3>
 					<p><?php echo esc_html( $abt_placement['text'] ); ?></p>
+					<?php if ( ! empty( $abt_placement['page'] ) ) : ?>
+						<p><a class="button button-primary" href="<?php echo esc_url( $abt_placement['page'] ); ?>"><?php esc_html_e( 'Create a review form page', 'ashbi-testimonials' ); ?></a></p>
+						<p><?php esc_html_e( 'The new page opens in the editor. Add a title and review it before publishing.', 'ashbi-testimonials' ); ?></p>
+					<?php endif; ?>
 					<div class="abt-placement-option__code">
 						<code><?php echo esc_html( $abt_placement['code'] ); ?></code>
-						<button type="button" class="button" data-abt-copy="<?php echo esc_attr( $abt_placement['code'] ); ?>"><?php esc_html_e( 'Copy shortcode', 'ashbi-testimonials' ); ?></button>
+						<button type="button" class="button" data-abt-copy="<?php echo esc_attr( $abt_placement['code'] ); ?>"><?php echo esc_html( $abt_placement['copy'] ); ?></button>
 					</div>
 				</section>
 			<?php endforeach; ?>

@@ -8,9 +8,17 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
  const context = await browser.newContext({viewport:{width:1440,height:1000}});
  let page = await context.newPage();
  const errors=[];
+ let expectedDiscard=false;
  const watch=target=>{
  target.on('pageerror',e=>errors.push(e.message));
- target.on('dialog',async dialog=>{console.error('Unexpected browser dialog:',dialog.message());errors.push(dialog.message());await dialog.dismiss();});
+ target.on('dialog',async dialog=>{
+   if(expectedDiscard && dialog.type()==='confirm' && dialog.message()==='Discard your unsaved changes?'){
+    expectedDiscard=false;
+    await dialog.dismiss();
+    return;
+   }
+   console.error('Unexpected browser dialog:',dialog.message());errors.push(dialog.message());await dialog.dismiss();
+  });
  target.on('response',async response=>{if(response.url().includes('admin-post.php')){const headers=await response.allHeaders();console.log('Form transport',response.status(),headers.location||response.url());}});
  };
  watch(page);
@@ -108,6 +116,20 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
    assert.equal(await place.evaluate(node=>document.activeElement===node),true,'closing placement returns focus to its opener');
   }
   await place.click();
+  const createFormPage=placement.getByRole('link',{name:'Create a review form page',exact:true});
+  const formPageUrl=new URL(await createFormPage.getAttribute('href'),page.url());
+  const formPage=await context.newPage();
+  try {
+   await formPage.goto(formPageUrl.href);
+   await formPage.waitForFunction(collectionId=>{
+    const editor=window.wp?.data?.select('core/editor');
+    const blocks=window.wp?.data?.select('core/block-editor')?.getBlocks() || [];
+    return editor?.getCurrentPostType()==='page' && ['auto-draft','draft'].includes(editor.getEditedPostAttribute('status')) &&
+     blocks.some(block=>block.name==='ashbi/review-form' && block.attributes.collection===collectionId);
+   },formPageUrl.searchParams.get('abt_review_form_collection'));
+  } finally {
+   await formPage.close();
+  }
   await placement.getByRole('button',{name:'Customize display'}).click();
   const builder=page.getByRole('dialog',{name:'Customize display'});
   await builder.locator('[data-abt-builder-preview][aria-busy=false]').waitFor();
@@ -124,7 +146,14 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await editor.locator('[name=content]').fill('Created in the native admin editor.');
   await editor.getByLabel('Project (public)').fill('Manager project');
   await editor.getByLabel('Private note (not published)').fill('Manager private note');
-  await editor.getByRole('button',{name:'Save',exact:true}).click();
+  await editor.getByLabel('Status',{exact:true}).selectOption('draft');
+  assert.ok(await editor.getByRole('button',{name:'Save draft',exact:true}).isVisible());
+  await editor.getByLabel('Status',{exact:true}).selectOption('publish');
+  expectedDiscard=true;
+  await page.keyboard.press('Escape');
+  assert.equal(expectedDiscard,false,'Escape asks before discarding changed fields');
+  assert.equal(await editor.getByLabel('Name',{exact:true}).inputValue(),'Custom browser manager');
+  await editor.getByRole('button',{name:'Publish testimonial',exact:true}).click();
   await editor.waitFor({state:'hidden'});
   await page.getByText('Custom browser manager',{exact:true}).first().waitFor();
   const manager=page.locator('.abt-row').filter({hasText:'Custom browser manager'});
@@ -133,7 +162,7 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   assert.equal(await editor.getByLabel('Private note (not published)').inputValue(),'Manager private note');
   await editor.locator('[name=content]').fill('Edited manager review in the browser.');
   await editor.screenshot({path:'browser-results/editor-custom-fields.png'});
-  await editor.getByRole('button',{name:'Save',exact:true}).click();
+  await editor.getByRole('button',{name:'Update published testimonial',exact:true}).click();
   await editor.waitFor({state:'hidden'});
   await manager.getByText('Edited manager review in the browser.',{exact:true}).waitFor();
   const pending=page.locator('.abt-row').filter({hasText:'Browser test reviewer'});

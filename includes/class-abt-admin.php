@@ -34,6 +34,7 @@ class ABT_Admin {
 	private function __construct() {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
+		add_action( 'load-post-new.php', array( $this, 'prepare_review_form_page' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( ABT_PLUGIN_FILE ), array( $this, 'action_links' ) );
 
 		foreach ( array( 'list', 'get', 'save', 'delete', 'bulk', 'collection_save', 'collection_delete', 'search_posts', 'import', 'preview' ) as $action ) {
@@ -41,6 +42,41 @@ class ABT_Admin {
 		}
 		add_action( 'admin_post_abt_export', array( $this, 'export' ) );
 		add_action( 'admin_post_abt_save_settings', array( $this, 'save_settings' ) );
+	}
+
+	/** Preselect a collection in the editor for a new page. */
+	public function prepare_review_form_page() {
+		if ( ! current_user_can( abt_capability() ) || ! current_user_can( 'edit_pages' ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only editor prefill. Core handles saving and publishing.
+		$collection_id = isset( $_GET['abt_review_form_collection'] ) && is_string( $_GET['abt_review_form_collection'] ) ? absint( wp_unslash( $_GET['abt_review_form_collection'] ) ) : 0;
+		if ( ! $collection_id || ! ABT_Data::instance()->find_collection( $collection_id ) ) {
+			return;
+		}
+
+		add_filter(
+			'default_content',
+			static function ( $content, $post ) use ( $collection_id ) {
+				if ( '' !== $content || 'page' !== $post->post_type ) {
+					return $content;
+				}
+				if ( ! use_block_editor_for_post( $post ) ) {
+					return '[ashbi_testimonial_form collection="' . $collection_id . '"]';
+				}
+				return serialize_block(
+					array(
+						'blockName'    => 'ashbi/review-form',
+						'attrs'        => array( 'collection' => (string) $collection_id ),
+						'innerBlocks'  => array(),
+						'innerContent' => array(),
+					)
+				);
+			},
+			10,
+			2
+		);
 	}
 
 	public function register_menu() {
