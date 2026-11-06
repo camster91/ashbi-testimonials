@@ -132,6 +132,30 @@
 	   Shared: dialogs, copy buttons, collection dialog
 	   ================================================================== */
 
+	const dialogEdits = new WeakMap();
+
+	function formSnapshot( form ) {
+		return JSON.stringify( Array.from( form.querySelectorAll( 'input, select, textarea' ) )
+			.filter( ( field ) => ! field.matches( '[data-abt-picker-input], [type="button"], [type="submit"]' ) )
+			.map( ( field ) => [ field.name, field.value, field.checked ] ) );
+	}
+
+	function rememberDialog( dialog, form ) {
+		dialogEdits.set( dialog, { form, initial: formSnapshot( form ) } );
+	}
+
+	function canDismiss( dialog ) {
+		const edit = dialogEdits.get( dialog );
+		if ( ! edit ) { return true; }
+		if ( edit.form.querySelector( 'button[type="submit"]:disabled' ) ) { return false; }
+		return edit.initial === formSnapshot( edit.form ) ||
+			window.confirm( __( 'Discard your unsaved changes?', 'ashbi-testimonials' ) ); // eslint-disable-line no-alert
+	}
+
+	document.addEventListener( 'cancel', ( e ) => {
+		if ( ! canDismiss( e.target ) ) { e.preventDefault(); }
+	}, true );
+
 	function openDialog( dialog ) {
 		if ( dialog && ! dialog.open ) {
 			dialog.showModal();
@@ -154,14 +178,15 @@
 			return;
 		}
 		if ( e.target.closest( '[data-abt-close]' ) ) {
-			e.target.closest( 'dialog' ).close();
+			const dialog = e.target.closest( 'dialog' );
+			if ( dialog && canDismiss( dialog ) ) { dialog.close(); }
 			return;
 		}
 		// Clicking the backdrop closes a dialog.
 		if ( e.target instanceof HTMLDialogElement ) {
 			const r = e.target.getBoundingClientRect();
 			if ( e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom ) {
-				e.target.close();
+				if ( canDismiss( e.target ) ) { e.target.close(); }
 			}
 		}
 	} );
@@ -215,6 +240,7 @@
 			}
 			title.textContent = editing ? title.dataset.edit : title.dataset.new;
 			$$( '[data-abt-edit-only]', form ).forEach( ( el ) => ( el.hidden = ! editing ) );
+			rememberDialog( collectionDialog, form );
 			openDialog( collectionDialog );
 			form.elements.name.focus();
 		};
@@ -834,11 +860,24 @@
 		pickInput.focus();
 	} );
 
+	function updateSaveLabels() {
+		const editing = Number( eform.elements.id.value ) > 0;
+		const status = eform.elements.status.value;
+		const label = status === 'publish'
+			? ( editing ? __( 'Update published testimonial', 'ashbi-testimonials' ) : __( 'Publish testimonial', 'ashbi-testimonials' ) )
+			: ( status === 'pending' ? __( 'Save for approval', 'ashbi-testimonials' ) : __( 'Save draft', 'ashbi-testimonials' ) );
+		$( 'button[type="submit"]', eform ).textContent = label;
+		$( '[data-abt-save-new]', editor ).textContent = status === 'publish'
+			? __( 'Publish & add another', 'ashbi-testimonials' )
+			: __( 'Save & add another', 'ashbi-testimonials' );
+	}
+
 	function openEditor( item ) {
 		const editing = !! ( item && item.id );
 		const data = item || {};
 		const els = eform.elements;
 		eform.reset();
+		$( '[data-abt-review-details]', editor ).open = false;
 		eerror.hidden = true;
 		els.id.value = data.id || 0;
 		[ 'author', 'headline', 'role', 'company', 'location', 'email', 'subject', 'source', 'source_url', 'avatar_url' ].forEach( ( k ) => ( els[ k ].value = data[ k ] || '' ) );
@@ -863,6 +902,8 @@
 		etitle.textContent = editing ? etitle.dataset.edit : etitle.dataset.new;
 		$( '[data-abt-editor-delete]', editor ).hidden = ! editing;
 		$( '[data-abt-save-new]', editor ).hidden = editing;
+		updateSaveLabels();
+		rememberDialog( editor, eform );
 		openDialog( editor );
 		( editing ? els.content : els.author ).focus();
 	}
@@ -917,6 +958,11 @@
 		buttons.forEach( ( b ) => ( b.disabled = false ) );
 	}
 
+	eform.addEventListener( 'invalid', ( e ) => {
+		const details = e.target.closest( '[data-abt-review-details]' );
+		if ( details ) { details.open = true; }
+	}, true );
+	eform.elements.status.addEventListener( 'change', updateSaveLabels );
 	eform.addEventListener( 'submit', ( e ) => {
 		e.preventDefault();
 		saveEditor( false );

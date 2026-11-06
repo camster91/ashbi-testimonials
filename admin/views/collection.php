@@ -145,6 +145,10 @@ $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yel
 
 				<section class="abt-group">
 					<h3><?php esc_html_e( 'Review', 'ashbi-testimonials' ); ?></h3>
+					<div class="abt-field">
+						<label for="abt-e-author"><?php esc_html_e( 'Name', 'ashbi-testimonials' ); ?></label>
+						<input type="text" id="abt-e-author" name="author" class="widefat" required />
+					</div>
 					<fieldset class="abt-field">
 						<legend><?php esc_html_e( 'Rating', 'ashbi-testimonials' ); ?></legend>
 						<div class="abt-star-input" data-abt-star-input>
@@ -156,88 +160,88 @@ $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yel
 						</div>
 					</fieldset>
 					<div class="abt-field">
-						<label for="abt-e-headline"><?php esc_html_e( 'Headline', 'ashbi-testimonials' ); ?> <span class="abt-optional"><?php esc_html_e( 'optional', 'ashbi-testimonials' ); ?></span></label>
-						<input type="text" id="abt-e-headline" name="headline" class="widefat" placeholder="<?php esc_attr_e( 'e.g. Saved us hours every week', 'ashbi-testimonials' ); ?>" />
-					</div>
-					<div class="abt-field">
 						<label for="abt-e-content"><?php esc_html_e( 'Testimonial', 'ashbi-testimonials' ); ?></label>
 						<textarea id="abt-e-content" name="content" rows="6" class="widefat"></textarea>
 					</div>
 				</section>
 
-				<section class="abt-group">
-					<h3><?php esc_html_e( 'Reviewer', 'ashbi-testimonials' ); ?></h3>
-					<div class="abt-avatar-field">
-						<span class="abt-avatar-field__preview" data-abt-avatar-preview></span>
-						<div>
-							<button type="button" class="button button-small" data-abt-avatar-pick><?php esc_html_e( 'Choose photo', 'ashbi-testimonials' ); ?></button>
-							<button type="button" class="button-link" data-abt-avatar-remove hidden><?php esc_html_e( 'Remove', 'ashbi-testimonials' ); ?></button>
-							<input type="hidden" name="avatar_id" value="0" />
-							<input type="url" name="avatar_url" class="abt-avatar-field__url" placeholder="<?php esc_attr_e( 'or paste an image URL', 'ashbi-testimonials' ); ?>" />
-						</div>
-					</div>
-					<div class="abt-field-row">
+				<details class="abt-group" data-abt-review-details>
+					<summary><?php esc_html_e( 'Optional review details', 'ashbi-testimonials' ); ?></summary>
+					<section class="abt-group">
+						<h3><?php esc_html_e( 'Reviewer', 'ashbi-testimonials' ); ?></h3>
 						<div class="abt-field">
-							<label for="abt-e-author"><?php esc_html_e( 'Name', 'ashbi-testimonials' ); ?></label>
-							<input type="text" id="abt-e-author" name="author" class="widefat" required />
+							<label for="abt-e-headline"><?php esc_html_e( 'Headline', 'ashbi-testimonials' ); ?> <span class="abt-optional"><?php esc_html_e( 'optional', 'ashbi-testimonials' ); ?></span></label>
+							<input type="text" id="abt-e-headline" name="headline" class="widefat" placeholder="<?php esc_attr_e( 'e.g. Saved us hours every week', 'ashbi-testimonials' ); ?>" />
+						</div>
+						<div class="abt-avatar-field">
+							<span class="abt-avatar-field__preview" data-abt-avatar-preview></span>
+							<div>
+								<button type="button" class="button button-small" data-abt-avatar-pick><?php esc_html_e( 'Choose photo', 'ashbi-testimonials' ); ?></button>
+								<button type="button" class="button-link" data-abt-avatar-remove hidden><?php esc_html_e( 'Remove', 'ashbi-testimonials' ); ?></button>
+								<input type="hidden" name="avatar_id" value="0" />
+								<input type="url" name="avatar_url" class="abt-avatar-field__url" placeholder="<?php esc_attr_e( 'or paste an image URL', 'ashbi-testimonials' ); ?>" />
+							</div>
+						</div>
+						<div class="abt-field-row">
+							<div class="abt-field">
+								<label for="abt-e-email"><?php esc_html_e( 'Email', 'ashbi-testimonials' ); ?> <span class="abt-optional"><?php esc_html_e( 'never shown', 'ashbi-testimonials' ); ?></span></label>
+								<input type="email" id="abt-e-email" name="email" class="widefat" />
+							</div>
+						</div>
+						<div class="abt-field-row">
+							<div class="abt-field">
+								<label for="abt-e-role"><?php esc_html_e( 'Job title', 'ashbi-testimonials' ); ?></label>
+								<input type="text" id="abt-e-role" name="role" class="widefat" />
+							</div>
+							<div class="abt-field">
+								<label for="abt-e-company"><?php esc_html_e( 'Company', 'ashbi-testimonials' ); ?></label>
+								<input type="text" id="abt-e-company" name="company" class="widefat" />
+							</div>
 						</div>
 						<div class="abt-field">
-							<label for="abt-e-email"><?php esc_html_e( 'Email', 'ashbi-testimonials' ); ?> <span class="abt-optional"><?php esc_html_e( 'never shown', 'ashbi-testimonials' ); ?></span></label>
-							<input type="email" id="abt-e-email" name="email" class="widefat" />
+							<label for="abt-e-location"><?php esc_html_e( 'Location', 'ashbi-testimonials' ); ?></label>
+							<input type="text" id="abt-e-location" name="location" class="widefat" />
 						</div>
-					</div>
-					<div class="abt-field-row">
-						<div class="abt-field">
-							<label for="abt-e-role"><?php esc_html_e( 'Job title', 'ashbi-testimonials' ); ?></label>
-							<input type="text" id="abt-e-role" name="role" class="widefat" />
-						</div>
-						<div class="abt-field">
-							<label for="abt-e-company"><?php esc_html_e( 'Company', 'ashbi-testimonials' ); ?></label>
-							<input type="text" id="abt-e-company" name="company" class="widefat" />
-						</div>
-					</div>
-					<div class="abt-field">
-						<label for="abt-e-location"><?php esc_html_e( 'Location', 'ashbi-testimonials' ); ?></label>
-						<input type="text" id="abt-e-location" name="location" class="widefat" />
-					</div>
-				</section>
+					</section>
 
-				<section class="abt-group">
-					<h3><?php esc_html_e( 'What is being reviewed', 'ashbi-testimonials' ); ?></h3>
-					<div class="abt-field">
-						<label for="abt-e-product-search"><?php echo esc_html( ABT_WooCommerce::active() ? __( 'Product', 'ashbi-testimonials' ) : __( 'Product or page', 'ashbi-testimonials' ) ); ?></label>
-						<div class="abt-picker" data-abt-picker>
-							<input type="hidden" name="product_id" value="0" />
-							<span class="abt-chip" data-abt-picker-chip hidden><span data-abt-picker-label></span><button type="button" class="abt-chip__x" data-abt-picker-clear aria-label="<?php esc_attr_e( 'Remove product', 'ashbi-testimonials' ); ?>">&times;</button></span>
-							<input type="search" id="abt-e-product-search" class="widefat" data-abt-picker-input autocomplete="off" placeholder="<?php esc_attr_e( 'Search by name or ID…', 'ashbi-testimonials' ); ?>" />
-							<ul class="abt-picker__results" data-abt-picker-results role="listbox" hidden></ul>
+					<section class="abt-group">
+						<h3><?php esc_html_e( 'What is being reviewed', 'ashbi-testimonials' ); ?></h3>
+						<div class="abt-field">
+							<label for="abt-e-product-search"><?php echo esc_html( ABT_WooCommerce::active() ? __( 'Product', 'ashbi-testimonials' ) : __( 'Product or page', 'ashbi-testimonials' ) ); ?></label>
+							<div class="abt-picker" data-abt-picker>
+								<input type="hidden" name="product_id" value="0" />
+								<span class="abt-chip" data-abt-picker-chip hidden><span data-abt-picker-label></span><button type="button" class="abt-chip__x" data-abt-picker-clear aria-label="<?php esc_attr_e( 'Remove product', 'ashbi-testimonials' ); ?>">&times;</button></span>
+								<input type="search" id="abt-e-product-search" class="widefat" data-abt-picker-input autocomplete="off" placeholder="<?php esc_attr_e( 'Search by name or ID…', 'ashbi-testimonials' ); ?>" />
+								<ul class="abt-picker__results" data-abt-picker-results role="listbox" hidden></ul>
+							</div>
 						</div>
-					</div>
-					<div class="abt-field">
-						<label for="abt-e-subject"><?php esc_html_e( 'Label, plan or SKU', 'ashbi-testimonials' ); ?> <span class="abt-optional"><?php esc_html_e( 'optional', 'ashbi-testimonials' ); ?></span></label>
-						<input type="text" id="abt-e-subject" name="subject" class="widefat" placeholder="<?php esc_attr_e( 'e.g. Pro plan, SKU-1042, Kitchen remodel', 'ashbi-testimonials' ); ?>" />
-						<p class="description"><?php esc_html_e( 'Group reviews without a page. Show them with subject="…".', 'ashbi-testimonials' ); ?></p>
-					</div>
-				</section>
+						<div class="abt-field">
+							<label for="abt-e-subject"><?php esc_html_e( 'Label, plan or SKU', 'ashbi-testimonials' ); ?> <span class="abt-optional"><?php esc_html_e( 'optional', 'ashbi-testimonials' ); ?></span></label>
+							<input type="text" id="abt-e-subject" name="subject" class="widefat" placeholder="<?php esc_attr_e( 'e.g. Pro plan, SKU-1042, Kitchen remodel', 'ashbi-testimonials' ); ?>" />
+							<p class="description"><?php esc_html_e( 'Group reviews without a page. Show them with subject="…".', 'ashbi-testimonials' ); ?></p>
+						</div>
+					</section>
 
-				<section class="abt-group">
-					<h3><?php esc_html_e( 'Source', 'ashbi-testimonials' ); ?></h3>
-					<div class="abt-field-row">
-						<div class="abt-field">
-							<label for="abt-e-source"><?php esc_html_e( 'Where it came from', 'ashbi-testimonials' ); ?></label>
-							<input type="text" id="abt-e-source" name="source" class="widefat" list="abt-sources" />
-							<datalist id="abt-sources">
-								<?php foreach ( $abt_sources as $abt_source ) : ?>
-									<option value="<?php echo esc_attr( $abt_source ); ?>"></option>
-								<?php endforeach; ?>
-							</datalist>
+					<section class="abt-group">
+						<h3><?php esc_html_e( 'Source', 'ashbi-testimonials' ); ?></h3>
+						<div class="abt-field-row">
+							<div class="abt-field">
+								<label for="abt-e-source"><?php esc_html_e( 'Where it came from', 'ashbi-testimonials' ); ?></label>
+								<input type="text" id="abt-e-source" name="source" class="widefat" list="abt-sources" />
+								<datalist id="abt-sources">
+									<?php foreach ( $abt_sources as $abt_source ) : ?>
+										<option value="<?php echo esc_attr( $abt_source ); ?>"></option>
+									<?php endforeach; ?>
+								</datalist>
+							</div>
+							<div class="abt-field">
+								<label for="abt-e-source-url"><?php esc_html_e( 'Link to original', 'ashbi-testimonials' ); ?></label>
+								<input type="url" id="abt-e-source-url" name="source_url" class="widefat" />
+							</div>
 						</div>
-						<div class="abt-field">
-							<label for="abt-e-source-url"><?php esc_html_e( 'Link to original', 'ashbi-testimonials' ); ?></label>
-							<input type="url" id="abt-e-source-url" name="source_url" class="widefat" />
-						</div>
-					</div>
-				</section>
+					</section>
+
+				</details>
 
 				<section class="abt-group">
 					<h3><?php esc_html_e( 'Publishing', 'ashbi-testimonials' ); ?></h3>
@@ -280,7 +284,7 @@ $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yel
 				<span class="abt-spacer"></span>
 				<button type="button" class="button" data-abt-close><?php esc_html_e( 'Cancel', 'ashbi-testimonials' ); ?></button>
 				<button type="button" class="button" data-abt-save-new><?php esc_html_e( 'Save & add another', 'ashbi-testimonials' ); ?></button>
-				<button type="submit" class="button button-primary" value="save"><?php esc_html_e( 'Save', 'ashbi-testimonials' ); ?></button>
+				<button type="submit" class="button button-primary" value="save"><?php esc_html_e( 'Publish testimonial', 'ashbi-testimonials' ); ?></button>
 			</footer>
 		</form>
 	</dialog>
