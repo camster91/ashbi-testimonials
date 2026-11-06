@@ -181,6 +181,7 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   const pending=page.locator('.abt-row').filter({hasText:'Browser test reviewer'});
   await pending.getByRole('button',{name:'Approve',exact:true}).click();
   await pending.getByText('Published',{exact:true}).waitFor();
+  await page.waitForFunction(()=>document.activeElement?.matches('#abt-status, [data-abt-approve]'));
   await page.getByText('Import / export',{exact:true}).click();
   const downloaded=page.waitForEvent('download');
   await page.getByRole('link',{name:'Export CSV',exact:true}).click();

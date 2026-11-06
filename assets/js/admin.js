@@ -591,11 +591,16 @@
 		updateBulk();
 	} );
 
-	async function bulk( action, value, ids = Array.from( state.selected ) ) {
+	async function bulk( action, value, ids = Array.from( state.selected ), trigger = null ) {
 		try {
 			const res = await request( 'bulk', { ids, bulk: action, value } );
 			status( sprintf( _n( '%s testimonial updated.', '%s testimonials updated.', res.updated, 'ashbi-testimonials' ), res.updated ) );
-			load();
+			const index = trigger === document.activeElement ? $$( '[data-abt-approve]', rowsEl ).indexOf( trigger ) : -1;
+			await load();
+			if ( index >= 0 && ( document.activeElement === document.body || document.activeElement === trigger ) ) {
+				const pending = $$( '[data-abt-approve]', rowsEl );
+				( pending[ Math.min( index, pending.length - 1 ) ] || $( '#abt-status' ) ).focus();
+			}
 		} catch ( err ) {
 			status( err.message, true );
 		}
@@ -649,7 +654,7 @@
 		}
 		const approve = e.target.closest( '[data-abt-approve]' );
 		if ( approve ) {
-			bulk( 'status', 'publish', [ parseInt( approve.dataset.abtApprove, 10 ) ] );
+			bulk( 'status', 'publish', [ parseInt( approve.dataset.abtApprove, 10 ) ], approve );
 			return;
 		}
 		const edit = e.target.closest( '[data-abt-edit]' );

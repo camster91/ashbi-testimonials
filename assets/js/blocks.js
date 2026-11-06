@@ -33,11 +33,12 @@
     const scopeControls = [collectionControl, el(TextControl, { key: 'product', label: __('Product or page ID', 'ashbi-testimonials'), value: a.product, onChange: set('product'), help: __('Optional. Enter a post ID or use “current” for the page or product displaying this block.', 'ashbi-testimonials') })];
     const controls = [];
     if (kind !== 'review-form') controls.push(el(SelectControl, { key: 'preset', label: __('Design preset', 'ashbi-testimonials'), value: a.preset || '', options: [{ label: __('No preset', 'ashbi-testimonials'), value: '' }, ...(abtBlocks.presets || []).map(({label,value}) => ({label,value}))], onChange: value => setAttributes({preset:value,...((abtBlocks.presets || []).find(p => p.value === value)?.settings || {})}), help: __('Saved designs override layout, columns, theme and accent.', 'ashbi-testimonials') }));
+    const effectiveLayout = (abtBlocks.presets || []).find(p => p.value === a.preset)?.settings?.layout || a.layout;
     if (kind === 'testimonials') controls.push(
      el(SelectControl, { key: 'layout', disabled: !!a.preset, label: __('Layout', 'ashbi-testimonials'), value: a.layout, options: layouts, onChange: set('layout') }),
-     el(RangeControl, { key: 'columns', disabled: !!a.preset, label: __('Columns', 'ashbi-testimonials'), value: Number(a.columns), min: 1, max: 4, onChange: set('columns') }),
+     ...(!a.preset && !['list', 'spotlight', 'compact'].includes(effectiveLayout) ? [el(RangeControl, { key: 'columns', label: __('Columns', 'ashbi-testimonials'), value: Number(a.columns), min: 1, max: 4, onChange: set('columns') })] : []),
      el(RangeControl, { key: 'limit', label: __('Reviews per page', 'ashbi-testimonials'), value: Number(a.limit), min: 1, max: 100, onChange: set('limit') }),
-     ...['summary', 'load_more'].map(key => el(ToggleControl, { key, label: key === 'summary' ? __('Rating summary', 'ashbi-testimonials') : __('Load more reviews', 'ashbi-testimonials'), checked: a[key] === '1', onChange: value => setAttributes({ [key]: value ? '1' : '0' }) }))
+     ...(['slider', 'spotlight'].includes(effectiveLayout) ? ['summary'] : ['summary', 'load_more']).map(key => el(ToggleControl, { key, label: key === 'summary' ? __('Rating summary', 'ashbi-testimonials') : __('Load more reviews', 'ashbi-testimonials'), checked: a[key] === '1', onChange: value => setAttributes({ [key]: value ? '1' : '0' }) }))
     );
     if (kind === 'review-form') controls.push(
      el(TextControl, { key: 'title', label: __('Form title', 'ashbi-testimonials'), value: a.title, onChange: set('title') }),
