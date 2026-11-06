@@ -78,22 +78,46 @@
 		return '<span class="abt-row__avatar abt-row__avatar--initials" aria-hidden="true">' + esc( initials( item.author ) ) + '</span>';
 	}
 
+	const copyFeedback = new WeakMap();
 	async function copy( text, button ) {
+		let copied = true;
 		try {
 			await navigator.clipboard.writeText( text );
 		} catch ( e ) {
+			const container = button.closest( 'dialog' ) || document.body;
 			const area = document.createElement( 'textarea' );
 			area.value = text;
-			document.body.appendChild( area );
+			area.readOnly = true;
+			area.className = 'abt-copy-fallback';
+			area.setAttribute( 'aria-label', __( 'Shortcode to copy manually', 'ashbi-testimonials' ) );
+			button.after( area );
+			area.focus();
 			area.select();
-			document.execCommand( 'copy' ); // eslint-disable-line
+			try {
+				copied = document.execCommand( 'copy' ); // eslint-disable-line
+			} catch ( err ) {
+				copied = false;
+			}
+			if ( ! copied ) {
+				area.addEventListener( 'blur', () => area.remove(), { once: true } );
+				return;
+			}
 			area.remove();
+			if ( container === document.body || container.open ) {
+				button.focus();
+			}
 		}
-		if ( button ) {
-			const old = button.textContent;
-			button.textContent = __( 'Copied!', 'ashbi-testimonials' );
-			setTimeout( () => ( button.textContent = old ), 1500 );
+		const previous = copyFeedback.get( button );
+		if ( previous ) {
+			clearTimeout( previous.timer );
 		}
+		const label = previous ? previous.label : button.textContent;
+		button.textContent = __( 'Copied!', 'ashbi-testimonials' );
+		const timer = setTimeout( () => {
+			button.textContent = label;
+			copyFeedback.delete( button );
+		}, 1500 );
+		copyFeedback.set( button, { label, timer } );
 	}
 
 	function debounce( fn, wait = 300 ) {
@@ -264,11 +288,36 @@
 		} );
 	}
 
+	const pageLinks = $( '.abt-page-links' );
+	if ( pageLinks ) {
+		const revealPanel = ( hash ) => {
+			const panel = document.getElementById( hash.slice( 1 ) );
+			if ( panel && panel.matches( '.abt-settings' ) ) {
+				panel.open = true;
+			}
+		};
+		pageLinks.addEventListener( 'click', ( event ) => {
+			const link = event.target.closest( 'a' );
+			if ( link ) {
+				revealPanel( link.hash );
+			}
+		} );
+		window.addEventListener( 'hashchange', () => revealPanel( window.location.hash ) );
+		revealPanel( window.location.hash );
+	}
+
 	const cardFilter = $( '[data-abt-filter-cards]' );
 	if ( cardFilter ) {
+		const cards = $$( '[data-abt-card-name]' );
+		const noCollections = $( '[data-abt-no-collections]' );
 		cardFilter.addEventListener( 'input', () => {
-			const q = cardFilter.value.trim().toLowerCase();
-			$$( '[data-abt-card-name]' ).forEach( ( card ) => ( card.hidden = q && ! card.dataset.abtCardName.includes( q ) ) );
+			const query = cardFilter.value.trim().toLowerCase();
+			let found = false;
+			cards.forEach( ( card ) => {
+				card.hidden = ! card.dataset.abtCardName.toLowerCase().includes( query );
+				found = found || ! card.hidden;
+			} );
+			noCollections.hidden = found;
 		} );
 	}
 
@@ -338,7 +387,10 @@
 			if ( requestId !== loadRequest ) {
 				return;
 			}
-			rowsEl.innerHTML = '<p class="abt-empty">' + esc( err.message ) + '</p>';
+			state.items = [];
+			state.selected.clear();
+			renderPager( { pages: 0, total: 0 } );
+			rowsEl.innerHTML = '<div class="abt-empty"><p>' + esc( err.message ) + '</p><button type="button" class="button" data-abt-retry-list>' + esc( __( 'Try again', 'ashbi-testimonials' ) ) + '</button></div>';
 		}
 		rowsEl.classList.remove( 'is-loading' );
 		rowsEl.setAttribute( 'aria-busy', 'false' );
@@ -348,7 +400,7 @@
 	function renderRows( data ) {
 		if ( ! data.items.length ) {
 			const filtered = state.search || state.rating || state.product || 'any' !== state.status;
-			if ( 'trash' === state.status && ! state.search ) {
+			if ( 'trash' === state.status && ! state.search && ! state.rating && ! state.product ) {
 				rowsEl.innerHTML = '<div class="abt-empty"><span class="dashicons dashicons-trash" aria-hidden="true"></span><h3>' + esc( __( 'The trash is empty', 'ashbi-testimonials' ) ) + '</h3></div>';
 				return;
 			}
@@ -356,7 +408,7 @@
 				'<div class="abt-empty">' +
 				'<span class="dashicons dashicons-format-quote" aria-hidden="true"></span>' +
 				'<h3>' + esc( filtered ? __( 'Nothing matches these filters', 'ashbi-testimonials' ) : __( 'No testimonials yet', 'ashbi-testimonials' ) ) + '</h3>' +
-				'<p>' + esc( filtered ? __( 'Try clearing the search or choosing another tab.', 'ashbi-testimonials' ) : __( 'Add your first one, import a CSV, or place a review form on your site.', 'ashbi-testimonials' ) ) + '</p>' +
+				'<p>' + esc( filtered ? __( 'Try a different search or change your filters.', 'ashbi-testimonials' ) : __( 'Add your first one, import a CSV, or place a review form on your site.', 'ashbi-testimonials' ) ) + '</p>' +
 				( filtered ? '' : '<p><button type="button" class="button button-primary" data-abt-add>' + esc( __( 'Add testimonial', 'ashbi-testimonials' ) ) + '</button></p>' ) +
 				'</div>';
 			return;
@@ -402,7 +454,7 @@
 			el.textContent = n.toLocaleString();
 		} );
 		$$( '[data-abt-tab]', app ).forEach( ( tab ) => {
-			tab.setAttribute( 'aria-selected', tab.dataset.abtTab === state.status ? 'true' : 'false' );
+			tab.setAttribute( 'aria-pressed', tab.dataset.abtTab === state.status ? 'true' : 'false' );
 			tab.classList.toggle( 'abt-tab--alert', 'pending' === tab.dataset.abtTab && counts.pending > 0 );
 		} );
 	}
@@ -454,6 +506,7 @@
 	$$( '[data-abt-tab]', app ).forEach( ( tab ) =>
 		tab.addEventListener( 'click', () => {
 			state.status = tab.dataset.abtTab;
+			$$( '[data-abt-tab]', app ).forEach( ( button ) => button.setAttribute( 'aria-pressed', String( button === tab ) ) );
 			state.page = 1;
 			load();
 		} )
@@ -559,6 +612,10 @@
 	} );
 
 	rowsEl.addEventListener( 'click', ( e ) => {
+		if ( e.target.closest( '[data-abt-retry-list]' ) ) {
+			load();
+			return;
+		}
 		const restore = e.target.closest( '[data-abt-restore]' );
 		if ( restore ) {
 			bulk( 'restore', '1', [ parseInt( restore.dataset.abtRestore, 10 ) ] );
@@ -953,25 +1010,34 @@
 		return atts;
 	}
 
-	const refreshPreview = debounce( async ( atts ) => {
-		builderPreview.classList.add( 'is-loading' );
+	let previewRevision = 0;
+	const refreshPreview = debounce( async ( atts, revision ) => {
 		const previewAtts = Object.assign( {}, atts );
 		delete previewAtts.product;
 		try {
 			const res = await request( 'preview', { atts: previewAtts } );
+			if ( revision !== previewRevision ) {
+				return;
+			}
 			builderPreview.innerHTML = res.html;
 			initFrontend( builderPreview );
 		} catch ( err ) {
+			if ( revision !== previewRevision ) {
+				return;
+			}
 			builderPreview.innerHTML = '<p class="abt-preview-empty">' + esc( err.message ) + '</p>';
 		}
 		builderPreview.classList.remove( 'is-loading' );
+		builderPreview.setAttribute( 'aria-busy', 'false' );
 	}, 400 );
 
 	function refreshBuilder() {
 		const atts = builderAtts();
 		builderCode.textContent = '[ashbi_testimonials' + Object.entries( atts ).map( ( [ k, v ] ) => ' ' + k + '="' + v + '"' ).join( '' ) + ']';
 		$( '[data-abt-builder-note]', builder ).hidden = ! atts.product;
-		refreshPreview( atts );
+		builderPreview.classList.add( 'is-loading' );
+		builderPreview.setAttribute( 'aria-busy', 'true' );
+		refreshPreview( atts, ++previewRevision );
 	}
 	builder.addEventListener( 'input', refreshBuilder );
 	builder.addEventListener( 'change', refreshBuilder );

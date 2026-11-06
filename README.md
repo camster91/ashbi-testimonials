@@ -14,6 +14,12 @@ A free WordPress plugin for collecting, organising and displaying testimonials a
 - **CSV import/export**: the browser sends large files in batches of 100 rows. Exports include collection names, slugs and display settings; imports restore missing collections by slug and keep existing settings. A selected import collection is added alongside the restored groups.
 - **Structured data** for products and software only; optional **WooCommerce tab**. When the tab and schema are enabled, its ratings are combined with native WooCommerce ratings in the existing Product entity.
 
+## Quick start
+
+1. In **Testimonials**, create a collection for the reviews you want to group.
+2. Add a review, import a CSV, or add a **Review Form** block to collect submissions. Approve submissions from the Pending queue before displaying them.
+3. Add a **Testimonials** or **Rating Summary** block and choose a collection in the editor. For Elementor or shortcode placement, open the collection's placement guide and choose the method your page uses.
+
 Schema is conservative: existing/manual/CSV reviews remain visible but need confirmed direct provenance before they can contribute to Ashbi aggregate markup. Public forms record direct collection; CSV files cannot grant that status automatically. Managers can confirm provenance in the review editor. External source links and sources other than Website/Email/Survey remain ineligible. A mixed-provenance view emits no Ashbi aggregate; WooCommerce retains its native aggregate. Shortcode markup requires a visible summary and an uncurated, item-specific view. IDs, minimum-rating, featured/verified filters, subject subsets and random showcases do not emit aggregates. Search engines decide eligibility and display.
 
 ## Free by design
@@ -85,6 +91,6 @@ At most three retries apply before sending if WooCommerce is temporarily unavail
 
 ## Support and release evidence
 
-See [support](SUPPORT.md), [security reporting](SECURITY.md), [installation/upgrade/recovery](docs/OPERATIONS.md), [pilot protocol](docs/PILOT.md) and [connector prerequisites](docs/CONNECTOR-DECISION.md). The 1.1.0 files are a development release candidate; the published v1.0.0 download does not include the 1.1.0 changes.
+Download the install ZIP from [GitHub Releases](https://github.com/camster91/ashbi-testimonials/releases/latest). See [support](SUPPORT.md), [security reporting](SECURITY.md), [installation/upgrade/recovery](docs/OPERATIONS.md), [pilot protocol](docs/PILOT.md) and [connector prerequisites](docs/CONNECTOR-DECISION.md).
 
 Public load-more accepts at most 100 IDs, 20 collections and 8 KiB of attributes; random/context-dependent requests and offsets beyond 10,000 displayed positions are rejected. Tied date/rating/featured ordering uses post IDs. Browse larger datasets through targeted collections/products or the manager UI.

@@ -41,9 +41,9 @@ Theme developers can call `abt_render_testimonials( array( 'collection' => 'stor
 == Installation ==
 
 1. Upload the plugin ZIP through Plugins, Add New, Upload Plugin and activate it.
-2. Open Testimonials and pick what you want to collect.
-3. Add testimonials, import a CSV, or place the review form on a page.
-4. Click Get shortcode, choose a layout and paste the shortcode into any page, post or widget.
+2. Open Testimonials and create a collection for the reviews you want to group.
+3. Add testimonials, import a CSV, or place the Review Form block on a page to collect new submissions. Approve pending reviews before they appear publicly.
+4. Use the Testimonials or Rating Summary block, or the Ashbi Reviews widget in Elementor. Open the collection's placement guide for shortcodes and a live layout preview.
 
 == Frequently Asked Questions ==
 
@@ -65,6 +65,9 @@ Use WordPress Tools > Export Personal Data or Erase Personal Data with the email
 == Changelog ==
 
 = 1.1.0 =
+* Refreshed WordPress workspace with a first-review guide, moderation shortcuts, and a placement guide for blocks, Elementor and shortcodes.
+* Configure native blocks directly in the editor and preview the selected collection. Invalid product scopes no longer fall back to all reviews.
+* Improved responsive review layouts and keyboard and no-JavaScript display behaviour.
 * Free native Testimonials, Rating Summary and Review Form blocks and an optional free Elementor widget.
 * Reusable design presets with validated JSON portability; custom collection questions with private/public answer controls and CSV round trips.
 * Native WordPress privacy export/erasure, default data retention on deletion and explicit per-site cleanup.

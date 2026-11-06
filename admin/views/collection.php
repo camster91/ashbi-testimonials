@@ -13,7 +13,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $abt_is_all = -1 === $collection['id'];
 $abt_type   = ABT_Data::types()[ $collection['type'] ];
-$abt_status = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'any'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navigation only.
+$abt_status = isset( $_GET['status'] ) && is_string( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'any'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navigation only.
+if ( ! in_array( $abt_status, array( 'any', 'publish', 'pending', 'draft', 'trash' ), true ) ) {
+	$abt_status = 'any';
+}
 $abt_export = wp_nonce_url( admin_url( 'admin-post.php?action=abt_export&collection=' . max( 0, $collection['id'] ) ), 'abt_export' );
 $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yelp', 'Amazon', 'App Store', 'Google Play', 'Product Hunt', 'Clutch', 'LinkedIn', 'Email', 'Website', 'Survey' );
 ?>
@@ -30,14 +33,14 @@ $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yel
 						<?php esc_html_e( 'Every testimonial across all collections.', 'ashbi-testimonials' ); ?>
 					<?php else : ?>
 						<span class="abt-badge"><?php echo esc_html( $abt_type['label'] ); ?></span>
-						<code class="abt-inline-code">[ashbi_testimonials collection="<?php echo esc_html( $collection['slug'] ); ?>"]</code>
+						<?php esc_html_e( 'Manage reviews and choose how they appear on your site.', 'ashbi-testimonials' ); ?>
 					<?php endif; ?>
 				</p>
 			</div>
 		</div>
 		<div class="abt-dash-header__actions">
 			<?php if ( ! $abt_is_all ) : ?>
-				<button type="button" class="button" data-abt-edit-collection='<?php echo esc_attr( wp_json_encode( $collection ) ); ?>'><span class="dashicons dashicons-admin-generic" aria-hidden="true"></span><span class="screen-reader-text"><?php esc_html_e( 'Collection settings', 'ashbi-testimonials' ); ?></span></button>
+				<button type="button" class="button" data-abt-edit-collection='<?php echo esc_attr( wp_json_encode( $collection ) ); ?>'><span class="dashicons dashicons-admin-generic" aria-hidden="true"></span><?php esc_html_e( 'Collection settings', 'ashbi-testimonials' ); ?></button>
 			<?php endif; ?>
 			<details class="abt-menu">
 				<summary class="button"><?php esc_html_e( 'Import / export', 'ashbi-testimonials' ); ?></summary>
@@ -46,20 +49,21 @@ $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yel
 					<a download href="<?php echo esc_url( $abt_export ); ?>"><span class="dashicons dashicons-download" aria-hidden="true"></span><?php esc_html_e( 'Export CSV', 'ashbi-testimonials' ); ?></a>
 				</div>
 			</details>
-			<button type="button" class="button" data-abt-open="abt-builder-dialog"><span class="dashicons dashicons-shortcode" aria-hidden="true"></span> <?php esc_html_e( 'Get shortcode', 'ashbi-testimonials' ); ?></button>
+			<button type="button" class="button" data-abt-open="abt-placement-dialog"><span class="dashicons dashicons-admin-page" aria-hidden="true"></span> <?php esc_html_e( 'Place on site', 'ashbi-testimonials' ); ?></button>
 			<button type="button" class="button button-primary" data-abt-add>
 				<span class="dashicons dashicons-plus-alt2" aria-hidden="true"></span>
 				<?php esc_html_e( 'Add testimonial', 'ashbi-testimonials' ); ?>
 			</button>
 		</div>
 	</header>
+	<hr class="wp-header-end" />
 
 	<div class="abt-status" id="abt-status" role="status" aria-live="polite" tabindex="-1"></div>
 
 	<div class="abt-overview abt-overview--compact" data-abt-stats></div>
 
 	<div class="abt-panel abt-list-panel">
-		<div class="abt-tabs" role="tablist" aria-label="<?php esc_attr_e( 'Filter by status', 'ashbi-testimonials' ); ?>">
+		<div class="abt-tabs" role="group" aria-label="<?php esc_attr_e( 'Filter by status', 'ashbi-testimonials' ); ?>">
 			<?php
 			$abt_tabs = array(
 				'any'     => __( 'All', 'ashbi-testimonials' ),
@@ -70,7 +74,7 @@ $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yel
 			);
 			foreach ( $abt_tabs as $abt_key => $abt_label ) :
 				?>
-				<button type="button" role="tab" class="abt-tab" data-abt-tab="<?php echo esc_attr( $abt_key ); ?>" aria-selected="<?php echo $abt_status === $abt_key ? 'true' : 'false'; ?>"><?php echo esc_html( $abt_label ); ?> <span class="abt-tab__count" data-abt-count="<?php echo esc_attr( $abt_key ); ?>"></span></button>
+				<button type="button" class="abt-tab" data-abt-tab="<?php echo esc_attr( $abt_key ); ?>" aria-pressed="<?php echo $abt_status === $abt_key ? 'true' : 'false'; ?>"><?php echo esc_html( $abt_label ); ?> <span class="abt-tab__count" data-abt-count="<?php echo esc_attr( $abt_key ); ?>"></span></button>
 			<?php endforeach; ?>
 		</div>
 
@@ -122,7 +126,9 @@ $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yel
 			<button type="button" class="button button-small abt-danger" data-abt-trash-only data-abt-bulk-purge><?php esc_html_e( 'Delete permanently', 'ashbi-testimonials' ); ?></button>
 		</div>
 
-		<div class="abt-rows" data-abt-rows aria-live="polite" aria-busy="true"></div>
+		<div class="abt-rows" data-abt-rows aria-live="polite" aria-busy="true">
+			<p class="abt-empty"><?php esc_html_e( 'Loading testimonials…', 'ashbi-testimonials' ); ?></p>
+		</div>
 		<nav class="abt-pager" data-abt-pager aria-label="<?php esc_attr_e( 'Pagination', 'ashbi-testimonials' ); ?>"></nav>
 	</div>
 
@@ -279,71 +285,76 @@ $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yel
 		</form>
 	</dialog>
 
+	<?php include ABT_PLUGIN_DIR . 'admin/views/placement.php'; ?>
+
 	<!-- Shortcode builder -->
 	<dialog class="abt-dialog abt-dialog--wide" id="abt-builder-dialog" aria-labelledby="abt-builder-title">
 		<form method="dialog" class="abt-dialog__form" data-abt-builder>
 			<header class="abt-dialog__head">
-				<h2 id="abt-builder-title"><?php esc_html_e( 'Shortcode builder', 'ashbi-testimonials' ); ?></h2>
+				<h2 id="abt-builder-title"><?php esc_html_e( 'Customize display', 'ashbi-testimonials' ); ?></h2>
 				<button type="button" class="abt-icon-btn" data-abt-close aria-label="<?php esc_attr_e( 'Close', 'ashbi-testimonials' ); ?>"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button>
 			</header>
 			<div class="abt-builder">
 				<div class="abt-builder__controls">
-					<div class="abt-field">
-						<label for="abt-b-layout"><?php esc_html_e( 'Layout', 'ashbi-testimonials' ); ?></label>
-						<div class="abt-layout-picker" id="abt-b-layout">
+					<fieldset class="abt-field">
+						<legend><?php esc_html_e( 'Layout', 'ashbi-testimonials' ); ?></legend>
+						<div class="abt-layout-picker">
 							<?php foreach ( ABT_Data::layouts() as $abt_key => $abt_label ) : ?>
 								<label class="abt-layout-opt"><input type="radio" name="layout" value="<?php echo esc_attr( $abt_key ); ?>" <?php checked( $collection['layout'], $abt_key ); ?> /><span class="abt-layout-opt__art abt-layout-opt__art--<?php echo esc_attr( $abt_key ); ?>" aria-hidden="true"><i></i><i></i><i></i></span><span><?php echo esc_html( $abt_label ); ?></span></label>
 							<?php endforeach; ?>
 						</div>
-					</div>
+					</fieldset>
 					<div class="abt-field-row">
 						<div class="abt-field"><label for="abt-b-columns"><?php esc_html_e( 'Columns', 'ashbi-testimonials' ); ?></label><select id="abt-b-columns" name="columns"><option>1</option><option>2</option><option selected>3</option><option>4</option></select></div>
 						<div class="abt-field"><label for="abt-b-limit"><?php esc_html_e( 'Show', 'ashbi-testimonials' ); ?></label><input type="number" id="abt-b-limit" name="limit" min="1" max="100" value="9" /></div>
 					</div>
-					<div class="abt-field-row">
-						<div class="abt-field">
-							<label for="abt-b-orderby"><?php esc_html_e( 'Order', 'ashbi-testimonials' ); ?></label>
-							<select id="abt-b-orderby" name="orderby">
-								<option value="date"><?php esc_html_e( 'Newest', 'ashbi-testimonials' ); ?></option>
-								<option value="rating"><?php esc_html_e( 'Highest rated', 'ashbi-testimonials' ); ?></option>
-								<option value="featured"><?php esc_html_e( 'Featured first', 'ashbi-testimonials' ); ?></option>
-								<option value="random"><?php esc_html_e( 'Random', 'ashbi-testimonials' ); ?></option>
-							</select>
+					<details class="abt-builder__advanced">
+						<summary><?php esc_html_e( 'More display options', 'ashbi-testimonials' ); ?></summary>
+						<div class="abt-field-row">
+							<div class="abt-field">
+								<label for="abt-b-orderby"><?php esc_html_e( 'Order', 'ashbi-testimonials' ); ?></label>
+								<select id="abt-b-orderby" name="orderby">
+									<option value="date"><?php esc_html_e( 'Newest', 'ashbi-testimonials' ); ?></option>
+									<option value="rating"><?php esc_html_e( 'Highest rated', 'ashbi-testimonials' ); ?></option>
+									<option value="featured"><?php esc_html_e( 'Featured first', 'ashbi-testimonials' ); ?></option>
+									<option value="random"><?php esc_html_e( 'Random', 'ashbi-testimonials' ); ?></option>
+								</select>
+							</div>
+							<div class="abt-field">
+								<label for="abt-b-min"><?php esc_html_e( 'Minimum rating', 'ashbi-testimonials' ); ?></label>
+								<select id="abt-b-min" name="min_rating"><option value="0"><?php esc_html_e( 'Any', 'ashbi-testimonials' ); ?></option><option value="3">3+</option><option value="4">4+</option><option value="5">5</option></select>
+							</div>
 						</div>
-						<div class="abt-field">
-							<label for="abt-b-min"><?php esc_html_e( 'Minimum rating', 'ashbi-testimonials' ); ?></label>
-							<select id="abt-b-min" name="min_rating"><option value="0"><?php esc_html_e( 'Any', 'ashbi-testimonials' ); ?></option><option value="3">3+</option><option value="4">4+</option><option value="5">5</option></select>
+						<div class="abt-field-row">
+							<div class="abt-field">
+								<label for="abt-b-theme"><?php esc_html_e( 'Theme', 'ashbi-testimonials' ); ?></label>
+								<select id="abt-b-theme" name="theme"><option value="light"><?php esc_html_e( 'Light', 'ashbi-testimonials' ); ?></option><option value="dark"><?php esc_html_e( 'Dark', 'ashbi-testimonials' ); ?></option><option value="auto"><?php esc_html_e( 'Match visitor', 'ashbi-testimonials' ); ?></option></select>
+							</div>
+							<div class="abt-field">
+								<label for="abt-b-words"><?php esc_html_e( 'Shorten to words', 'ashbi-testimonials' ); ?></label>
+								<input type="number" id="abt-b-words" name="words" min="0" max="500" value="0" />
+							</div>
 						</div>
-					</div>
-					<div class="abt-field-row">
-						<div class="abt-field">
-							<label for="abt-b-theme"><?php esc_html_e( 'Theme', 'ashbi-testimonials' ); ?></label>
-							<select id="abt-b-theme" name="theme"><option value="light"><?php esc_html_e( 'Light', 'ashbi-testimonials' ); ?></option><option value="dark"><?php esc_html_e( 'Dark', 'ashbi-testimonials' ); ?></option><option value="auto"><?php esc_html_e( 'Match visitor', 'ashbi-testimonials' ); ?></option></select>
+						<fieldset class="abt-field">
+							<legend><?php esc_html_e( 'Card details', 'ashbi-testimonials' ); ?></legend>
+							<div class="abt-checklist abt-checklist--inline" data-abt-builder-parts></div>
+						</fieldset>
+						<div class="abt-toggles">
+							<label class="abt-toggle"><input type="checkbox" name="summary" value="1" /> <span><?php esc_html_e( 'Rating summary', 'ashbi-testimonials' ); ?></span></label>
+							<label class="abt-toggle"><input type="checkbox" name="load_more" value="1" /> <span><?php esc_html_e( 'Load more button', 'ashbi-testimonials' ); ?></span></label>
+							<label class="abt-toggle"><input type="checkbox" name="featured" value="1" /> <span><?php esc_html_e( 'Featured only', 'ashbi-testimonials' ); ?></span></label>
+							<label class="abt-toggle"><input type="checkbox" name="verified" value="1" /> <span><?php esc_html_e( 'Manually checked only', 'ashbi-testimonials' ); ?></span></label>
+							<label class="abt-toggle"><input type="checkbox" name="product_current" value="1" /> <span><?php esc_html_e( 'Only the product being viewed', 'ashbi-testimonials' ); ?></span></label>
 						</div>
-						<div class="abt-field">
-							<label for="abt-b-words"><?php esc_html_e( 'Shorten to words', 'ashbi-testimonials' ); ?></label>
-							<input type="number" id="abt-b-words" name="words" min="0" max="500" value="0" />
-						</div>
-					</div>
-					<fieldset class="abt-field">
-						<legend><?php esc_html_e( 'Card details', 'ashbi-testimonials' ); ?></legend>
-						<div class="abt-checklist abt-checklist--inline" data-abt-builder-parts></div>
-					</fieldset>
-					<div class="abt-toggles">
-						<label class="abt-toggle"><input type="checkbox" name="summary" value="1" /> <span><?php esc_html_e( 'Rating summary', 'ashbi-testimonials' ); ?></span></label>
-						<label class="abt-toggle"><input type="checkbox" name="load_more" value="1" /> <span><?php esc_html_e( 'Load more button', 'ashbi-testimonials' ); ?></span></label>
-						<label class="abt-toggle"><input type="checkbox" name="featured" value="1" /> <span><?php esc_html_e( 'Featured only', 'ashbi-testimonials' ); ?></span></label>
-						<label class="abt-toggle"><input type="checkbox" name="verified" value="1" /> <span><?php esc_html_e( 'Manually checked only', 'ashbi-testimonials' ); ?></span></label>
-						<label class="abt-toggle"><input type="checkbox" name="product_current" value="1" /> <span><?php esc_html_e( 'Only the product being viewed', 'ashbi-testimonials' ); ?></span></label>
-					</div>
+					</details>
 				</div>
 				<div class="abt-builder__output">
 					<div class="abt-builder__code">
 						<code data-abt-builder-code></code>
-						<button type="button" class="button button-primary" data-abt-builder-copy><?php esc_html_e( 'Copy', 'ashbi-testimonials' ); ?></button>
+						<button type="button" class="button button-primary" data-abt-builder-copy><?php esc_html_e( 'Copy shortcode', 'ashbi-testimonials' ); ?></button>
 					</div>
 					<p class="description" data-abt-builder-note hidden><?php esc_html_e( 'Preview shows every product; on a product page only its own reviews appear.', 'ashbi-testimonials' ); ?></p>
-					<div class="abt-builder__preview" data-abt-builder-preview></div>
+					<div class="abt-builder__preview" data-abt-builder-preview aria-live="polite"></div>
 				</div>
 			</div>
 		</form>

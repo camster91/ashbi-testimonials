@@ -7,18 +7,19 @@
 
 	const cfg = window.abtFrontend || { i18n: {} };
 	const t = ( key, fallback ) => ( cfg.i18n && cfg.i18n[ key ] ) || fallback;
+	let quoteId = 0;
 
 	function initSlider( root ) {
 		const track = root.querySelector( '.abt-slider__track' );
 		const prev = root.querySelector( '.abt-slider__prev' );
 		const next = root.querySelector( '.abt-slider__next' );
 		const nav = root.querySelector( '.abt-slider__nav' );
-		if ( ! track || ! prev || ! next || root.dataset.abtReady ) {
+		if ( ! track || ! prev || ! next || ! nav || root.dataset.abtReady ) {
 			return;
 		}
 		root.dataset.abtReady = '1';
 
-		const rtl = 'rtl' === getComputedStyle( track ).direction;
+		const rtl = () => 'rtl' === getComputedStyle( track ).direction;
 		const step = () => {
 			const slide = track.querySelector( '.abt-slider__slide' );
 			const gap = parseFloat( getComputedStyle( track ).columnGap ) || 0;
@@ -27,18 +28,26 @@
 		const update = () => {
 			const max = track.scrollWidth - track.clientWidth - 2;
 			const pos = Math.abs( track.scrollLeft );
-			prev.disabled = pos <= 2;
-			next.disabled = pos >= max;
+			prev.setAttribute( 'aria-disabled', String( pos <= 2 ) );
+			next.setAttribute( 'aria-disabled', String( pos >= max ) );
 			nav.hidden = max <= 0;
 		};
-		const go = ( dir ) => track.scrollBy( { left: dir * step() * ( rtl ? -1 : 1 ) } );
+		const go = ( dir ) => track.scrollBy( { left: dir * step() * ( rtl() ? -1 : 1 ) } );
 
-		prev.addEventListener( 'click', () => go( -1 ) );
-		next.addEventListener( 'click', () => go( 1 ) );
+		prev.addEventListener( 'click', () => {
+			if ( 'true' !== prev.getAttribute( 'aria-disabled' ) ) {
+				go( -1 );
+			}
+		} );
+		next.addEventListener( 'click', () => {
+			if ( 'true' !== next.getAttribute( 'aria-disabled' ) ) {
+				go( 1 );
+			}
+		} );
 		track.addEventListener( 'keydown', ( e ) => {
-			if ( 'ArrowRight' === e.key || 'ArrowLeft' === e.key ) {
+			if ( e.target === track && ! nav.hidden && ! e.altKey && ! e.ctrlKey && ! e.metaKey && ! e.shiftKey && ( 'ArrowRight' === e.key || 'ArrowLeft' === e.key ) ) {
 				e.preventDefault();
-				go( ( 'ArrowRight' === e.key ) !== rtl ? 1 : -1 );
+				go( ( 'ArrowRight' === e.key ) !== rtl() ? 1 : -1 );
 			}
 		} );
 		track.addEventListener( 'scroll', update, { passive: true } );
@@ -46,6 +55,27 @@
 			new ResizeObserver( update ).observe( track );
 		}
 		update();
+	}
+
+	function initQuote( button ) {
+		const quote = button.closest( '.abt-card__quote' );
+		const excerpt = quote?.querySelector( '.abt-card__excerpt' );
+		const full = quote?.querySelector( '.abt-card__full' );
+		if ( ! excerpt || ! full || button.hasAttribute( 'aria-expanded' ) ) {
+			return;
+		}
+
+		if ( ! full.id ) {
+			do {
+				quoteId += 1;
+			} while ( document.getElementById( 'abt-quote-' + quoteId ) );
+			full.id = 'abt-quote-' + quoteId;
+		}
+		button.setAttribute( 'aria-controls', full.id );
+		button.setAttribute( 'aria-expanded', 'false' );
+		excerpt.hidden = false;
+		full.hidden = true;
+		button.hidden = false;
 	}
 
 	function toggleMore( button ) {
@@ -60,47 +90,63 @@
 	}
 
 	async function loadMore( button ) {
-		const state = JSON.parse( button.dataset.abtMore || '{}' );
 		const items = button.closest( '.abt' ).querySelector( '.abt__items' );
+		const controls = button.parentElement;
 		const label = button.textContent;
-		button.disabled = true;
+		const hadFocus = document.activeElement === button;
+		controls.querySelector( '.abt-load-more__notice' )?.remove();
+		button.setAttribute( 'aria-disabled', 'true' );
 		button.textContent = t( 'loading', 'Loading…' );
-
-		const body = new FormData();
-		body.append( 'action', 'abt_load_more' );
-		body.append( 'atts', JSON.stringify( state.atts || {} ) );
-		body.append( 'page', state.page || 2 );
+		const controller = new AbortController();
+		const timeout = setTimeout( () => controller.abort(), 12000 );
 
 		try {
-			const res = await fetch( cfg.ajaxUrl, { method: 'POST', credentials: 'same-origin', body } );
+			const state = JSON.parse( button.dataset.abtMore );
+			const body = new FormData();
+			body.append( 'action', 'abt_load_more' );
+			body.append( 'atts', JSON.stringify( state.atts ) );
+			body.append( 'page', state.page );
+			const res = await fetch( cfg.ajaxUrl, { method: 'POST', credentials: 'same-origin', body, signal: controller.signal } );
 			const json = await res.json();
-			if ( ! json.success ) {
+			if ( ! res.ok || ! json.success || 'string' !== typeof json.data?.html ) {
 				throw new Error();
 			}
 			const first = items.children.length;
 			items.insertAdjacentHTML( 'beforeend', json.data.html );
-			// Move focus to the first new card so keyboard users keep their place.
+			Array.from( items.children ).slice( first ).forEach( init );
+			// Keep keyboard users at the first new card unless they moved away while loading.
 			const added = items.children[ first ];
-			if ( added ) {
+			if ( added && hadFocus && document.activeElement === button ) {
 				added.setAttribute( 'tabindex', '-1' );
-				added.focus( { preventScroll: false } );
+				added.focus();
 			}
 			if ( json.data.hasMore ) {
 				state.page = json.data.page;
 				button.dataset.abtMore = JSON.stringify( state );
-				button.disabled = false;
-				button.textContent = label;
 			} else {
-				button.parentElement.remove();
+				button.remove();
+				if ( ! added ) {
+					const note = document.createElement( 'p' );
+					note.className = 'abt-load-more__notice';
+					note.setAttribute( 'role', 'status' );
+					note.textContent = t( 'end', 'All available reviews are shown.' );
+					controls.append( note );
+					if ( hadFocus && document.activeElement === document.body ) {
+						note.tabIndex = -1;
+						note.focus();
+					}
+				}
 			}
 		} catch ( e ) {
-			button.disabled = false;
-			button.textContent = label;
 			const note = document.createElement( 'p' );
+			note.className = 'abt-load-more__notice';
 			note.setAttribute( 'role', 'alert' );
 			note.textContent = t( 'error', 'Could not load more reviews. Try again.' );
 			button.after( note );
-			setTimeout( () => note.remove(), 4000 );
+		} finally {
+			clearTimeout( timeout );
+			button.removeAttribute( 'aria-disabled' );
+			button.textContent = label;
 		}
 	}
 
@@ -149,6 +195,10 @@
 
 	function init( root = document ) {
 		root.querySelectorAll( '[data-abt-slider]' ).forEach( initSlider );
+		root.querySelectorAll( '.abt-card__more' ).forEach( initQuote );
+		if ( cfg.ajaxUrl ) {
+			root.querySelectorAll( '.abt__more' ).forEach( ( controls ) => { controls.hidden = false; } );
+		}
 	}
 
 	// Delegated so cards added later (Load more, admin preview) work too.
@@ -159,7 +209,7 @@
 			return;
 		}
 		const load = e.target.closest( '.abt-load-more' );
-		if ( load && ! load.disabled ) {
+		if ( load && 'true' !== load.getAttribute( 'aria-disabled' ) ) {
 			loadMore( load );
 		}
 	} );

@@ -100,7 +100,7 @@ class ABT_Form {
 				<?php if ( '0' !== $atts['rating'] ) : ?>
 					<fieldset class="abt-form__rating">
 						<legend><?php esc_html_e( 'Your rating', 'ashbi-testimonials' ); ?></legend>
-						<?php for ( $i = 5; $i >= 1; $i-- ) : ?>
+						<?php for ( $i = 1; $i <= 5; $i++ ) : ?>
 							<input type="radio" id="<?php echo esc_attr( $form_id . '-r' . $i ); ?>" name="rating" value="<?php echo (int) $i; ?>" <?php checked( 5, $i ); ?> />
 							<label for="<?php echo esc_attr( $form_id . '-r' . $i ); ?>" title="<?php echo esc_attr( sprintf( /* translators: %d: stars */ _n( '%d star', '%d stars', $i, 'ashbi-testimonials' ), $i ) ); ?>"><span class="screen-reader-text"><?php echo esc_html( sprintf( /* translators: %d: stars */ _n( '%d star', '%d stars', $i, 'ashbi-testimonials' ), $i ) ); ?></span></label>
 						<?php endfor; ?>

@@ -71,7 +71,7 @@ class ABT_Shortcode {
 	 * Turn raw attributes into query filters and render options.
 	 *
 	 * @param array $atts Raw shortcode attributes.
-	 * @return array{query: array, render: array, collections: WP_Term[], atts: array}
+	 * @return array{query: array, render: array, collections: WP_Term[], atts: array, invalid_scope: bool}
 	 */
 	public function parse( $atts ) {
 		$atts = ABT_Presets::apply( is_array( $atts ) ? $atts : array() );
@@ -89,10 +89,13 @@ class ABT_Shortcode {
 
 		$product_id = 0;
 		if ( 'current' === $atts['product'] ) {
-			$product_id = (int) get_queried_object_id() ?: (int) get_the_ID();
-		} elseif ( is_numeric( $atts['product'] ) ) {
-			$product_id = absint( $atts['product'] );
+			$queried = get_queried_object();
+			$product_id = $queried instanceof WP_Post ? $queried->ID : (int) get_the_ID();
+		} elseif ( preg_match( '/^[0-9]+$/D', $atts['product'] ) ) {
+			$product_id = (int) $atts['product'];
 		}
+		$invalid_scope = ( '' !== $atts['product'] && ! $product_id )
+			|| ( '' !== $atts['collection'] && ! $collections );
 		// Normalise so load-more requests never depend on the page context.
 		$atts['product'] = $product_id ? (string) $product_id : '';
 
@@ -140,7 +143,7 @@ class ABT_Shortcode {
 			'heading' => sanitize_key( $atts['heading'] ),
 		);
 
-		return array( 'query' => $query, 'render' => $render, 'collections' => $collections, 'atts' => $atts );
+		return array( 'query' => $query, 'render' => $render, 'collections' => $collections, 'atts' => $atts, 'invalid_scope' => $invalid_scope );
 	}
 
 	/**
@@ -157,6 +160,9 @@ class ABT_Shortcode {
 
 		if ( '' !== $atts['collection'] && ! $parsed['collections'] ) {
 			return current_user_can( abt_capability() ) ? '<p class="abt-notice">' . esc_html__( 'Ashbi Testimonials: that collection was not found. Check the shortcode.', 'ashbi-testimonials' ) . '</p>' : '';
+		}
+		if ( $parsed['invalid_scope'] ) {
+			return '';
 		}
 
 		$result = $data->query( $parsed['query'] );
@@ -201,6 +207,9 @@ class ABT_Shortcode {
 		$parsed = $this->parse( $atts );
 		if ( '' !== $parsed['atts']['collection'] && ! $parsed['collections'] ) {
 			return current_user_can( abt_capability() ) ? '<p class="abt-notice">' . esc_html__( 'Ashbi Testimonials: that collection was not found. Check the shortcode.', 'ashbi-testimonials' ) . '</p>' : '';
+		}
+		if ( $parsed['invalid_scope'] ) {
+			return '';
 		}
 		$stats  = ABT_Data::instance()->stats( $parsed['query'] );
 		if ( ! $stats['rated'] ) {
@@ -271,7 +280,7 @@ class ABT_Shortcode {
 		$atts = array_map( static fn( $value ) => trim( (string) $value ), $atts );
 		if ( count( explode( ',', (string) ( $atts['ids'] ?? '' ) ) ) > 100 || count( explode( ',', (string) ( $atts['collection'] ?? '' ) ) ) > 20 || 'random' === ( $atts['orderby'] ?? '' ) || 'current' === ( $atts['product'] ?? '' ) ) { return $error; }
 		$parsed = $this->parse( $atts );
-		if ( 'random' === $parsed['query']['orderby'] || (int) $page * $parsed['query']['per_page'] > 10000 ) { return $error; }
+		if ( $parsed['invalid_scope'] || 'random' === $parsed['query']['orderby'] || (int) $page * $parsed['query']['per_page'] > 10000 ) { return $error; }
 		$parsed['query']['page'] = (int) $page;
 		return $parsed;
 	}
