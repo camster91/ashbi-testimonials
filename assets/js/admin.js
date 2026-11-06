@@ -596,8 +596,8 @@
 			return;
 		}
 		try {
-			await request( 'delete', { ids } );
-			status( __( 'Moved to the trash. Restore it from the Trash tab.', 'ashbi-testimonials' ) );
+			const res = await request( 'delete', { ids } );
+			status( sprintf( _n( '%s testimonial moved to Trash.', '%s testimonials moved to Trash.', res.deleted, 'ashbi-testimonials' ), res.deleted ) );
 			load();
 		} catch ( err ) {
 			status( err.message, true );
@@ -761,8 +761,10 @@
 	const pickInput = $( '[data-abt-picker-input]', picker );
 	const pickResults = $( '[data-abt-picker-results]', picker );
 	const pickChip = $( '[data-abt-picker-chip]', picker );
+	let pickRequest = 0;
 
 	function setProduct( id, label ) {
+		++pickRequest;
 		eform.elements.product_id.value = id || 0;
 		$( '[data-abt-picker-label]', picker ).textContent = label || '';
 		pickChip.hidden = ! id;
@@ -772,27 +774,34 @@
 	}
 	pickInput.addEventListener(
 		'input',
-		debounce( async () => {
-			const q = pickInput.value.trim();
+		( () => {
+			const search = debounce( async ( q, sequence ) => {
 			if ( q.length < 2 && ! /^\d+$/.test( q ) ) {
 				pickResults.hidden = true;
 				return;
 			}
 			try {
 				const found = await request( 'search_posts', { q } );
+				if ( sequence !== pickRequest ) { return; }
 				pickResults.innerHTML = found.length
 					? found.map( ( p ) => '<li role="option" tabindex="-1" data-id="' + p.id + '" data-label="' + esc( p.title ) + '">' + esc( p.title ) + ' <small>' + esc( p.type ) + ' #' + p.id + '</small></li>' ).join( '' )
 					: '<li class="is-empty">' + esc( __( 'No matches', 'ashbi-testimonials' ) ) + '</li>';
 				pickResults.hidden = false;
 			} catch ( err ) {
-				pickResults.hidden = true;
+				if ( sequence === pickRequest ) { pickResults.hidden = true; }
 			}
-		}, 250 )
+			}, 250 );
+			return () => {
+				pickResults.hidden = true;
+				search( pickInput.value.trim(), ++pickRequest );
+			};
+		} )()
 	);
 	pickResults.addEventListener( 'click', ( e ) => {
 		const li = e.target.closest( 'li[data-id]' );
 		if ( li ) {
 			setProduct( li.dataset.id, li.dataset.label );
+			$( '[data-abt-picker-clear]', picker ).focus();
 		}
 	} );
 	pickInput.addEventListener( 'keydown', ( e ) => {
@@ -825,11 +834,6 @@
 		pickInput.focus();
 	} );
 
-	function today() {
-		const d = new Date();
-		return d.getFullYear() + '-' + String( d.getMonth() + 1 ).padStart( 2, '0' ) + '-' + String( d.getDate() ).padStart( 2, '0' );
-	}
-
 	function openEditor( item ) {
 		const editing = !! ( item && item.id );
 		const data = item || {};
@@ -842,7 +846,7 @@
 		els.avatar_id.value = data.avatar_id || 0;
 		els.origin.value = data.origin || 'manual';
 		els.status.value = data.status || 'publish';
-		els.date.value = data.date || today();
+		els.date.value = data.date || cfg.siteDate || '';
 		els.verified.checked = !! data.verified;
 		els.featured.checked = !! data.featured;
 		setRating( editing ? data.rating || 0 : 5 );
@@ -935,12 +939,6 @@
 	} );
 	document.addEventListener( 'click', ( e ) => {
 		if ( e.target.closest( '[data-abt-add]' ) ) {
-			openEditor( null );
-		}
-	} );
-	document.addEventListener( 'keydown', ( e ) => {
-		// "N" adds a testimonial when focus is not in a field.
-		if ( 'n' === e.key && ! e.metaKey && ! e.ctrlKey && ! e.target.closest( 'input,textarea,select,[contenteditable],dialog' ) ) {
 			openEditor( null );
 		}
 	} );

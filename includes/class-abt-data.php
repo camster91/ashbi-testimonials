@@ -281,6 +281,9 @@ class ABT_Data {
 	 * @return true|WP_Error
 	 */
 	public function delete_collection( $id, $trash_items = false ) {
+		if ( $trash_items && ! EMPTY_TRASH_DAYS ) {
+			return new WP_Error( 'abt_trash_disabled', __( 'Trash is disabled on this site. Deselect the option to trash testimonials and try again.', 'ashbi-testimonials' ) );
+		}
 		if ( $trash_items ) {
 			$ids = get_posts(
 				array(
@@ -293,7 +296,10 @@ class ABT_Data {
 				)
 			);
 			foreach ( $ids as $post_id ) {
-				wp_trash_post( $post_id );
+				$collections = wp_get_object_terms( $post_id, self::TAXONOMY, array( 'fields' => 'ids' ) );
+				if ( ! is_wp_error( $collections ) && array( (int) $id ) === array_map( 'intval', $collections ) ) {
+					wp_trash_post( $post_id );
+				}
 			}
 		}
 		$result = wp_delete_term( (int) $id, self::TAXONOMY );

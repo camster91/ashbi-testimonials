@@ -125,7 +125,7 @@ class ABT_Render {
 	 */
 	public function card( array $item, array $opts = array() ) {
 		$parts   = array_flip( $opts['parts'] ?? explode( ',', self::DEFAULT_PARTS ) );
-		$words   = (int) ( $opts['words'] ?? 0 );
+		$words   = max( 0, min( 10000, (int) ( $opts['words'] ?? 0 ) ) );
 		$heading = in_array( $opts['heading'] ?? 'h3', array( 'h2', 'h3', 'h4', 'h5', 'h6', 'p' ), true ) ? ( $opts['heading'] ?? 'h3' ) : 'h3';
 		$show    = static fn( $part ) => isset( $parts[ $part ] );
 

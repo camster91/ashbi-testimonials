@@ -113,7 +113,7 @@ $abt_target = $collections ? reset( $collections ) : null;
 
 		<div class="abt-cards">
 			<?php foreach ( $collections as $abt_c ) : ?>
-				<?php $abt_shortcode = '[ashbi_testimonials collection="' . $abt_c['slug'] . '"]'; ?>
+				<?php $abt_shortcode = '[ashbi_testimonials collection="' . ( is_numeric( $abt_c['slug'] ) ? (string) $abt_c['id'] : $abt_c['slug'] ) . '"]'; ?>
 				<article class="abt-ccard" data-abt-card-name="<?php echo esc_attr( strtolower( $abt_c['name'] ) ); ?>">
 					<a class="abt-ccard__link" href="<?php echo esc_url( admin_url( 'admin.php?page=' . ABT_Admin::SLUG . '&collection=' . $abt_c['id'] ) ); ?>">
 						<span class="abt-ccard__icon dashicons dashicons-<?php echo esc_attr( $abt_types[ $abt_c['type'] ]['icon'] ); ?>" aria-hidden="true"></span>

@@ -90,7 +90,7 @@ class ABT_Shortcode {
 		$product_id = 0;
 		if ( 'current' === $atts['product'] ) {
 			$queried = get_queried_object();
-			$product_id = $queried instanceof WP_Post ? $queried->ID : (int) get_the_ID();
+			$product_id = (int) get_the_ID() ?: ( $queried instanceof WP_Post ? $queried->ID : 0 );
 		} elseif ( preg_match( '/^[0-9]+$/D', $atts['product'] ) ) {
 			$product_id = (int) $atts['product'];
 		}

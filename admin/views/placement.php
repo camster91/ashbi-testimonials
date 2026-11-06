@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$abt_collection_attr = $abt_is_all ? '' : ' collection="' . $collection['slug'] . '"';
+$abt_collection_attr = $abt_is_all ? '' : ' collection="' . ( is_numeric( $collection['slug'] ) ? (string) $collection['id'] : $collection['slug'] ) . '"';
 $abt_placements = array(
 	array(
 		'title' => __( 'Display testimonials', 'ashbi-testimonials' ),

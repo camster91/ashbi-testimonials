@@ -93,6 +93,7 @@ class ABT_Admin {
 				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
 				'nonce'       => wp_create_nonce( 'abt_admin' ),
 				'pageUrl'     => admin_url( 'admin.php?page=' . self::SLUG ),
+				'siteDate'    => wp_date( 'Y-m-d' ),
 				'collection'  => $this->current_collection_id(),
 				'collections' => array_map(
 					static fn( $c ) => array( 'id' => $c['id'], 'name' => $c['name'], 'slug' => $c['slug'], 'fields' => $c['fields'] ),
@@ -219,13 +220,17 @@ class ABT_Admin {
 
 	public function ajax_delete() {
 		$this->guard();
-		$ids = array_filter( array_map( 'absint', (array) $this->json_field( 'ids' ) ) );
+		if ( ! EMPTY_TRASH_DAYS ) {
+			wp_send_json_error( array( 'message' => __( 'Trash is disabled on this site. No testimonials were moved.', 'ashbi-testimonials' ) ), 409 );
+		}
+		$ids = array_unique( array_filter( array_map( 'absint', $this->json_field( 'ids' ) ) ) );
+		$deleted = 0;
 		foreach ( $ids as $id ) {
-			if ( ABT_Data::POST_TYPE === get_post_type( $id ) ) {
-				wp_trash_post( $id );
+			if ( ABT_Data::POST_TYPE === get_post_type( $id ) && wp_trash_post( $id ) ) {
+				++$deleted;
 			}
 		}
-		wp_send_json_success( array( 'deleted' => count( $ids ) ) );
+		wp_send_json_success( array( 'deleted' => $deleted ) );
 	}
 
 	/** Bulk status change, feature toggle or collection assignment. */
@@ -348,7 +353,10 @@ class ABT_Admin {
 
 		if ( isset( $row['custom_fields'] ) && is_string( $row['custom_fields'] ) ) {
 			if ( strlen( $row['custom_fields'] ) > 100000 ) { return new WP_Error( 'abt_fields', __( 'The custom fields column is too large.', 'ashbi-testimonials' ) ); }
-			$row['custom_fields'] = '' === $row['custom_fields'] ? array() : json_decode( $row['custom_fields'], true );
+			$row['custom_fields'] = '' === trim( $row['custom_fields'] ) ? array() : json_decode( $row['custom_fields'], true );
+			if ( ! is_array( $row['custom_fields'] ) ) {
+				return new WP_Error( 'abt_fields', __( 'The custom fields column must contain valid JSON fields.', 'ashbi-testimonials' ) );
+			}
 		}
 		$custom = ABT_Fields::snapshots( $row['custom_fields'] ?? array() );
 		if ( is_wp_error( $custom ) ) { return $custom; }
@@ -402,7 +410,7 @@ class ABT_Admin {
 		foreach ( self::CSV_COLUMNS as $column ) {
 			$value = 'avatar_url' === $column ? $item['avatar'] : ( $item[ $column ] ?? '' );
 			// Neutralise spreadsheet formulas.
-			$row[] = is_string( $value ) && preg_match( '/^[=+\-@]/', $value ) ? "'" . $value : $value;
+			$row[] = is_string( $value ) && preg_match( '/^(?:[\x00-\x20]*[=+\-@＝＋－＠]|[\x00-\x1f])/u', $value ) ? "'" . $value : $value;
 		}
 		return $row;
 	}

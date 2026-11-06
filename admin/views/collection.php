@@ -20,7 +20,7 @@ if ( ! in_array( $abt_status, array( 'any', 'publish', 'pending', 'draft', 'tras
 $abt_export = wp_nonce_url( admin_url( 'admin-post.php?action=abt_export&collection=' . max( 0, $collection['id'] ) ), 'abt_export' );
 $abt_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', 'Yelp', 'Amazon', 'App Store', 'Google Play', 'Product Hunt', 'Clutch', 'LinkedIn', 'Email', 'Website', 'Survey' );
 ?>
-<div class="wrap abt-wrap abt-collection" data-abt-app data-collection="<?php echo (int) $collection['id']; ?>" data-slug="<?php echo esc_attr( $collection['slug'] ); ?>" data-status="<?php echo esc_attr( $abt_status ); ?>">
+<div class="wrap abt-wrap abt-collection" data-abt-app data-collection="<?php echo (int) $collection['id']; ?>" data-slug="<?php echo esc_attr( ( is_numeric( $collection['slug'] ) ? (string) $collection['id'] : $collection['slug'] ) ); ?>" data-status="<?php echo esc_attr( $abt_status ); ?>">
 	<a class="abt-back" href="<?php echo esc_url( admin_url( 'admin.php?page=' . ABT_Admin::SLUG ) ); ?>"><span aria-hidden="true">&larr;</span> <?php esc_html_e( 'All collections', 'ashbi-testimonials' ); ?></a>
 
 	<header class="abt-dash-header">
