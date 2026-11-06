@@ -15,7 +15,9 @@ $col = $data->save_collection( array( 'name' => 'Portable custom fields', 'field
 $check( ! is_wp_error( $col ) && 3 === count( $col['fields'] ), 'collection retains its field definitions' );
 $check( is_wp_error( ABT_Fields::submission( $col['id'], array() ) ), 'required fields are checked on the server' );
 $check( is_wp_error( ABT_Fields::submission( $col['id'], array( 'project' => array( 'bad' ) ) ) ), 'nested field values are rejected' );
-$check( is_wp_error( ABT_Fields::submission( $col['id'], array( 'project' => 'Valid', 'tier' => 'forged' ) ) ), 'select values must be defined options' );
+$invalid_choice = ABT_Fields::submission( $col['id'], array( 'project' => 'Valid', 'tier' => 'forged' ) );
+$check( is_wp_error( $invalid_choice ), 'select values must be defined options' );
+$check( array( 'field' => 'tier', 'type' => 'select' ) === $invalid_choice->get_error_data(), 'validation identifies the rejected custom field without exposing its answer' );
 $values = ABT_Fields::submission( $col['id'], array( 'project' => 'Public project', 'tier' => 'Advanced', 'private_note' => 'PRIVATE CUSTOM DETAIL' ) );
 $check( ! is_wp_error( $values ), 'valid public/private values are accepted' );
 $id = $data->save( array( 'author' => 'Custom reviewer', 'email' => 'custom@example.test', 'rating' => 5, 'collections' => array( $col['id'] ), 'custom_fields' => $values ) );

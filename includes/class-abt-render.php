@@ -50,6 +50,8 @@ class ABT_Render {
 				'form' => array(
 					'thanks' => __( 'Thank you! Your review was received and will appear once approved.', 'ashbi-testimonials' ),
 					'invalid' => __( 'Check the required fields, rating and consent before trying again.', 'ashbi-testimonials' ),
+					'custom_invalid' => __( 'Check the additional questions on the review form and try again.', 'ashbi-testimonials' ),
+					'custom_url' => __( 'Enter a complete website address starting with https:// or http://.', 'ashbi-testimonials' ),
 					'expired' => __( 'The form could not be verified. Reload the page before trying again; copy your review first.', 'ashbi-testimonials' ),
 					'busy' => __( 'Another review is being processed from your connection. Try again in a moment.', 'ashbi-testimonials' ),
 					'limit' => __( 'Too many reviews were sent from your connection. Try again later.', 'ashbi-testimonials' ),
