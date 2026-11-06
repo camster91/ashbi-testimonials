@@ -118,7 +118,9 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   await place.click();
   const createFormPage=placement.getByRole('link',{name:'Create a review form page',exact:true});
   const formPageUrl=new URL(await createFormPage.getAttribute('href'),page.url());
+  assert.equal(await placement.getByRole('button',{name:'Copy review link',exact:true}).count(),0);
   const formPage=await context.newPage();
+  let publishedFormUrl;
   try {
    await formPage.goto(formPageUrl.href);
    await formPage.waitForFunction(collectionId=>{
@@ -127,9 +129,20 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
     return editor?.getCurrentPostType()==='page' && ['auto-draft','draft'].includes(editor.getEditedPostAttribute('status')) &&
      blocks.some(block=>block.name==='ashbi/review-form' && block.attributes.collection===collectionId);
    },formPageUrl.searchParams.get('abt_review_form_collection'));
+   publishedFormUrl=await formPage.evaluate(async ()=>{
+    const editor=window.wp.data.dispatch('core/editor');
+    editor.editPost({title:'Collect a browser test review',status:'publish'});
+    await editor.savePost();
+    return window.wp.data.select('core/editor').getCurrentPost().link;
+   });
+   assert.ok(publishedFormUrl,'the new form page was published in the test site');
   } finally {
    await formPage.close();
   }
+  await page.reload();
+  await place.click();
+  assert.equal(await placement.getByRole('button',{name:'Copy review link',exact:true}).getAttribute('data-abt-copy'),publishedFormUrl);
+  assert.equal(await placement.getByRole('link',{name:'Open review form',exact:true}).getAttribute('href'),publishedFormUrl);
   await placement.getByRole('button',{name:'Customize display'}).click();
   const builder=page.getByRole('dialog',{name:'Customize display'});
   await builder.locator('[data-abt-builder-preview][aria-busy=false]').waitFor();
