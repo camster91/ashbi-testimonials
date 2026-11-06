@@ -116,6 +116,20 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
    assert.equal(await place.evaluate(node=>document.activeElement===node),true,'closing placement returns focus to its opener');
   }
   await place.click();
+  const createFormPage=placement.getByRole('link',{name:'Create a review form page',exact:true});
+  const formPageUrl=new URL(await createFormPage.getAttribute('href'),page.url());
+  const formPage=await context.newPage();
+  try {
+   await formPage.goto(formPageUrl.href);
+   await formPage.waitForFunction(collectionId=>{
+    const editor=window.wp?.data?.select('core/editor');
+    const blocks=window.wp?.data?.select('core/block-editor')?.getBlocks() || [];
+    return editor?.getCurrentPostType()==='page' && ['auto-draft','draft'].includes(editor.getEditedPostAttribute('status')) &&
+     blocks.some(block=>block.name==='ashbi/review-form' && block.attributes.collection===collectionId);
+   },formPageUrl.searchParams.get('abt_review_form_collection'));
+  } finally {
+   await formPage.close();
+  }
   await placement.getByRole('button',{name:'Customize display'}).click();
   const builder=page.getByRole('dialog',{name:'Customize display'});
   await builder.locator('[data-abt-builder-preview][aria-busy=false]').waitFor();

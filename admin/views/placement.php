@@ -32,6 +32,10 @@ if ( ! $abt_is_all ) {
 		'copy'  => __( 'Copy review form shortcode', 'ashbi-testimonials' ),
 		'text'  => __( 'Add a form to your site. Submissions wait for approval before they appear publicly.', 'ashbi-testimonials' ),
 		'code'  => '[ashbi_testimonial_form' . $abt_collection_attr . ']',
+		'page'  => current_user_can( 'edit_pages' ) ? add_query_arg(
+			array( 'post_type' => 'page', 'abt_review_form_collection' => (int) $collection['id'] ),
+			admin_url( 'post-new.php' )
+		) : '',
 	);
 }
 ?>
@@ -48,6 +52,10 @@ if ( ! $abt_is_all ) {
 				<section class="abt-placement-option">
 					<h3><?php echo esc_html( $abt_placement['title'] ); ?></h3>
 					<p><?php echo esc_html( $abt_placement['text'] ); ?></p>
+					<?php if ( ! empty( $abt_placement['page'] ) ) : ?>
+						<p><a class="button button-primary" href="<?php echo esc_url( $abt_placement['page'] ); ?>"><?php esc_html_e( 'Create a review form page', 'ashbi-testimonials' ); ?></a></p>
+						<p><?php esc_html_e( 'The new page opens in the editor. Add a title and review it before publishing.', 'ashbi-testimonials' ); ?></p>
+					<?php endif; ?>
 					<div class="abt-placement-option__code">
 						<code><?php echo esc_html( $abt_placement['code'] ); ?></code>
 						<button type="button" class="button" data-abt-copy="<?php echo esc_attr( $abt_placement['code'] ); ?>"><?php echo esc_html( $abt_placement['copy'] ); ?></button>
