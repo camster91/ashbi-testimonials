@@ -95,7 +95,7 @@ class ASHBTE_Form {
 					<h3 class="ashbte-form__title"><?php echo esc_html( $atts['title'] ); ?></h3>
 				<?php endif; ?>
 				<input type="hidden" name="action" value="ashbte_submit" />
-				<?php wp_nonce_field( ASHBTE_Render::NONCE, 'ashbte_nonce', false ); ?>
+				<input type="hidden" name="ashbte_nonce" value="<?php echo esc_attr( wp_create_nonce( ASHBTE_Render::NONCE ) ); ?>" /><?php // No id: a page can hold several forms. ?>
 				<input type="hidden" name="ashbte_target" value="<?php echo esc_attr( $target ); ?>" />
 				<input type="hidden" name="ashbte_form" value="<?php echo esc_attr( $form_id ); ?>" />
 				<input type="hidden" name="ashbte_token" value="<?php echo esc_attr( $this->token( time(), $target ) ); ?>" />
