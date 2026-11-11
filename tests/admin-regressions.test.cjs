@@ -48,7 +48,7 @@ test('multiple collections keep at most ten stored answers and preserve historic
   const box = { innerHTML: '', insertAdjacentHTML(_, html) { this.innerHTML += html; } };
   const defs = prefix => Object.fromEntries(Array.from({length:6},(_,i)=>[prefix+i,{key:prefix+i,label:prefix+i,type:'text',public:true,options:[]} ]));
   const ctx = { cfg:{collections:[{id:1,fields:defs('a')},{id:2,fields:defs('b')}]}, editor:{}, collectionsBox:{},
-    $: selector => selector === '[data-abt-custom-values]' ? box : { addEventListener() {} },
+    $: selector => selector === '[data-ashbte-custom-values]' ? box : { addEventListener() {} },
     $$: selector => selector.includes('collections') ? [{value:'1'},{value:'2'}] : [], esc: x=>String(x), __: x=>x, sprintf:(x,n)=>x.replace('%s',n) };
   vm.createContext(ctx);
   const start=source.indexOf('let customSnapshots =');

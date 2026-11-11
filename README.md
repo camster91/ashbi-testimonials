@@ -47,11 +47,11 @@ With free Elementor installed, use **Ashbi Reviews** and choose Testimonials, Ra
 ## Shortcodes
 
 ```text
-[ashbi_testimonials collection="store-reviews"]
-[ashbi_testimonials product="current" layout="list" summary="1" load_more="1"]
-[ashbi_testimonials collection="acme-crm" layout="slider" min_rating="4"]
-[ashbi_rating collection="acme-crm" style="inline"]
-[ashbi_testimonial_form collection="store-reviews" product="current"]
+[ashbte_testimonials collection="store-reviews"]
+[ashbte_testimonials product="current" layout="list" summary="1" load_more="1"]
+[ashbte_testimonials collection="acme-crm" layout="slider" min_rating="4"]
+[ashbte_rating collection="acme-crm" style="inline"]
+[ashbte_form collection="store-reviews" product="current"]
 ```
 
 Every attribute is listed in `readme.txt` and in the reference table under **Testimonials → Settings**.
@@ -60,15 +60,15 @@ Review dates must be today or earlier in the WordPress site time zone. Date-only
 
 ## Storage
 
-Testimonials are a private post type (`abt_testimonial`) grouped by a private taxonomy (`abt_collection`). Meta keys are prefixed `_abt_`. Rating stats use one grouped SQL query, cached in a transient that is invalidated on every change. Managing testimonials requires `edit_others_posts` by default (filter `abt_capability`); settings require `manage_options`.
+Testimonials are a private post type (`ashbte_testimonial`) grouped by a private taxonomy (`ashbte_collection`). Meta keys are prefixed `_ashbte_`. Rating stats use one grouped SQL query, cached in a transient that is invalidated on every change. Managing testimonials requires `edit_others_posts` by default (filter `ashbte_capability`); settings require `manage_options`.
 
 ## Hooks
 
-- `abt_capability` — capability for managing testimonials.
-- `abt_reviewable_post_types` — post types offered in the product picker.
-- `abt_card_html` — filter a rendered card.
-- `abt_schema` — filter structured data before output.
-- `abt_submitted` — action after a public submission is saved.
+- `ashbte_capability` — capability for managing testimonials.
+- `ashbte_reviewable_post_types` — post types offered in the product picker.
+- `ashbte_card_html` — filter a rendered card.
+- `ashbte_schema` — filter structured data before output.
+- `ashbte_submitted` — action after a public submission is saved.
 
 ## Requirements
 

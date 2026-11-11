@@ -3,7 +3,7 @@
  * Plugin Name: Ashbi Testimonials
  * Plugin URI:  https://github.com/camster91/ashbi-testimonials
  * Description: Collect, organise and display testimonials and reviews for your store, products, software or services with a clean editor and simple shortcodes.
- * Version:     1.1.2
+ * Version:     1.2.0
  * Author:      Cameron Ashley
  * Author URI:  https://github.com/camster91
  * License:     GPL-2.0-or-later
@@ -16,39 +16,40 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'ABT_VERSION', '1.1.2' );
-define( 'ABT_PLUGIN_FILE', __FILE__ );
-define( 'ABT_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
-define( 'ABT_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-define( 'ABT_VERSION_OPTION', 'abt_plugin_version' );
-define( 'ABT_SETTINGS_OPTION', 'abt_settings' );
-define( 'ABT_CACHE_OPTION', 'abt_cache_version' );
+define( 'ASHBTE_VERSION', '1.2.0' );
+define( 'ASHBTE_PLUGIN_FILE', __FILE__ );
+define( 'ASHBTE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'ASHBTE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+define( 'ASHBTE_VERSION_OPTION', 'ashbte_plugin_version' );
+define( 'ASHBTE_SETTINGS_OPTION', 'ashbte_settings' );
+define( 'ASHBTE_CACHE_OPTION', 'ashbte_cache_version' );
 
-require_once ABT_PLUGIN_DIR . 'includes/class-abt-atomic.php';
-require_once ABT_PLUGIN_DIR . 'includes/class-abt-fields.php';
-require_once ABT_PLUGIN_DIR . 'includes/class-abt-data.php';
-require_once ABT_PLUGIN_DIR . 'includes/class-abt-render.php';
-require_once ABT_PLUGIN_DIR . 'includes/class-abt-shortcode.php';
-require_once ABT_PLUGIN_DIR . 'includes/class-abt-form.php';
-require_once ABT_PLUGIN_DIR . 'includes/class-abt-editors.php';
-require_once ABT_PLUGIN_DIR . 'includes/class-abt-presets.php';
-require_once ABT_PLUGIN_DIR . 'includes/class-abt-privacy.php';
-require_once ABT_PLUGIN_DIR . 'includes/class-abt-admin.php';
-require_once ABT_PLUGIN_DIR . 'includes/class-abt-woocommerce.php';
-require_once ABT_PLUGIN_DIR . 'includes/class-abt-purchase.php';
-require_once ABT_PLUGIN_DIR . 'includes/class-abt-requests.php';
+require_once ASHBTE_PLUGIN_DIR . 'includes/class-ashbte-atomic.php';
+require_once ASHBTE_PLUGIN_DIR . 'includes/class-ashbte-fields.php';
+require_once ASHBTE_PLUGIN_DIR . 'includes/class-ashbte-data.php';
+require_once ASHBTE_PLUGIN_DIR . 'includes/class-ashbte-render.php';
+require_once ASHBTE_PLUGIN_DIR . 'includes/class-ashbte-shortcode.php';
+require_once ASHBTE_PLUGIN_DIR . 'includes/class-ashbte-form.php';
+require_once ASHBTE_PLUGIN_DIR . 'includes/class-ashbte-editors.php';
+require_once ASHBTE_PLUGIN_DIR . 'includes/class-ashbte-presets.php';
+require_once ASHBTE_PLUGIN_DIR . 'includes/class-ashbte-privacy.php';
+require_once ASHBTE_PLUGIN_DIR . 'includes/class-ashbte-admin.php';
+require_once ASHBTE_PLUGIN_DIR . 'includes/class-ashbte-woocommerce.php';
+require_once ASHBTE_PLUGIN_DIR . 'includes/class-ashbte-purchase.php';
+require_once ASHBTE_PLUGIN_DIR . 'includes/class-ashbte-requests.php';
+require_once ASHBTE_PLUGIN_DIR . 'includes/class-ashbte-migration.php';
 
 /* ==================================================================
    Helpers
    ================================================================== */
 
 /** Capability required to manage testimonials. Editors by default. */
-function abt_capability() {
-	return (string) apply_filters( 'abt_capability', 'edit_others_posts' );
+function ashbte_capability() {
+	return (string) apply_filters( 'ashbte_capability', 'edit_others_posts' );
 }
 
 /** Plugin-wide settings merged with defaults. */
-function abt_settings() {
+function ashbte_settings() {
 	$defaults = array(
 		'schema'         => '1',
 		'woo_tab'        => '0',
@@ -59,7 +60,7 @@ function abt_settings() {
 		'date_format'    => '',
 		'delete_on_uninstall' => '0',
 	);
-	$stored = get_option( ABT_SETTINGS_OPTION, array() );
+	$stored = get_option( ASHBTE_SETTINGS_OPTION, array() );
 	return array_merge( $defaults, is_array( $stored ) ? $stored : array() );
 }
 
@@ -67,45 +68,50 @@ function abt_settings() {
    Bootstrap
    ================================================================== */
 
-function abt_init() {
-	ABT_Data::instance();
-	ABT_Render::instance();
-	ABT_Shortcode::instance();
-	ABT_Form::instance();
-	ABT_Editors::init();
-	add_action( 'save_post_page', array( ABT_Admin::class, 'index_review_form_page' ), 10, 2 );
-	ABT_Presets::init();
-	ABT_Purchase::init();
-	ABT_Requests::init();
-	ABT_Privacy::instance();
-	ABT_WooCommerce::instance();
-	abt_maybe_upgrade();
+function ashbte_init() {
+	// Migrate legacy data before any component reads or writes options.
+	ashbte_maybe_upgrade();
+	ASHBTE_Data::instance();
+	ASHBTE_Render::instance();
+	ASHBTE_Shortcode::instance();
+	ASHBTE_Form::instance();
+	ASHBTE_Editors::init();
+	add_action( 'save_post_page', array( ASHBTE_Admin::class, 'index_review_form_page' ), 10, 2 );
+	ASHBTE_Presets::init();
+	ASHBTE_Purchase::init();
+	ASHBTE_Requests::init();
+	ASHBTE_Privacy::instance();
+	ASHBTE_WooCommerce::instance();
 
 	if ( is_admin() ) {
-		ABT_Admin::instance();
+		ASHBTE_Admin::instance();
 	}
 }
-add_action( 'plugins_loaded', 'abt_init' );
+add_action( 'plugins_loaded', 'ashbte_init' );
 
 /* ==================================================================
    Activation
    ================================================================== */
 
-function abt_activate() {
-	ABT_Data::instance()->register();
-	add_option( ABT_SETTINGS_OPTION, array(), '', false );
-	add_option( ABT_CACHE_OPTION, 1 );
-	update_option( ABT_VERSION_OPTION, ABT_VERSION );
+function ashbte_activate() {
+	ASHBTE_Migration::maybe_run();
+	ASHBTE_Data::instance()->register();
+	add_option( ASHBTE_SETTINGS_OPTION, array(), '', false );
+	add_option( ASHBTE_CACHE_OPTION, 1 );
+	update_option( ASHBTE_VERSION_OPTION, ASHBTE_VERSION );
 }
-register_activation_hook( __FILE__, 'abt_activate' );
+register_activation_hook( __FILE__, 'ashbte_activate' );
 
-function abt_deactivate() {
+function ashbte_deactivate() {
 	// Stored testimonials remain available after reactivation.
 }
-register_deactivation_hook( __FILE__, 'abt_deactivate' );
+register_deactivation_hook( __FILE__, 'ashbte_deactivate' );
 
-function abt_maybe_upgrade() {
-	if ( ABT_VERSION === get_option( ABT_VERSION_OPTION ) ) {
+function ashbte_maybe_upgrade() {
+	// Sites upgraded from 1.0.0 – 1.1.2 rename their stored data once.
+	ASHBTE_Migration::maybe_run();
+
+	if ( ASHBTE_VERSION === get_option( ASHBTE_VERSION_OPTION ) ) {
 		return;
 	}
 
@@ -114,5 +120,5 @@ function abt_maybe_upgrade() {
 	 * idempotent and never delete content an administrator created.
 	 */
 
-	update_option( ABT_VERSION_OPTION, ABT_VERSION );
+	update_option( ASHBTE_VERSION_OPTION, ASHBTE_VERSION );
 }

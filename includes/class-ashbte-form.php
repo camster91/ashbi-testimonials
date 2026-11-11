@@ -1,6 +1,6 @@
 <?php
 /**
- * Public submission form: [ashbi_testimonial_form collection="store-reviews"].
+ * Public submission form: [ashbte_form collection="store-reviews"].
  * Submissions are always held as pending until approved in the editor.
  *
  * @package Ashbi_Testimonials
@@ -10,19 +10,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class ABT_Form {
+class ASHBTE_Form {
 
 	const MAX_PER_HOUR = 5;
-	const FIELD_LIMITS = array( 'author' => 120, 'email' => 190, 'role' => 120, 'company' => 120, 'location' => 120, 'headline' => 160, 'content' => 5000, 'rating' => 1, 'consent' => 1, 'abt_form' => 100, 'abt_target' => 40, 'abt_token' => 128, 'abt_website' => 200 );
+	const FIELD_LIMITS = array( 'author' => 120, 'email' => 190, 'role' => 120, 'company' => 120, 'location' => 120, 'headline' => 160, 'content' => 5000, 'rating' => 1, 'consent' => 1, 'ashbte_form' => 100, 'ashbte_target' => 40, 'ashbte_token' => 128, 'ashbte_website' => 200, 'ashbte_nonce' => 64 );
 
 	/**
-	 * @var ABT_Form|null
+	 * @var ASHBTE_Form|null
 	 */
 	private static $instance = null;
 	private $form_counts = array();
 
 	/**
-	 * @return ABT_Form
+	 * @return ASHBTE_Form
 	 */
 	public static function instance() {
 		if ( null === self::$instance ) {
@@ -32,9 +32,9 @@ class ABT_Form {
 	}
 
 	private function __construct() {
-		add_shortcode( 'ashbi_testimonial_form', array( $this, 'shortcode' ) );
-		add_action( 'admin_post_abt_submit', array( $this, 'handle' ) );
-		add_action( 'admin_post_nopriv_abt_submit', array( $this, 'handle' ) );
+		add_shortcode( 'ashbte_form', array( $this, 'shortcode' ) );
+		add_action( 'admin_post_ashbte_submit', array( $this, 'handle' ) );
+		add_action( 'admin_post_nopriv_ashbte_submit', array( $this, 'handle' ) );
 	}
 
 	/**
@@ -43,7 +43,7 @@ class ABT_Form {
 	 * proof of form provenance, not permission to publish or edit a review.
 	 */
 	private function token( $time, $target ) {
-		return $time . '.' . substr( wp_hash( 'abt_form|' . ( is_multisite() ? get_current_blog_id() . '|' : '' ) . $time . '|' . $target ), 0, 20 );
+		return $time . '.' . substr( wp_hash( 'ashbte_form|' . ( is_multisite() ? get_current_blog_id() . '|' : '' ) . $time . '|' . $target ), 0, 20 );
 	}
 
 	/**
@@ -61,44 +61,48 @@ class ABT_Form {
 				'button'     => __( 'Submit review', 'ashbi-testimonials' ),
 			),
 			$atts,
-			'ashbi_testimonial_form'
+			'ashbte_form'
 		);
 
-		$term = ABT_Data::instance()->find_collection( (string) $atts['collection'] );
+		$term = ASHBTE_Data::instance()->find_collection( (string) $atts['collection'] );
 		if ( ! $term ) {
-			return current_user_can( abt_capability() ) ? '<p class="abt-notice">' . esc_html__( 'Ashbi Testimonials: add a valid collection to the form shortcode.', 'ashbi-testimonials' ) . '</p>' : '';
+			return current_user_can( ashbte_capability() ) ? '<p class="ashbte-notice">' . esc_html__( 'Ashbi Testimonials: add a valid collection to the form shortcode.', 'ashbi-testimonials' ) . '</p>' : '';
 		}
 
 		$product_id = 'current' === $atts['product'] ? (int) get_the_ID() : absint( $atts['product'] );
 		$target     = $term->term_id . ':' . $product_id;
 		$fields     = array_map( 'trim', explode( ',', (string) $atts['fields'] ) );
-		$form_id    = 'abt-form-' . $term->term_id . ( $product_id ? '-' . $product_id : '' );
+		$form_id    = 'ashbte-form-' . $term->term_id . ( $product_id ? '-' . $product_id : '' );
 		$this->form_counts[ $form_id ] = ( $this->form_counts[ $form_id ] ?? 0 ) + 1;
 		$form_id .= $this->form_counts[ $form_id ] > 1 ? '-instance-' . $this->form_counts[ $form_id ] : '';
-		ABT_Render::instance()->enqueue();
+		ASHBTE_Render::instance()->enqueue();
 
-		$status = isset( $_GET['abt_status'], $_GET['abt_form'] ) && $form_id === sanitize_key( wp_unslash( $_GET['abt_form'] ) ) ? sanitize_key( wp_unslash( $_GET['abt_status'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only status flag.
+		$status = '';
+		if ( isset( $_GET['ashbte_notice'], $_GET['ashbte_status'], $_GET['ashbte_form'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['ashbte_notice'] ) ), 'ashbte_form_status' ) && $form_id === sanitize_key( wp_unslash( $_GET['ashbte_form'] ) ) ) {
+			$status = sanitize_key( wp_unslash( $_GET['ashbte_status'] ) );
+		}
 
 		ob_start();
 		?>
-		<div class="abt abt-form-wrap" id="<?php echo esc_attr( $form_id ); ?>">
+		<div class="ashbte ashbte-form-wrap" id="<?php echo esc_attr( $form_id ); ?>">
 			<?php if ( 'thanks' === $status ) : ?>
-				<p class="abt-form__notice abt-form__notice--ok" role="status"><?php esc_html_e( 'Thank you! Your review was received and will appear once approved.', 'ashbi-testimonials' ); ?></p>
+				<p class="ashbte-form__notice ashbte-form__notice--ok" role="status"><?php esc_html_e( 'Thank you! Your review was received and will appear once approved.', 'ashbi-testimonials' ); ?></p>
 			<?php elseif ( $status ) : ?>
-				<p class="abt-form__notice abt-form__notice--error" role="alert"><?php echo esc_html( $this->message( $status ) ); ?></p>
+				<p class="ashbte-form__notice ashbte-form__notice--error" role="alert"><?php echo esc_html( $this->message( $status ) ); ?></p>
 			<?php endif; ?>
-			<form class="abt-form" data-abt-product="<?php echo class_exists( 'WooCommerce' ) ? (int) $product_id : 0; ?>" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<form class="ashbte-form" data-ashbte-product="<?php echo class_exists( 'WooCommerce' ) ? (int) $product_id : 0; ?>" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<?php if ( '' !== $atts['title'] ) : ?>
-					<h3 class="abt-form__title"><?php echo esc_html( $atts['title'] ); ?></h3>
+					<h3 class="ashbte-form__title"><?php echo esc_html( $atts['title'] ); ?></h3>
 				<?php endif; ?>
-				<input type="hidden" name="action" value="abt_submit" />
-				<input type="hidden" name="abt_target" value="<?php echo esc_attr( $target ); ?>" />
-				<input type="hidden" name="abt_form" value="<?php echo esc_attr( $form_id ); ?>" />
-				<input type="hidden" name="abt_token" value="<?php echo esc_attr( $this->token( time(), $target ) ); ?>" />
-				<div class="abt-form__hp" aria-hidden="true"><label>Website <input type="text" name="abt_website" tabindex="-1" autocomplete="off" /></label></div>
+				<input type="hidden" name="action" value="ashbte_submit" />
+				<?php wp_nonce_field( ASHBTE_Render::NONCE, 'ashbte_nonce', false ); ?>
+				<input type="hidden" name="ashbte_target" value="<?php echo esc_attr( $target ); ?>" />
+				<input type="hidden" name="ashbte_form" value="<?php echo esc_attr( $form_id ); ?>" />
+				<input type="hidden" name="ashbte_token" value="<?php echo esc_attr( $this->token( time(), $target ) ); ?>" />
+				<div class="ashbte-form__hp" aria-hidden="true"><label>Website <input type="text" name="ashbte_website" tabindex="-1" autocomplete="off" /></label></div>
 
 				<?php if ( '0' !== $atts['rating'] ) : ?>
-					<fieldset class="abt-form__rating">
+					<fieldset class="ashbte-form__rating">
 						<legend><?php esc_html_e( 'Your rating', 'ashbi-testimonials' ); ?></legend>
 						<?php for ( $i = 1; $i <= 5; $i++ ) : ?>
 							<input type="radio" id="<?php echo esc_attr( $form_id . '-r' . $i ); ?>" name="rating" value="<?php echo (int) $i; ?>" <?php checked( 5, $i ); ?> />
@@ -107,12 +111,12 @@ class ABT_Form {
 					</fieldset>
 				<?php endif; ?>
 
-				<div class="abt-form__row">
+				<div class="ashbte-form__row">
 					<p><label><?php esc_html_e( 'Name', 'ashbi-testimonials' ); ?> <span aria-hidden="true">*</span><input type="text" name="author" required maxlength="120" autocomplete="name" /></label></p>
 					<p><label><?php esc_html_e( 'Email (not published)', 'ashbi-testimonials' ); ?> <span aria-hidden="true">*</span><input type="email" name="email" required maxlength="190" autocomplete="email" /></label></p>
 				</div>
 				<?php if ( in_array( 'role', $fields, true ) || in_array( 'company', $fields, true ) ) : ?>
-					<div class="abt-form__row">
+					<div class="ashbte-form__row">
 						<?php if ( in_array( 'role', $fields, true ) ) : ?>
 							<p><label><?php esc_html_e( 'Job title', 'ashbi-testimonials' ); ?><input type="text" name="role" maxlength="120" autocomplete="organization-title" /></label></p>
 						<?php endif; ?>
@@ -128,9 +132,9 @@ class ABT_Form {
 					<p><label><?php esc_html_e( 'Headline', 'ashbi-testimonials' ); ?><input type="text" name="headline" maxlength="160" /></label></p>
 				<?php endif; ?>
 				<p><label><?php esc_html_e( 'Your review', 'ashbi-testimonials' ); ?> <span aria-hidden="true">*</span><textarea name="content" rows="5" required maxlength="5000"></textarea></label></p>
-				<?php echo ABT_Fields::form( $term->term_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Provider escapes every definition. ?>
-				<p class="abt-form__consent"><label><input type="checkbox" name="consent" value="1" required /> <?php esc_html_e( 'I agree that my name, review, profile details and fields marked public may be published on this site.', 'ashbi-testimonials' ); ?></label></p>
-				<p><button type="submit" class="abt-form__submit"><?php echo esc_html( $atts['button'] ); ?></button></p>
+				<?php echo ASHBTE_Fields::form( $term->term_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Provider escapes every definition. ?>
+				<p class="ashbte-form__consent"><label><input type="checkbox" name="consent" value="1" required /> <?php esc_html_e( 'I agree that my name, review, profile details and fields marked public may be published on this site.', 'ashbi-testimonials' ); ?></label></p>
+				<p><button type="submit" class="ashbte-form__submit"><?php echo esc_html( $atts['button'] ); ?></button></p>
 			</form>
 		</div>
 		<?php
@@ -160,23 +164,23 @@ class ABT_Form {
 
 	/** Serialize rate check, exact retries and save across PHP workers using a unique option key. */
 	private function persist( array $fields, $ip_key ) {
-		$key = 'abt_submit_lock_' . substr( $ip_key, -16 );
+		$key = 'ashbte_submit_lock_' . substr( $ip_key, -16 );
 		$owner = ( time() + 30 ) . ':' . wp_generate_uuid4();
-		$acquired = ABT_Atomic::insert( $key, $owner );
+		$acquired = ASHBTE_Atomic::insert( $key, $owner );
 		if ( ! $acquired ) {
 			$previous = get_option( $key );
 			if ( is_string( $previous ) && (int) $previous < time() ) {
 				$this->release( $key, $previous );
-				$acquired = ABT_Atomic::insert( $key, $owner );
+				$acquired = ASHBTE_Atomic::insert( $key, $owner );
 			}
 		}
 		if ( ! $acquired ) {
 			return new WP_Error( 'busy' );
 		}
 		try {
-			$retry_key = 'abt_retry_' . wp_hash( $ip_key . wp_json_encode( $fields ) );
+			$retry_key = 'ashbte_retry_' . wp_hash( $ip_key . wp_json_encode( $fields ) );
 			$existing = (int) get_transient( $retry_key );
-			if ( $existing && ABT_Data::POST_TYPE === get_post_type( $existing ) ) {
+			if ( $existing && ASHBTE_Data::POST_TYPE === get_post_type( $existing ) ) {
 				return array( 'id' => $existing, 'duplicate' => true );
 			}
 			// Transients may have been cached before obtaining the lease in this worker.
@@ -186,7 +190,7 @@ class ABT_Form {
 			if ( $sent >= self::MAX_PER_HOUR ) {
 				return new WP_Error( 'limit' );
 			}
-			$id = ABT_Data::instance()->save( $fields );
+			$id = ASHBTE_Data::instance()->save( $fields );
 			if ( is_wp_error( $id ) ) {
 				return $id;
 			}
@@ -200,25 +204,31 @@ class ABT_Form {
 
 	/** Process a submission and redirect back to the form. */
 	public function handle() {
-		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Anonymous form verified by a signed target-bound token below.
-		$form_id = isset( $_POST['abt_form'] ) && is_string( $_POST['abt_form'] ) ? sanitize_key( wp_unslash( $_POST['abt_form'] ) ) : '';
+		// Verify the request origin before reading any other input.
+		$nonce   = isset( $_POST['ashbte_nonce'] ) && is_string( $_POST['ashbte_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['ashbte_nonce'] ) ) : '';
+		$valid   = (bool) wp_verify_nonce( $nonce, ASHBTE_Render::NONCE );
+		$form_id = $valid && isset( $_POST['ashbte_form'] ) && is_string( $_POST['ashbte_form'] ) ? sanitize_key( wp_unslash( $_POST['ashbte_form'] ) ) : '';
 		$back    = wp_get_referer() ?: home_url( '/' );
-		$back    = remove_query_arg( array( 'abt_status', 'abt_form', 'abt_field' ), $back );
+		$back    = remove_query_arg( array( 'ashbte_status', 'ashbte_form', 'ashbte_field', 'ashbte_notice' ), $back );
 		$go      = static function ( $status, $field = '' ) use ( $back, $form_id ) {
-			$args = array( 'abt_status' => $status, 'abt_form' => $form_id );
+			$args = array( 'ashbte_status' => $status, 'ashbte_form' => $form_id, 'ashbte_notice' => wp_create_nonce( 'ashbte_form_status' ) );
 			if ( '' !== $field ) {
-				$args['abt_field'] = sanitize_key( $field );
+				$args['ashbte_field'] = sanitize_key( $field );
 			}
 			wp_safe_redirect( add_query_arg( $args, $back ) . '#' . $form_id );
 			exit;
 		};
+
+		if ( ! $valid ) {
+			$go( 'expired' );
+		}
 
 		// Browser maxlength is advisory; validate type and character limits on the server.
 		foreach ( self::FIELD_LIMITS as $field => $limit ) {
 			if ( ! isset( $_POST[ $field ] ) ) {
 				continue;
 			}
-			$value = $_POST[ $field ]; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Raw type/byte bounds checked first; unslashed below and sanitized by ABT_Data before save.
+			$value = $_POST[ $field ]; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Raw type/byte bounds checked first; unslashed below and sanitized by ASHBTE_Data before save.
 			if ( ! is_string( $value ) || strlen( $value ) > $limit * 4 || wp_check_invalid_utf8( $value ) !== $value ) {
 				$go( 'invalid' );
 			}
@@ -230,35 +240,34 @@ class ABT_Form {
 		}
 
 		// Bots fill the hidden field; pretend success so they learn nothing.
-		if ( ! empty( $_POST['abt_website'] ) ) {
+		if ( ! empty( $_POST['ashbte_website'] ) ) {
 			$go( 'thanks' );
 		}
 
-		$target = isset( $_POST['abt_target'] ) ? sanitize_text_field( wp_unslash( $_POST['abt_target'] ) ) : '';
-		$token  = isset( $_POST['abt_token'] ) ? sanitize_text_field( wp_unslash( $_POST['abt_token'] ) ) : '';
+		$target = isset( $_POST['ashbte_target'] ) ? sanitize_text_field( wp_unslash( $_POST['ashbte_target'] ) ) : '';
+		$token  = isset( $_POST['ashbte_token'] ) ? sanitize_text_field( wp_unslash( $_POST['ashbte_token'] ) ) : '';
 		$time   = (int) strtok( $token, '.' );
 		if ( ! preg_match( '/^\d+:\d+$/', $target ) || ! hash_equals( $this->token( $time, $target ), $token ) ) {
 			$go( 'expired' );
 		}
 
-		$ip_key = 'abt_rate_' . substr( wp_hash( (string) ( $_SERVER['REMOTE_ADDR'] ?? '' ) ), 0, 16 ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Hashed only, never stored raw.
+		$ip_key = 'ashbte_rate_' . substr( wp_hash( (string) ( $_SERVER['REMOTE_ADDR'] ?? '' ) ), 0, 16 ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Hashed only, never stored raw.
 
 		list( $term_id, $product_id ) = array_map( 'intval', explode( ':', $target ) );
-		$term = get_term( $term_id, ABT_Data::TAXONOMY );
+		$term = get_term( $term_id, ASHBTE_Data::TAXONOMY );
 		if ( ! $term instanceof WP_Term ) {
 			$go( 'error' );
 		}
 
 		$fields = array();
 		foreach ( array( 'author', 'email', 'role', 'company', 'location', 'headline', 'content', 'rating' ) as $key ) {
-			$fields[ $key ] = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised by ABT_Data::sanitize().
+			$fields[ $key ] = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised by ASHBTE_Data::sanitize().
 		}
 		if ( '1' !== sanitize_text_field( wp_unslash( $_POST['consent'] ?? '' ) ) || ! preg_match( '/^[0-5]?$/', $fields['rating'] ) || '' === trim( (string) $fields['author'] ) || ! is_email( (string) $fields['email'] ) || '' === trim( (string) $fields['content'] ) ) {
 			$go( 'invalid' );
 		}
-		// phpcs:enable
 
-		$custom = ABT_Fields::submission( $term_id, isset( $_POST['abt_custom'] ) ? wp_unslash( $_POST['abt_custom'] ) : array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- Target-bound form token checked above; validated against server definitions.
+		$custom = ASHBTE_Fields::submission( $term_id, isset( $_POST['ashbte_custom'] ) ? wp_unslash( $_POST['ashbte_custom'] ) : array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated against server field definitions.
 		if ( is_wp_error( $custom ) ) {
 			$error = $custom->get_error_data();
 			$go( 'url' === ( $error['type'] ?? '' ) ? 'custom_url' : 'custom_invalid', $error['field'] ?? '' );
@@ -280,7 +289,7 @@ class ABT_Form {
 		}
 		$id = $result['id'];
 
-		$notify = abt_settings()['notify_email'];
+		$notify = ashbte_settings()['notify_email'];
 		if ( $notify && is_email( $notify ) ) {
 			wp_mail(
 				$notify,
@@ -290,12 +299,12 @@ class ABT_Form {
 					"%s\n\n%s\n\n%s",
 					sanitize_text_field( (string) $fields['author'] ),
 					$fields['content'],
-					admin_url( 'admin.php?page=ashbi-testimonials&collection=' . $term_id . '&status=pending' )
+					admin_url( 'admin.php?page=ashbi-testimonials' )
 				)
 			);
 		}
 
-		do_action( 'abt_submitted', $id, $term_id );
+		do_action( 'ashbte_submitted', $id, $term_id );
 		$go( 'thanks' );
 	}
 }

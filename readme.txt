@@ -4,7 +4,7 @@ Tags: testimonials, reviews, product reviews, star rating, shortcode
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 1.1.2
+Stable tag: 1.2.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -28,15 +28,15 @@ Testimonials are stored as a private post type, so large collections use the Wor
 
 == Shortcodes ==
 
-`[ashbi_testimonials collection="store-reviews"]`
-`[ashbi_testimonials product="current" layout="list" summary="1" load_more="1"]`
-`[ashbi_testimonials collection="acme-crm" layout="slider" min_rating="4" show="avatar,rating,company"]`
-`[ashbi_rating collection="acme-crm" style="inline"]`
-`[ashbi_testimonial_form collection="store-reviews"]`
+`[ashbte_testimonials collection="store-reviews"]`
+`[ashbte_testimonials product="current" layout="list" summary="1" load_more="1"]`
+`[ashbte_testimonials collection="acme-crm" layout="slider" min_rating="4" show="avatar,rating,company"]`
+`[ashbte_rating collection="acme-crm" style="inline"]`
+`[ashbte_form collection="store-reviews"]`
 
-Attributes for ashbi_testimonials: collection, product (ID or current), subject, ids, layout, columns, limit, orderby (date, rating, featured, random), order, min_rating, featured, verified, show, words, summary, load_more, theme (light, dark, auto), accent, heading, schema, schema_name, class, label.
+Attributes for ashbte_testimonials: collection, product (ID or current), subject, ids, layout, columns, limit, orderby (date, rating, featured, random), order, min_rating, featured, verified, show, words, summary, load_more, theme (light, dark, auto), accent, heading, schema, schema_name, class, label.
 
-Theme developers can call `abt_render_testimonials( array( 'collection' => 'store-reviews' ) )`.
+Theme developers can call `ashbte_render_testimonials( array( 'collection' => 'store-reviews' ) )`.
 
 == Installation ==
 
@@ -51,7 +51,7 @@ Theme developers can call `abt_render_testimonials( array( 'collection' => 'stor
 Yes. Attach each review to its product, then use product="current" on your product template or product="123" anywhere. Reviews without a page can use a label: subject="SKU-1042".
 
 = Does the form work on cached pages? =
-Yes. It uses a signed target-bound token without a time expiry instead of a nonce, a hidden honeypot field and a limit of five submissions per hour per visitor. Every submission is held as pending.
+Yes. Each submission is checked with a WordPress nonce, which the form refreshes in the background before sending so long-cached pages keep working. A signed target-bound token, a hidden honeypot field and a limit of five submissions per hour per visitor add further protection. Every submission is held as pending.
 
 = Will it add star ratings in search results? =
 For directly collected product/software reviews, it can add AggregateRating structured data when the aggregate is visible and the view is not curated. Existing/manual/CSV reviews stay visible but require a manager to confirm direct provenance. External source links/platform reviews are excluded; a mixed-provenance view adds no Ashbi aggregate. It never adds review markup for your own business, which search engines ignore. When the WooCommerce testimonials tab is enabled, eligible directly collected ratings are combined with native ratings in the existing Product schema. Whether stars appear is decided by the search engine.
@@ -63,6 +63,11 @@ Deactivation and deletion keep reviews, collections and settings by default, inc
 Use WordPress Tools > Export Personal Data or Erase Personal Data with the email stored on the review. Published, pending, draft and trashed matching reviews are included. Erasure permanently removes entire matching reviews and their metadata. Media Library files, backups and external copies need separate review. The plugin adds suggested text to the WordPress privacy policy guide for administrators to adapt.
 
 == Changelog ==
+
+= 1.2.0 =
+* All plugin names now use the unique ashbte prefix. Shortcodes are now [ashbte_testimonials], [ashbte_rating] and [ashbte_form]; blocks use the ashbte/ namespace; theme helpers are ashbte_get_testimonials() and ashbte_render_testimonials().
+* Existing sites are migrated automatically on update: reviews, collections, settings, presets, reminders and saved shortcodes/blocks in posts, widgets and Elementor are renamed in place. Back up before updating; rolling back to 1.1.x after this update requires restoring that backup. Update any shortcodes typed into theme templates or other page builders by hand. Reminder stop links emailed before this update no longer work; customers can stop reminders from their order page.
+* Nonce verification for the public review form, Load more, purchase proof, reminder preferences and admin navigation.
 
 = 1.1.2 =
 * Simplify testimonial editing, protect unsaved changes, and label publishing actions clearly.
@@ -93,8 +98,13 @@ Use WordPress Tools > Export Personal Data or Erase Personal Data with the email
 = 1.0.0 =
 * First release.
 
+== Upgrade Notice ==
+
+= 1.2.0 =
+Renames stored data and shortcodes to the ashbte prefix automatically. Back up your database before updating.
+
 == Support and privacy ==
 
-All features are free, without an Ashbi account or forced credit. Start with https://github.com/camster91/ashbi-testimonials/blob/main/docs/OPERATIONS.md for installation, privacy, import recovery and rollback. Non-sensitive support: https://github.com/camster91/ashbi-testimonials/issues . Never post customer data, credentials or signed preference links. Security reporting: https://github.com/camster91/ashbi-testimonials/blob/main/SECURITY.md . Private diagnostics in Settings contain versions and configuration flags only and are never sent automatically.
+All features are free, without an Ashbi account or forced credit. Start with https://github.com/camster91/ashbi-testimonials/blob/main/docs/OPERATIONS.md for installation, privacy, import recovery and rollback. For non-sensitive support, use the plugin support forum on WordPress.org. Never post customer data, credentials or signed preference links. Security reporting: https://github.com/camster91/ashbi-testimonials/blob/main/SECURITY.md . Private diagnostics in Settings contain versions and configuration flags only and are never sent automatically.
 
 The optional reminder workflow is off by default and requires both administrator configuration and explicit customer opt-in. WordPress mail acceptance does not guarantee inbox delivery. No external review connector or million-site performance claim is included.

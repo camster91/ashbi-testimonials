@@ -1,6 +1,6 @@
 <?php
 /** Native privacy integration tests. Run on disposable WordPress with wp eval-file. */
-if ( ! defined( 'ABSPATH' ) || ! class_exists( 'ABT_Data' ) ) {
+if ( ! defined( 'ABSPATH' ) || ! class_exists( 'ASHBTE_Data' ) ) {
 	exit( 1 );
 }
 $exporters = apply_filters( 'wp_privacy_personal_data_exporters', array() );
@@ -13,7 +13,7 @@ $check = static function ( $condition, $message ) {
 $check( isset( $exporters['ashbi-testimonials'], $erasers['ashbi-testimonials'] ), 'exporter and eraser are registered' );
 $export = $exporters['ashbi-testimonials']['callback'];
 $erase = $erasers['ashbi-testimonials']['callback'];
-$data = ABT_Data::instance();
+$data = ASHBTE_Data::instance();
 $other_site = 0;
 $other_site_review = 0;
 if ( is_multisite() ) {
@@ -47,7 +47,7 @@ $check( is_int( $revision ) && $revision > 0, 'personal revision fixture created
 wp_update_post( array( 'ID' => $revision, 'post_content' => 'Historical personal review text' ) );
 $other = $data->save( array( 'author' => 'Unrelated reviewer', 'content' => 'UNRELATED PRIVATE TEXT', 'email' => 'other@example.test', 'rating' => 1, 'collections' => array( $col['id'] ) ) );
 $unrelated = wp_insert_post( array( 'post_type' => 'post', 'post_title' => 'Unrelated post', 'post_status' => 'draft' ) );
-update_post_meta( $unrelated, '_abt_email', 'privacy@example.test' );
+update_post_meta( $unrelated, '_ashbte_email', 'privacy@example.test' );
 $first = call_user_func( $export, 'privacy@example.test', 1 );
 $second = call_user_func( $export, 'privacy@example.test', 2 );
 $check( 100 === count( $first['data'] ) && ! $first['done'] && 5 === count( $second['data'] ) && $second['done'], 'exports paginate through all review states' );
@@ -91,6 +91,6 @@ $media_review = $data->save( array( 'author' => 'Media reviewer', 'email' => 'me
 $media_result = call_user_func( $erase, 'media@example.test', 1 );
 $check( ! get_post( $media_review ) && get_post( $attachment ) && $media_result['items_retained'] && $media_result['messages'], 'shared media is preserved and disclosed' );
 wp_delete_attachment( $attachment, true );
-// This deliberately foreign _abt_email fixture must not pollute later uninstall counts.
+// This deliberately foreign _ashbte_email fixture must not pollute later uninstall counts.
 wp_delete_post( $unrelated, true );
 fwrite( STDOUT, "OK: WordPress privacy export and erasure passed\n" );

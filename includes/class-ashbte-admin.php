@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class ABT_Admin {
+class ASHBTE_Admin {
 
 	const SLUG = 'ashbi-testimonials';
 
@@ -17,12 +17,12 @@ class ABT_Admin {
 	const CSV_COLUMNS = array( 'author', 'content', 'rating', 'headline', 'role', 'company', 'location', 'email', 'avatar_url', 'product_id', 'subject', 'source', 'source_url', 'verified', 'featured', 'status', 'date', 'collections', 'origin', 'custom_fields' );
 
 	/**
-	 * @var ABT_Admin|null
+	 * @var ASHBTE_Admin|null
 	 */
 	private static $instance = null;
 
 	/**
-	 * @return ABT_Admin
+	 * @return ASHBTE_Admin
 	 */
 	public static function instance() {
 		if ( null === self::$instance ) {
@@ -35,24 +35,23 @@ class ABT_Admin {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
 		add_action( 'load-post-new.php', array( $this, 'prepare_review_form_page' ) );
-		add_filter( 'plugin_action_links_' . plugin_basename( ABT_PLUGIN_FILE ), array( $this, 'action_links' ) );
+		add_filter( 'plugin_action_links_' . plugin_basename( ASHBTE_PLUGIN_FILE ), array( $this, 'action_links' ) );
 
 		foreach ( array( 'list', 'get', 'save', 'delete', 'bulk', 'collection_save', 'collection_delete', 'search_posts', 'import', 'preview' ) as $action ) {
-			add_action( 'wp_ajax_abt_' . $action, array( $this, 'ajax_' . $action ) );
+			add_action( 'wp_ajax_ashbte_' . $action, array( $this, 'ajax_' . $action ) );
 		}
-		add_action( 'admin_post_abt_export', array( $this, 'export' ) );
-		add_action( 'admin_post_abt_save_settings', array( $this, 'save_settings' ) );
+		add_action( 'admin_post_ashbte_export', array( $this, 'export' ) );
+		add_action( 'admin_post_ashbte_save_settings', array( $this, 'save_settings' ) );
 	}
 
 	/** Preselect a collection in the editor for a new page. */
 	public function prepare_review_form_page() {
-		if ( ! current_user_can( abt_capability() ) || ! current_user_can( 'edit_pages' ) ) {
+		if ( ! current_user_can( ashbte_capability() ) || ! current_user_can( 'edit_pages' ) ) {
 			return;
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only editor prefill. Core handles saving and publishing.
-		$collection_id = isset( $_GET['abt_review_form_collection'] ) && is_string( $_GET['abt_review_form_collection'] ) ? absint( wp_unslash( $_GET['abt_review_form_collection'] ) ) : 0;
-		if ( ! $collection_id || ! ABT_Data::instance()->find_collection( $collection_id ) ) {
+		$collection_id = absint( self::nav_arg( 'ashbte_review_form_collection' ) );
+		if ( ! $collection_id || ! ASHBTE_Data::instance()->find_collection( $collection_id ) ) {
 			return;
 		}
 
@@ -63,11 +62,11 @@ class ABT_Admin {
 					return $content;
 				}
 				if ( ! use_block_editor_for_post( $post ) ) {
-					return '[ashbi_testimonial_form collection="' . $collection_id . '"]';
+					return '[ashbte_form collection="' . $collection_id . '"]';
 				}
 				return serialize_block(
 					array(
-						'blockName'    => 'ashbi/review-form',
+						'blockName'    => 'ashbte/review-form',
 						'attrs'        => array( 'collection' => (string) $collection_id ),
 						'innerBlocks'  => array(),
 						'innerContent' => array(),
@@ -86,24 +85,24 @@ class ABT_Admin {
 		}
 		$ids = self::review_form_collections( $post->post_content );
 		if ( $ids ) {
-			update_post_meta( $post_id, '_abt_review_form_collections', ',' . implode( ',', $ids ) . ',' );
+			update_post_meta( $post_id, '_ashbte_review_form_collections', ',' . implode( ',', $ids ) . ',' );
 		} else {
-			delete_post_meta( $post_id, '_abt_review_form_collections' );
+			delete_post_meta( $post_id, '_ashbte_review_form_collections' );
 		}
 	}
 
 	/** Find forms directly embedded in a page, including forms inside nested blocks. */
 	private static function review_form_collections( $content ) {
-		if ( ! str_contains( $content, 'ashbi/review-form' ) && ! str_contains( $content, 'ashbi_testimonial_form' ) ) {
+		if ( ! str_contains( $content, 'ashbte/review-form' ) && ! str_contains( $content, 'ashbte_form' ) ) {
 			return array();
 		}
 		$refs = array();
 		$walk = static function ( $blocks ) use ( &$walk, &$refs ) {
 			foreach ( $blocks as $block ) {
-				if ( 'ashbi/review-form' === $block['blockName'] ) {
+				if ( 'ashbte/review-form' === $block['blockName'] ) {
 					$refs[] = $block['attrs']['collection'] ?? '';
 				} elseif ( in_array( $block['blockName'], array( null, 'core/freeform', 'core/shortcode' ), true ) ) {
-					preg_match_all( '/' . get_shortcode_regex( array( 'ashbi_testimonial_form' ) ) . '/s', $block['innerHTML'], $matches, PREG_SET_ORDER );
+					preg_match_all( '/' . get_shortcode_regex( array( 'ashbte_form' ) ) . '/s', $block['innerHTML'], $matches, PREG_SET_ORDER );
 					foreach ( $matches as $match ) {
 						if ( '[' !== $match[1] || ']' !== $match[6] ) {
 							$attrs  = shortcode_parse_atts( $match[3] );
@@ -119,7 +118,7 @@ class ABT_Admin {
 		$ids = array();
 		foreach ( $refs as $ref ) {
 			if ( is_string( $ref ) && '' !== $ref ) {
-				$term = ABT_Data::instance()->find_collection( $ref );
+				$term = ASHBTE_Data::instance()->find_collection( $ref );
 				if ( $term ) {
 					$ids[] = (int) $term->term_id;
 				}
@@ -139,7 +138,7 @@ class ABT_Admin {
 				'orderby'      => 'modified ID',
 				'meta_query'   => array(
 					array(
-						'key'     => '_abt_review_form_collections',
+						'key'     => '_ashbte_review_form_collections',
 						'value'   => ',' . (int) $collection_id . ',',
 						'compare' => 'LIKE',
 					),
@@ -161,7 +160,7 @@ class ABT_Admin {
 		add_menu_page(
 			__( 'Ashbi Testimonials', 'ashbi-testimonials' ),
 			__( 'Testimonials', 'ashbi-testimonials' ) . $badge,
-			abt_capability(),
+			ashbte_capability(),
 			self::SLUG,
 			array( $this, 'render_page' ),
 			'dashicons-format-quote',
@@ -170,7 +169,7 @@ class ABT_Admin {
 	}
 
 	private function pending_total() {
-		$counts = wp_count_posts( ABT_Data::POST_TYPE );
+		$counts = wp_count_posts( ASHBTE_Data::POST_TYPE );
 		return isset( $counts->pending ) ? (int) $counts->pending : 0;
 	}
 
@@ -185,75 +184,113 @@ class ABT_Admin {
 		}
 
 		wp_enqueue_media();
-		wp_enqueue_style( 'abt-admin', ABT_PLUGIN_URL . 'assets/css/admin.css', array(), ABT_VERSION );
-		wp_enqueue_style( 'abt-frontend', ABT_PLUGIN_URL . 'assets/css/frontend.css', array(), ABT_VERSION );
-		ABT_Render::instance()->register_assets();
-		wp_enqueue_script( 'abt-frontend' );
-		wp_enqueue_script( 'abt-admin', ABT_PLUGIN_URL . 'assets/js/admin.js', array( 'wp-i18n', 'abt-frontend' ), ABT_VERSION, true );
-		wp_set_script_translations( 'abt-admin', 'ashbi-testimonials', ABT_PLUGIN_DIR . 'languages' );
+		wp_enqueue_style( 'ashbte-admin', ASHBTE_PLUGIN_URL . 'assets/css/admin.css', array(), ASHBTE_VERSION );
+		wp_enqueue_style( 'ashbte-frontend', ASHBTE_PLUGIN_URL . 'assets/css/frontend.css', array(), ASHBTE_VERSION );
+		ASHBTE_Render::instance()->register_assets();
+		wp_enqueue_script( 'ashbte-frontend' );
+		wp_enqueue_script( 'ashbte-admin', ASHBTE_PLUGIN_URL . 'assets/js/admin.js', array( 'wp-i18n', 'ashbte-frontend' ), ASHBTE_VERSION, true );
+		wp_set_script_translations( 'ashbte-admin', 'ashbi-testimonials', ASHBTE_PLUGIN_DIR . 'languages' );
 
 		$types = array();
-		foreach ( ABT_Data::types() as $key => $type ) {
+		foreach ( ASHBTE_Data::types() as $key => $type ) {
 			$types[ $key ] = array( 'label' => $type['label'], 'icon' => $type['icon'] );
 		}
 
 		wp_localize_script(
-			'abt-admin',
-			'abtAdmin',
+			'ashbte-admin',
+			'ashbteAdmin',
 			array(
 				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
-				'nonce'       => wp_create_nonce( 'abt_admin' ),
+				'nonce'       => wp_create_nonce( 'ashbte_admin' ),
 				'pageUrl'     => admin_url( 'admin.php?page=' . self::SLUG ),
 				'siteDate'    => wp_date( 'Y-m-d' ),
 				'collection'  => $this->current_collection_id(),
 				'collections' => array_map(
 					static fn( $c ) => array( 'id' => $c['id'], 'name' => $c['name'], 'slug' => $c['slug'], 'fields' => $c['fields'] ),
-					ABT_Data::instance()->collections()
+					ASHBTE_Data::instance()->collections()
 				),
 				'types'       => $types,
-				'layouts'     => ABT_Data::layouts(),
-				'parts'       => ABT_Render::PARTS,
-				'defaultShow' => ABT_Render::DEFAULT_PARTS,
+				'layouts'     => ASHBTE_Data::layouts(),
+				'parts'       => ASHBTE_Render::PARTS,
+				'defaultShow' => ASHBTE_Render::DEFAULT_PARTS,
 				'csvColumns'  => self::CSV_COLUMNS,
-				'woo'         => ABT_WooCommerce::active(),
+				'woo'         => ASHBTE_WooCommerce::active(),
 			)
 		);
 	}
 
+	/** Nonce action and query argument that sign the plugin's own admin navigation links. */
+	const NAV_NONCE = 'ashbte_nav';
+
+	/**
+	 * URL of a plugin admin screen. Links with arguments carry a navigation nonce so the
+	 * screen only honours arguments that came from the plugin's own links.
+	 *
+	 * @param array  $args  Query arguments.
+	 * @param string $base  Admin file, admin.php by default.
+	 * @return string Raw URL; escape it when printing.
+	 */
+	public static function url( array $args = array(), $base = 'admin.php' ) {
+		if ( 'admin.php' === $base ) {
+			$args = array( 'page' => self::SLUG ) + $args;
+		}
+		if ( $args && array( 'page' ) !== array_keys( $args ) ) {
+			$args['_ashbte_nav'] = wp_create_nonce( self::NAV_NONCE );
+		}
+		return add_query_arg( $args, admin_url( $base ) );
+	}
+
+	/**
+	 * Read a navigation argument only when the request carries a valid navigation nonce
+	 * and the current user may manage testimonials. Returns '' otherwise.
+	 *
+	 * @param string $key Query argument.
+	 * @return string Sanitized key.
+	 */
+	public static function nav_arg( $key ) {
+		if ( ! isset( $_GET['_ashbte_nav'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_ashbte_nav'] ) ), self::NAV_NONCE ) ) {
+			return '';
+		}
+		if ( ! current_user_can( ashbte_capability() ) || ! isset( $_GET[ $key ] ) || ! is_string( $_GET[ $key ] ) ) {
+			return '';
+		}
+		return sanitize_key( wp_unslash( $_GET[ $key ] ) );
+	}
+
 	/** -1 = all testimonials, 0 = dashboard, otherwise a collection term ID. */
 	private function current_collection_id() {
-		if ( ! isset( $_GET['collection'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navigation only.
+		$ref = self::nav_arg( 'collection' );
+		if ( '' === $ref ) {
 			return 0;
 		}
-		$ref = sanitize_key( wp_unslash( $_GET['collection'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navigation only.
 		if ( 'all' === $ref ) {
 			return -1;
 		}
-		$term = ABT_Data::instance()->find_collection( $ref );
+		$term = ASHBTE_Data::instance()->find_collection( $ref );
 		return $term ? (int) $term->term_id : 0;
 	}
 
 	public function render_page() {
-		if ( ! current_user_can( abt_capability() ) ) {
+		if ( ! current_user_can( ashbte_capability() ) ) {
 			wp_die( esc_html__( 'You do not have permission to manage testimonials.', 'ashbi-testimonials' ) );
 		}
 
-		$data          = ABT_Data::instance();
+		$data          = ASHBTE_Data::instance();
 		$collection_id = $this->current_collection_id();
 
 		if ( 0 === $collection_id ) {
 			$collections = $data->collections();
 			$all_stats   = $data->stats( array() );
 			$pending     = $this->pending_total();
-			$settings    = abt_settings();
-			include ABT_PLUGIN_DIR . 'admin/views/dashboard.php';
+			$settings    = ashbte_settings();
+			include ASHBTE_PLUGIN_DIR . 'admin/views/dashboard.php';
 			return;
 		}
 
 		$collection = -1 === $collection_id
 			? array( 'id' => -1, 'name' => __( 'All testimonials', 'ashbi-testimonials' ), 'slug' => '', 'type' => 'general', 'layout' => 'grid', 'accent' => '' )
-			: $data->collection_to_array( get_term( $collection_id, ABT_Data::TAXONOMY ) );
-		include ABT_PLUGIN_DIR . 'admin/views/collection.php';
+			: $data->collection_to_array( get_term( $collection_id, ASHBTE_Data::TAXONOMY ) );
+		include ASHBTE_PLUGIN_DIR . 'admin/views/collection.php';
 	}
 
 	/* ==================================================================
@@ -261,14 +298,14 @@ class ABT_Admin {
 	   ================================================================== */
 
 	private function guard() {
-		check_ajax_referer( 'abt_admin', 'nonce' );
-		if ( ! current_user_can( abt_capability() ) ) {
+		check_ajax_referer( 'ashbte_admin', 'nonce' );
+		if ( ! current_user_can( ashbte_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission to manage testimonials.', 'ashbi-testimonials' ) ), 403 );
 		}
 	}
 
 	/**
-	 * Read a POST field. Values are sanitised by the caller or ABT_Data::sanitize().
+	 * Read a POST field. Values are sanitised by the caller or ASHBTE_Data::sanitize().
 	 *
 	 * @param string $key     Field.
 	 * @param mixed  $default Default.
@@ -299,22 +336,22 @@ class ABT_Admin {
 			'per_page'   => max( 10, min( 100, absint( $this->post( 'per_page', 20 ) ) ) ),
 			'page'       => max( 1, absint( $this->post( 'page', 1 ) ) ),
 		);
-		$result = ABT_Data::instance()->query( $filters );
+		$result = ASHBTE_Data::instance()->query( $filters );
 
 		$counts = array();
 		foreach ( array( 'any', 'publish', 'pending', 'draft', 'trash' ) as $status ) {
-			$q                 = new WP_Query( array_merge( ABT_Data::instance()->query_args( array( 'collection' => $filters['collection'], 'status' => $status, 'per_page' => 1 ) ), array( 'fields' => 'ids' ) ) );
+			$q                 = new WP_Query( array_merge( ASHBTE_Data::instance()->query_args( array( 'collection' => $filters['collection'], 'status' => $status, 'per_page' => 1 ) ), array( 'fields' => 'ids' ) ) );
 			$counts[ $status ] = (int) $q->found_posts;
 		}
 
 		$result['counts'] = $counts;
-		$result['stats']  = ABT_Data::instance()->stats( array( 'collection' => $filters['collection'] ) );
+		$result['stats']  = ASHBTE_Data::instance()->stats( array( 'collection' => $filters['collection'] ) );
 		wp_send_json_success( $result );
 	}
 
 	public function ajax_get() {
 		$this->guard();
-		$item = ABT_Data::instance()->get( absint( $this->post( 'id', 0 ) ) );
+		$item = ASHBTE_Data::instance()->get( absint( $this->post( 'id', 0 ) ) );
 		$item ? wp_send_json_success( $item ) : wp_send_json_error( array( 'message' => __( 'That testimonial no longer exists.', 'ashbi-testimonials' ) ), 404 );
 	}
 
@@ -322,11 +359,11 @@ class ABT_Admin {
 		$this->guard();
 		$fields = $this->json_field( 'item' );
 		$id     = absint( $fields['id'] ?? 0 );
-		$saved  = ABT_Data::instance()->save( $fields, $id );
+		$saved  = ASHBTE_Data::instance()->save( $fields, $id );
 		if ( is_wp_error( $saved ) ) {
 			wp_send_json_error( array( 'message' => $saved->get_error_message() ), 400 );
 		}
-		wp_send_json_success( ABT_Data::instance()->get( $saved ) );
+		wp_send_json_success( ASHBTE_Data::instance()->get( $saved ) );
 	}
 
 	public function ajax_delete() {
@@ -337,7 +374,7 @@ class ABT_Admin {
 		$ids = array_unique( array_filter( array_map( 'absint', $this->json_field( 'ids' ) ) ) );
 		$deleted = 0;
 		foreach ( $ids as $id ) {
-			if ( ABT_Data::POST_TYPE === get_post_type( $id ) && wp_trash_post( $id ) ) {
+			if ( ASHBTE_Data::POST_TYPE === get_post_type( $id ) && wp_trash_post( $id ) ) {
 				++$deleted;
 			}
 		}
@@ -353,7 +390,7 @@ class ABT_Admin {
 
 		$updated = 0;
 		foreach ( $ids as $id ) {
-			if ( ABT_Data::POST_TYPE !== get_post_type( $id ) ) {
+			if ( ASHBTE_Data::POST_TYPE !== get_post_type( $id ) ) {
 				continue;
 			}
 			$result = false;
@@ -361,45 +398,45 @@ class ABT_Admin {
 				$result = wp_untrash_post( $id );
 			} elseif ( 'purge' === $action && 'trash' === get_post_status( $id ) ) {
 				$result = wp_delete_post( $id, true );
-			} elseif ( 'status' === $action && in_array( $value, ABT_Data::STATUSES, true ) ) {
+			} elseif ( 'status' === $action && in_array( $value, ASHBTE_Data::STATUSES, true ) ) {
 				$result = wp_update_post( array( 'ID' => $id, 'post_status' => $value ) );
 			} elseif ( 'featured' === $action ) {
-				$result = update_post_meta( $id, ABT_Data::META['featured'], '1' === $value ? 1 : 0 );
+				$result = update_post_meta( $id, ASHBTE_Data::META['featured'], '1' === $value ? 1 : 0 );
 			} elseif ( 'add_collection' === $action && absint( $value ) ) {
-				$result = wp_set_object_terms( $id, absint( $value ), ABT_Data::TAXONOMY, true );
+				$result = wp_set_object_terms( $id, absint( $value ), ASHBTE_Data::TAXONOMY, true );
 			} elseif ( 'remove_collection' === $action && absint( $value ) ) {
-				$result = wp_remove_object_terms( $id, absint( $value ), ABT_Data::TAXONOMY );
+				$result = wp_remove_object_terms( $id, absint( $value ), ASHBTE_Data::TAXONOMY );
 			}
 			if ( $result && ! is_wp_error( $result ) ) {
 				++$updated;
 			}
 		}
-		ABT_Data::instance()->flush();
+		ASHBTE_Data::instance()->flush();
 		wp_send_json_success( array( 'updated' => $updated ) );
 	}
 
 	public function ajax_collection_save() {
 		$this->guard();
 		$fields = $this->json_field( 'collection' );
-		$result = ABT_Data::instance()->save_collection( $fields, absint( $fields['id'] ?? 0 ) );
+		$result = ASHBTE_Data::instance()->save_collection( $fields, absint( $fields['id'] ?? 0 ) );
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( array( 'message' => $result->get_error_message() ), 400 );
 		}
-		$result['url'] = admin_url( 'admin.php?page=' . self::SLUG . '&collection=' . $result['id'] );
+		$result['url'] = self::url( array( 'collection' => $result['id'] ) );
 		wp_send_json_success( $result );
 	}
 
 	public function ajax_collection_delete() {
 		$this->guard();
-		$result = ABT_Data::instance()->delete_collection( absint( $this->post( 'id', 0 ) ), '1' === $this->post( 'trash_items', '0' ) );
+		$result = ASHBTE_Data::instance()->delete_collection( absint( $this->post( 'id', 0 ) ), '1' === $this->post( 'trash_items', '0' ) );
 		is_wp_error( $result ) ? wp_send_json_error( array( 'message' => $result->get_error_message() ), 400 ) : wp_send_json_success();
 	}
 
 	/** Find products, pages or posts to attach a review to. */
 	public function ajax_search_posts() {
 		$this->guard();
-		$types = ABT_WooCommerce::active() ? array( 'product' ) : array_values( array_diff( get_post_types( array( 'public' => true ) ), array( 'attachment' ) ) );
-		$types = (array) apply_filters( 'abt_reviewable_post_types', $types );
+		$types = ASHBTE_WooCommerce::active() ? array( 'product' ) : array_values( array_diff( get_post_types( array( 'public' => true ) ), array( 'attachment' ) ) );
+		$types = (array) apply_filters( 'ashbte_reviewable_post_types', $types );
 		$term  = sanitize_text_field( (string) $this->post( 'q', '' ) );
 
 		$args = array(
@@ -447,9 +484,9 @@ class ABT_Admin {
 
 	/** An atomic receipt prevents replay after a lost response or an interrupted PHP worker. */
 	public function import_batch( array $rows, $collection, $file, $offset ) {
-		$key = 'abt_import_' . hash( 'sha256', wp_json_encode( array( $file, $offset, $collection ) ) );
+		$key = 'ashbte_import_' . hash( 'sha256', wp_json_encode( array( $file, $offset, $collection ) ) );
 		$claim = array( 'fingerprint' => hash( 'sha256', wp_json_encode( $rows ) ) );
-		if ( ! ABT_Atomic::insert( $key, $claim ) ) {
+		if ( ! ASHBTE_Atomic::insert( $key, $claim ) ) {
 			$receipt = get_option( $key );
 			if ( is_array( $receipt ) && ( $receipt['fingerprint'] ?? '' ) === $claim['fingerprint'] && isset( $receipt['created'], $receipt['rejected'] ) ) {
 				return array(
@@ -460,7 +497,7 @@ class ABT_Admin {
 					),
 				);
 			}
-			return new WP_Error( 'abt_import_unconfirmed', __( 'This batch is in progress or its outcome is uncertain. If retrying the same file still shows this message, reconcile the saved reviews before importing again.', 'ashbi-testimonials' ) );
+			return new WP_Error( 'ashbte_import_unconfirmed', __( 'This batch is in progress or its outcome is uncertain. If retrying the same file still shows this message, reconcile the saved reviews before importing again.', 'ashbi-testimonials' ) );
 		}
 		$created    = 0;
 		$errors     = array();
@@ -480,8 +517,8 @@ class ABT_Admin {
 		wp_defer_term_counting( false );
 
 		$receipt = $claim + array( 'created' => $created, 'rejected' => array_column( $errors, 'row' ) );
-		if ( ! ABT_Atomic::replace( $key, $claim, $receipt ) ) {
-			return new WP_Error( 'abt_import_receipt', __( 'The import result could not be recorded. Reconcile saved reviews before importing again.', 'ashbi-testimonials' ) );
+		if ( ! ASHBTE_Atomic::replace( $key, $claim, $receipt ) ) {
+			return new WP_Error( 'ashbte_import_receipt', __( 'The import result could not be recorded. Reconcile saved reviews before importing again.', 'ashbi-testimonials' ) );
 		}
 		return array( 'created' => $created, 'errors' => $errors );
 	}
@@ -500,32 +537,32 @@ class ABT_Admin {
 		}
 
 		if ( isset( $row['custom_fields'] ) && is_string( $row['custom_fields'] ) ) {
-			if ( strlen( $row['custom_fields'] ) > 100000 ) { return new WP_Error( 'abt_fields', __( 'The custom fields column is too large.', 'ashbi-testimonials' ) ); }
+			if ( strlen( $row['custom_fields'] ) > 100000 ) { return new WP_Error( 'ashbte_fields', __( 'The custom fields column is too large.', 'ashbi-testimonials' ) ); }
 			$row['custom_fields'] = '' === trim( $row['custom_fields'] ) ? array() : json_decode( $row['custom_fields'], true );
 			if ( ! is_array( $row['custom_fields'] ) ) {
-				return new WP_Error( 'abt_fields', __( 'The custom fields column must contain valid JSON fields.', 'ashbi-testimonials' ) );
+				return new WP_Error( 'ashbte_fields', __( 'The custom fields column must contain valid JSON fields.', 'ashbi-testimonials' ) );
 			}
 		}
-		$custom = ABT_Fields::snapshots( $row['custom_fields'] ?? array() );
+		$custom = ASHBTE_Fields::snapshots( $row['custom_fields'] ?? array() );
 		if ( is_wp_error( $custom ) ) { return $custom; }
 		$row['custom_fields'] = $custom;
 		$ids = array();
 		if ( ! empty( $row['collections'] ) ) {
 			$groups = is_string( $row['collections'] ) ? json_decode( $row['collections'], true ) : $row['collections'];
 			if ( ! is_array( $groups ) ) {
-				return new WP_Error( 'abt_csv_collections', __( 'The collections column must contain an exported JSON list.', 'ashbi-testimonials' ) );
+				return new WP_Error( 'ashbte_csv_collections', __( 'The collections column must contain an exported JSON list.', 'ashbi-testimonials' ) );
 			}
 			foreach ( $groups as $group ) {
 				if ( ! is_array( $group ) || empty( $group['slug'] ) || empty( $group['name'] ) || ! is_string( $group['slug'] ) || ! is_string( $group['name'] ) ) {
-					return new WP_Error( 'abt_csv_collection', __( 'An exported collection needs a name and slug.', 'ashbi-testimonials' ) );
+					return new WP_Error( 'ashbte_csv_collection', __( 'An exported collection needs a name and slug.', 'ashbi-testimonials' ) );
 				}
-				$term = get_term_by( 'slug', sanitize_title( (string) $group['slug'] ), ABT_Data::TAXONOMY );
+				$term = get_term_by( 'slug', sanitize_title( (string) $group['slug'] ), ASHBTE_Data::TAXONOMY );
 				if ( $term ) {
 					$ids[] = (int) $term->term_id;
 				} else {
 					$settings = array_filter( $group, 'is_scalar' );
 					$settings['fields'] = $group['fields'] ?? array();
-					$saved = ABT_Data::instance()->save_collection( $settings );
+					$saved = ASHBTE_Data::instance()->save_collection( $settings );
 					if ( is_wp_error( $saved ) ) {
 						return $saved;
 					}
@@ -538,16 +575,16 @@ class ABT_Admin {
 		}
 		$row['origin'] = 'imported';
 		$row['collections'] = array_values( array_unique( $ids ) );
-		return ABT_Data::instance()->save( $row );
+		return ASHBTE_Data::instance()->save( $row );
 	}
 
 	/** Build an export record with portable collection metadata and safe cells. */
 	public function export_row( array $item ) {
 		$groups = array();
 		foreach ( $item['collections'] as $id ) {
-			$term = get_term( $id, ABT_Data::TAXONOMY );
+			$term = get_term( $id, ASHBTE_Data::TAXONOMY );
 			if ( $term instanceof WP_Term ) {
-				$group = ABT_Data::instance()->collection_to_array( $term );
+				$group = ASHBTE_Data::instance()->collection_to_array( $term );
 				unset( $group['id'], $group['count'] );
 				$groups[] = $group;
 			}
@@ -568,8 +605,8 @@ class ABT_Admin {
 		$this->guard();
 		$atts = array_map( 'sanitize_text_field', array_filter( $this->json_field( 'atts' ), 'is_scalar' ) );
 		$atts['schema'] = '0';
-		$html = ABT_Shortcode::instance()->testimonials( $atts );
-		wp_send_json_success( array( 'html' => $html ?: '<p class="abt-preview-empty">' . esc_html__( 'No published testimonials match these settings yet.', 'ashbi-testimonials' ) . '</p>' ) );
+		$html = ASHBTE_Shortcode::instance()->testimonials( $atts );
+		wp_send_json_success( array( 'html' => $html ?: '<p class="ashbte-preview-empty">' . esc_html__( 'No published testimonials match these settings yet.', 'ashbi-testimonials' ) . '</p>' ) );
 	}
 
 	/* ==================================================================
@@ -577,12 +614,12 @@ class ABT_Admin {
 	   ================================================================== */
 
 	public function export() {
-		if ( ! current_user_can( abt_capability() ) ) {
+		if ( ! current_user_can( ashbte_capability() ) ) {
 			wp_die( esc_html__( 'You do not have permission to export testimonials.', 'ashbi-testimonials' ) );
 		}
-		check_admin_referer( 'abt_export' );
+		check_admin_referer( 'ashbte_export' );
 		$collection = isset( $_GET['collection'] ) ? absint( $_GET['collection'] ) : 0;
-		$term       = $collection ? get_term( $collection, ABT_Data::TAXONOMY ) : null;
+		$term       = $collection ? get_term( $collection, ASHBTE_Data::TAXONOMY ) : null;
 		$name       = $term instanceof WP_Term ? $term->slug : 'all';
 
 		nocache_headers();
@@ -595,7 +632,7 @@ class ABT_Admin {
 
 		$page = 1;
 		do {
-			$result = ABT_Data::instance()->query( array( 'collection' => $collection, 'status' => 'any', 'per_page' => 200, 'page' => $page ) );
+			$result = ASHBTE_Data::instance()->query( array( 'collection' => $collection, 'status' => 'any', 'per_page' => 200, 'page' => $page ) );
 			foreach ( $result['items'] as $item ) {
 				fputcsv( $out, $this->export_row( $item ), ',', '"', '' );
 			}
@@ -610,7 +647,7 @@ class ABT_Admin {
 	public static function diagnostics() {
 		if ( ! current_user_can( 'manage_options' ) ) { return array(); }
 		return array(
-			'plugin' => ABT_VERSION,
+			'plugin' => ASHBTE_VERSION,
 			'wordpress' => get_bloginfo( 'version' ),
 			'php' => PHP_VERSION,
 			'woocommerce' => defined( 'WC_VERSION' ) ? WC_VERSION : 'inactive',
@@ -618,8 +655,8 @@ class ABT_Admin {
 			'multisite' => is_multisite(),
 			'external_object_cache' => wp_using_ext_object_cache(),
 			'cron_disabled' => defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON,
-			'review_reminders_enabled' => '1' === abt_settings()['review_requests'],
-			'cleanup_on_uninstall' => '1' === abt_settings()['delete_on_uninstall'],
+			'review_reminders_enabled' => '1' === ashbte_settings()['review_requests'],
+			'cleanup_on_uninstall' => '1' === ashbte_settings()['delete_on_uninstall'],
 		);
 	}
 
@@ -627,7 +664,7 @@ class ABT_Admin {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to change these settings.', 'ashbi-testimonials' ) );
 		}
-		check_admin_referer( 'abt_save_settings' );
+		check_admin_referer( 'ashbte_save_settings' );
 
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Checked above.
 		$settings = array(
@@ -641,8 +678,8 @@ class ABT_Admin {
 			'delete_on_uninstall' => isset( $_POST['delete_on_uninstall'] ) && '1' === $_POST['delete_on_uninstall'] ? '1' : '0',
 		);
 		// phpcs:enable
-		update_option( ABT_SETTINGS_OPTION, $settings, false );
-		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SLUG . '&settings-updated=1' ) );
+		update_option( ASHBTE_SETTINGS_OPTION, $settings, false );
+		wp_safe_redirect( self::url( array( 'settings-updated' => '1' ) ) );
 		exit;
 	}
 }

@@ -2,7 +2,7 @@
 /** Stable ties and bounded read-only load-more requests. */
 if ( ! defined( 'ABSPATH' ) ) { exit( 1 ); }
 $check = static function( $ok, $message ) { if ( ! $ok ) { throw new RuntimeException( 'Pagination: ' . $message ); } };
-$data = ABT_Data::instance(); $shortcode = ABT_Shortcode::instance();
+$data = ASHBTE_Data::instance(); $shortcode = ASHBTE_Shortcode::instance();
 foreach ( array( 'rating', 'featured' ) as $sort ) {
  $args = $data->query_args( array( 'orderby' => $sort ) );
  $check( isset( $args['orderby']['ID'] ), $sort . ' ties use a stable ID order' );

@@ -9,8 +9,8 @@ function luminance(h,s,l){
  return .2126*v[0]+.7152*v[1]+.0722*v[2];
 }
 test('every generated avatar hue meets normal-text 4.5:1 contrast',()=>{
- const block=css.match(/\.abt-avatar--initials\s*\{([^}]+)\}/)[1];
- const colour=property=>{const match=block.match(new RegExp('(?:^|;)\\s*'+property+':\\s*hsl\\(var\\(--abt-hue,\\s*220\\)\\s+(\\d+)%\\s+(\\d+)%\\)'));assert.ok(match);return [Number(match[1]),Number(match[2])];};
+ const block=css.match(/\.ashbte-avatar--initials\s*\{([^}]+)\}/)[1];
+ const colour=property=>{const match=block.match(new RegExp('(?:^|;)\\s*'+property+':\\s*hsl\\(var\\(--ashbte-hue,\\s*220\\)\\s+(\\d+)%\\s+(\\d+)%\\)'));assert.ok(match);return [Number(match[1]),Number(match[2])];};
  const bg=colour('background'),fg=colour('color');
  for(let i=0;i<=255;i++){
   const h=i*360/255,b=luminance(h,...bg),f=luminance(h,...fg),ratio=(Math.max(b,f)+.05)/(Math.min(b,f)+.05);

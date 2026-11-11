@@ -1,6 +1,6 @@
 <?php
 /** Run with wp eval-file on disposable WordPress. */
-if ( ! defined( 'ABSPATH' ) || ! class_exists( 'ABT_Data' ) ) {
+if ( ! defined( 'ABSPATH' ) || ! class_exists( 'ASHBTE_Data' ) ) {
 	exit( 1 );
 }
 $failures = array();
@@ -18,7 +18,7 @@ $run = static function ( $name, $test ) use ( &$failures ) {
 };
 $admins = get_users( array( 'role' => 'administrator', 'number' => 1 ) );
 wp_set_current_user( $admins[0]->ID );
-$data = ABT_Data::instance();
+$data = ASHBTE_Data::instance();
 $run( 'review dates', static function () use ( $data, $check ) {
 	$id = $data->save( array( 'author' => 'Today', 'rating' => 5, 'date' => current_time( 'Y-m-d' ) ) );
 	$check( ! is_wp_error( $id ) && 'publish' === get_post_status( $id ), 'today is published immediately' );
@@ -45,18 +45,18 @@ $run( 'filtered statistics', static function () use ( $data, $check ) {
 	$check( 2 === $stats['rated'] && 4.0 === (float) $stats['average'], 'minimum rating filters statistics' );
 	$stats = $data->stats( array_merge( $base, array( 'ids' => array( $ids[1] ), 'verified' => true ) ) );
 	$check( 0 === $stats['rated'], 'filters combine and empty results are not cached as unfiltered results' );
-	$html = do_shortcode( '[ashbi_rating ids="' . $ids[0] . '" style="inline"]' );
+	$html = do_shortcode( '[ashbte_rating ids="' . $ids[0] . '" style="inline"]' );
 	$check( false !== strpos( $html, '>5.0</strong>' ) && false !== strpos( $html, '(1)' ), 'rating shortcode respects IDs' );
 } );
 $run( 'CSV collection restore', static function () use ( $data, $check ) {
-	$admin = ABT_Admin::instance();
+	$admin = ASHBTE_Admin::instance();
 	$a = $data->save_collection( array( 'name' => 'Restore A', 'slug' => 'restore-a', 'type' => 'software', 'layout' => 'slider', 'accent' => '#123456' ) );
 	$b = $data->save_collection( array( 'name' => 'Restore B', 'slug' => 'restore-b' ) );
 	$id = $data->save( array( 'author' => 'CSV restore', 'content' => "<p>One</p><p>Two</p>", 'rating' => 4, 'collections' => array( $a['id'], $b['id'] ) ) );
 	$stream = fopen( 'php://temp', 'r+' );
 	fputcsv( $stream, $admin->export_row( $data->get( $id ) ), ',', '"', '' );
 	rewind( $stream );
-	$row = array_combine( ABT_Admin::CSV_COLUMNS, fgetcsv( $stream, 0, ',', '"', '' ) );
+	$row = array_combine( ASHBTE_Admin::CSV_COLUMNS, fgetcsv( $stream, 0, ',', '"', '' ) );
 	fclose( $stream );
 	$data->delete_collection( $a['id'] );
 	$data->delete_collection( $b['id'] );
@@ -64,7 +64,7 @@ $run( 'CSV collection restore', static function () use ( $data, $check ) {
 	$check( ! is_wp_error( $restored_id ), 'exported CSV imports after collections are deleted' );
 	$restored = $data->get( $restored_id );
 	$check( 2 === count( $restored['collections'] ), 'both collection assignments are restored' );
-	$term = get_term_by( 'slug', 'restore-a', ABT_Data::TAXONOMY );
+	$term = get_term_by( 'slug', 'restore-a', ASHBTE_Data::TAXONOMY );
 	$settings = $data->collection_to_array( $term );
 	$check( 'software' === $settings['type'] && 'slider' === $settings['layout'] && '#123456' === $settings['accent'], 'collection settings survive a CSV round trip' );
 	$check( $restored['content'] === $row['content'], 'review content survives the round trip' );

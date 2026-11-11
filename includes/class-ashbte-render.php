@@ -9,15 +9,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class ABT_Render {
+class ASHBTE_Render {
 
 	/** Card parts that the `show` attribute can toggle. */
 	const PARTS = array( 'avatar', 'rating', 'headline', 'role', 'company', 'date', 'source', 'product', 'verified', 'location' );
 
 	const DEFAULT_PARTS = 'avatar,rating,headline,role,company,source,verified';
 
+	/** Nonce action for public front-end requests (review form, Load more, purchase proof). */
+	const NONCE = 'ashbte_public';
+
 	/**
-	 * @var ABT_Render|null
+	 * @var ASHBTE_Render|null
 	 */
 	private static $instance = null;
 
@@ -25,7 +28,7 @@ class ABT_Render {
 	private $schema = array();
 
 	/**
-	 * @return ABT_Render
+	 * @return ASHBTE_Render
 	 */
 	public static function instance() {
 		if ( null === self::$instance ) {
@@ -37,16 +40,29 @@ class ABT_Render {
 	private function __construct() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'register_assets' ) );
 		add_action( 'wp_footer', array( $this, 'print_schema' ) );
+		add_action( 'wp_ajax_ashbte_public_nonce', array( $this, 'ajax_public_nonce' ) );
+		add_action( 'wp_ajax_nopriv_ashbte_public_nonce', array( $this, 'ajax_public_nonce' ) );
+	}
+
+	/**
+	 * Issue a fresh nonce for public front-end requests. Pages with testimonials are
+	 * often cached for longer than a nonce lives, so the script asks for a current one
+	 * before it submits. This endpoint reads no input and changes nothing.
+	 */
+	public function ajax_public_nonce() {
+		nocache_headers();
+		wp_send_json_success( array( 'nonce' => wp_create_nonce( self::NONCE ) ) );
 	}
 
 	public function register_assets() {
-		wp_register_style( 'abt-frontend', ABT_PLUGIN_URL . 'assets/css/frontend.css', array(), ABT_VERSION );
-		wp_register_script( 'abt-frontend', ABT_PLUGIN_URL . 'assets/js/frontend.js', array(), ABT_VERSION, array( 'in_footer' => true, 'strategy' => 'defer' ) );
+		wp_register_style( 'ashbte-frontend', ASHBTE_PLUGIN_URL . 'assets/css/frontend.css', array(), ASHBTE_VERSION );
+		wp_register_script( 'ashbte-frontend', ASHBTE_PLUGIN_URL . 'assets/js/frontend.js', array(), ASHBTE_VERSION, array( 'in_footer' => true, 'strategy' => 'defer' ) );
 		wp_localize_script(
-			'abt-frontend',
-			'abtFrontend',
+			'ashbte-frontend',
+			'ashbteFrontend',
 			array(
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'nonce'   => wp_create_nonce( self::NONCE ),
 				'form' => array(
 					'thanks' => __( 'Thank you! Your review was received and will appear once approved.', 'ashbi-testimonials' ),
 					'invalid' => __( 'Check the required fields, rating and consent before trying again.', 'ashbi-testimonials' ),
@@ -69,11 +85,11 @@ class ABT_Render {
 	}
 
 	public function enqueue() {
-		if ( ! wp_style_is( 'abt-frontend', 'registered' ) ) {
+		if ( ! wp_style_is( 'ashbte-frontend', 'registered' ) ) {
 			$this->register_assets();
 		}
-		wp_enqueue_style( 'abt-frontend' );
-		wp_enqueue_script( 'abt-frontend' );
+		wp_enqueue_style( 'ashbte-frontend' );
+		wp_enqueue_script( 'ashbte-frontend' );
 	}
 
 	/* ==================================================================
@@ -95,7 +111,7 @@ class ABT_Render {
 		$label = sprintf( __( 'Rated %s out of 5', 'ashbi-testimonials' ), number_format_i18n( $rating, floor( $rating ) === $rating ? 0 : 1 ) );
 
 		return sprintf(
-			'<span class="abt-stars abt-stars--%1$s" role="img" aria-label="%2$s"><span class="abt-stars__base">%3$s</span><span class="abt-stars__fill" style="width:%4$s%%">%3$s</span></span>',
+			'<span class="ashbte-stars ashbte-stars--%1$s" role="img" aria-label="%2$s"><span class="ashbte-stars__base">%3$s</span><span class="ashbte-stars__fill" style="width:%4$s%%">%3$s</span></span>',
 			esc_attr( sanitize_key( $size ) ),
 			esc_attr( $label ),
 			$row,
@@ -106,7 +122,7 @@ class ABT_Render {
 	/** Image avatar, or coloured initials when none is set. */
 	private function avatar( array $item ) {
 		if ( ! empty( $item['avatar'] ) ) {
-			return sprintf( '<img class="abt-avatar" src="%s" alt="" width="48" height="48" loading="lazy" decoding="async" />', esc_url( $item['avatar'] ) );
+			return sprintf( '<img class="ashbte-avatar" src="%s" alt="" width="48" height="48" loading="lazy" decoding="async" />', esc_url( $item['avatar'] ) );
 		}
 		$words    = preg_split( '/\s+/u', trim( (string) $item['author'] ) );
 		$initials = '';
@@ -115,13 +131,13 @@ class ABT_Render {
 			$initials .= function_exists( 'mb_strtoupper' ) ? mb_strtoupper( $initial ) : strtoupper( $initial );
 		}
 		$hue = hexdec( substr( md5( (string) $item['author'] ), 0, 2 ) ) * 360 / 255;
-		return sprintf( '<span class="abt-avatar abt-avatar--initials" style="--abt-hue:%d" aria-hidden="true">%s</span>', (int) $hue, esc_html( $initials ?: '?' ) );
+		return sprintf( '<span class="ashbte-avatar ashbte-avatar--initials" style="--ashbte-hue:%d" aria-hidden="true">%s</span>', (int) $hue, esc_html( $initials ?: '?' ) );
 	}
 
 	/**
 	 * One testimonial card.
 	 *
-	 * @param array $item  Testimonial from ABT_Data::get().
+	 * @param array $item  Testimonial from ASHBTE_Data::get().
 	 * @param array $opts  parts (array), words (int), heading (h2-h6|p).
 	 * @return string
 	 */
@@ -131,9 +147,9 @@ class ABT_Render {
 		$heading = in_array( $opts['heading'] ?? 'h3', array( 'h2', 'h3', 'h4', 'h5', 'h6', 'p' ), true ) ? ( $opts['heading'] ?? 'h3' ) : 'h3';
 		$show    = static fn( $part ) => isset( $parts[ $part ] );
 
-		$classes = array( 'abt-card' );
+		$classes = array( 'ashbte-card' );
 		if ( $item['featured'] ) {
-			$classes[] = 'abt-card--featured';
+			$classes[] = 'ashbte-card--featured';
 		}
 
 		$html = '<figure class="' . esc_attr( implode( ' ', $classes ) ) . '">';
@@ -142,46 +158,46 @@ class ABT_Render {
 			$html .= $this->stars( $item['rating'], 'sm' );
 		}
 		if ( $show( 'headline' ) && '' !== $item['headline'] ) {
-			$html .= sprintf( '<%1$s class="abt-card__headline">%2$s</%1$s>', $heading, esc_html( $item['headline'] ) );
+			$html .= sprintf( '<%1$s class="ashbte-card__headline">%2$s</%1$s>', $heading, esc_html( $item['headline'] ) );
 		}
 
 		$content = (string) $item['content'];
 		if ( '' !== trim( $content ) ) {
 			$full = wpautop( wp_kses_post( $content ) );
-			$html .= '<blockquote class="abt-card__quote">';
+			$html .= '<blockquote class="ashbte-card__quote">';
 			$excerpt = $words > 0 ? wp_trim_words( $content, $words, '…' ) : '';
 			if ( $words > 0 && $excerpt !== wp_trim_words( $content, $words, '' ) ) {
-				$html .= '<div class="abt-card__excerpt" hidden><p>' . esc_html( $excerpt ) . '</p></div>';
-				$html .= '<div class="abt-card__full">' . $full . '</div>';
-				$html .= '<button type="button" class="abt-card__more" hidden>' . esc_html__( 'Read more', 'ashbi-testimonials' ) . '</button>';
+				$html .= '<div class="ashbte-card__excerpt" hidden><p>' . esc_html( $excerpt ) . '</p></div>';
+				$html .= '<div class="ashbte-card__full">' . $full . '</div>';
+				$html .= '<button type="button" class="ashbte-card__more" hidden>' . esc_html__( 'Read more', 'ashbi-testimonials' ) . '</button>';
 			} else {
 				$html .= $full;
 			}
 			$html .= '</blockquote>';
 		}
 
-		if ( $show( 'verified' ) && ABT_Purchase::verified( $item ) ) {
-			$html .= '<p class="abt-card__purchase">' . esc_html__( 'Verified purchase', 'ashbi-testimonials' ) . '</p>';
+		if ( $show( 'verified' ) && ASHBTE_Purchase::verified( $item ) ) {
+			$html .= '<p class="ashbte-card__purchase">' . esc_html__( 'Verified purchase', 'ashbi-testimonials' ) . '</p>';
 		}
-		$html .= ABT_Fields::card( $item );
+		$html .= ASHBTE_Fields::card( $item );
 		if ( $show( 'product' ) && $item['product_title'] ) {
 			$html .= sprintf(
-				'<p class="abt-card__product">%s <a href="%s">%s</a></p>',
+				'<p class="ashbte-card__product">%s <a href="%s">%s</a></p>',
 				esc_html__( 'Reviewed:', 'ashbi-testimonials' ),
 				esc_url( $item['product_url'] ),
 				esc_html( $item['product_title'] )
 			);
 		} elseif ( $show( 'product' ) && '' !== $item['subject'] ) {
-			$html .= '<p class="abt-card__product">' . esc_html__( 'Reviewed:', 'ashbi-testimonials' ) . ' ' . esc_html( $item['subject'] ) . '</p>';
+			$html .= '<p class="ashbte-card__product">' . esc_html__( 'Reviewed:', 'ashbi-testimonials' ) . ' ' . esc_html( $item['subject'] ) . '</p>';
 		}
 
-		$html .= '<figcaption class="abt-card__author">';
+		$html .= '<figcaption class="ashbte-card__author">';
 		if ( $show( 'avatar' ) ) {
 			$html .= $this->avatar( $item );
 		}
-		$html .= '<span class="abt-card__who"><cite class="abt-card__name">' . esc_html( $item['author'] ) . '</cite>';
+		$html .= '<span class="ashbte-card__who"><cite class="ashbte-card__name">' . esc_html( $item['author'] ) . '</cite>';
 		if ( $show( 'verified' ) && $item['verified'] ) {
-			$html .= '<span class="abt-badge-verified"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>' . esc_html__( 'Checked by site owner', 'ashbi-testimonials' ) . '</span>';
+			$html .= '<span class="ashbte-badge-verified"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>' . esc_html__( 'Checked by site owner', 'ashbi-testimonials' ) . '</span>';
 		}
 
 		$meta = array();
@@ -195,12 +211,12 @@ class ABT_Render {
 			$meta[] = esc_html( $item['location'] );
 		}
 		if ( $meta ) {
-			$html .= '<span class="abt-card__meta">' . implode( ' · ', $meta ) . '</span>';
+			$html .= '<span class="ashbte-card__meta">' . implode( ' · ', $meta ) . '</span>';
 		}
 
 		$foot = array();
 		if ( $show( 'date' ) ) {
-			$format = abt_settings()['date_format'] ?: get_option( 'date_format' );
+			$format = ashbte_settings()['date_format'] ?: get_option( 'date_format' );
 			$foot[] = sprintf( '<time datetime="%s">%s</time>', esc_attr( $item['date'] ), esc_html( wp_date( $format, $item['time'] ) ) );
 		}
 		if ( $show( 'source' ) && '' !== $item['source'] ) {
@@ -208,7 +224,7 @@ class ABT_Render {
 			$foot[] = $item['source_url'] ? sprintf( '<a href="%s" rel="nofollow noopener" target="_blank">%s</a>', esc_url( $item['source_url'] ), $label ) : $label;
 		}
 		if ( $foot ) {
-			$html .= '<span class="abt-card__foot">' . implode( ' · ', $foot ) . '</span>';
+			$html .= '<span class="ashbte-card__foot">' . implode( ' · ', $foot ) . '</span>';
 		}
 		$html .= '</span></figcaption></figure>';
 
@@ -219,13 +235,13 @@ class ABT_Render {
 		 * @param array  $item Testimonial data.
 		 * @param array  $opts Render options.
 		 */
-		return (string) apply_filters( 'abt_card_html', $html, $item, $opts );
+		return (string) apply_filters( 'ashbte_card_html', $html, $item, $opts );
 	}
 
 	/**
 	 * Rating summary: average, stars, count and optional breakdown bars.
 	 *
-	 * @param array $stats     From ABT_Data::stats().
+	 * @param array $stats     From ASHBTE_Data::stats().
 	 * @param bool  $breakdown Show per-star bars.
 	 * @return string
 	 */
@@ -233,10 +249,10 @@ class ABT_Render {
 		if ( ! $stats['rated'] ) {
 			return '';
 		}
-		$html  = '<div class="abt-summary">';
-		$html .= '<div class="abt-summary__score"><span class="abt-summary__avg">' . esc_html( number_format_i18n( $stats['average'], 1 ) ) . '</span>';
+		$html  = '<div class="ashbte-summary">';
+		$html .= '<div class="ashbte-summary__score"><span class="ashbte-summary__avg">' . esc_html( number_format_i18n( $stats['average'], 1 ) ) . '</span>';
 		$html .= $this->stars( $stats['average'], 'md' );
-		$html .= '<span class="abt-summary__count">' . esc_html(
+		$html .= '<span class="ashbte-summary__count">' . esc_html(
 			sprintf(
 				/* translators: %s: number of reviews */
 				_n( 'Based on %s review', 'Based on %s reviews', $stats['rated'], 'ashbi-testimonials' ),
@@ -245,11 +261,11 @@ class ABT_Render {
 		) . '</span></div>';
 
 		if ( $breakdown ) {
-			$html .= '<ul class="abt-summary__bars">';
+			$html .= '<ul class="ashbte-summary__bars">';
 			foreach ( $stats['breakdown'] as $star => $n ) {
 				$pct   = $stats['rated'] ? round( $n / $stats['rated'] * 100 ) : 0;
 				$html .= sprintf(
-					'<li><span class="abt-summary__label">%1$s</span><span class="abt-summary__bar" aria-hidden="true"><span style="width:%2$d%%"></span></span><span class="abt-summary__pct">%3$s</span></li>',
+					'<li><span class="ashbte-summary__label">%1$s</span><span class="ashbte-summary__bar" aria-hidden="true"><span style="width:%2$d%%"></span></span><span class="ashbte-summary__pct">%3$s</span></li>',
 					/* translators: %d: number of stars */
 					esc_html( sprintf( _n( '%d star', '%d stars', $star, 'ashbi-testimonials' ), $star ) ),
 					(int) $pct,
@@ -270,14 +286,14 @@ class ABT_Render {
 	 */
 	public function layout( array $cards, array $layout ) {
 		$type    = $layout['layout'];
-		$classes = array( 'abt', 'abt--' . $type, 'abt--theme-' . $layout['theme'] );
+		$classes = array( 'ashbte', 'ashbte--' . $type, 'ashbte--theme-' . $layout['theme'] );
 		if ( '' !== $layout['class'] ) {
 			$classes[] = $layout['class'];
 		}
-		$style = '--abt-cols:' . (int) $layout['columns'] . ';';
+		$style = '--ashbte-cols:' . (int) $layout['columns'] . ';';
 		$accent = sanitize_hex_color( $layout['accent'] );
 		if ( $accent ) {
-			$style .= '--abt-accent:' . $accent . ';';
+			$style .= '--ashbte-accent:' . $accent . ';';
 			$hex = ltrim( $accent, '#' );
 			if ( 3 === strlen( $hex ) ) {
 				$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
@@ -291,7 +307,7 @@ class ABT_Render {
 			);
 			// Pick the foreground with the higher contrast against a custom action colour.
 			$luminance = 0.2126 * $rgb[0] + 0.7152 * $rgb[1] + 0.0722 * $rgb[2];
-			$style .= '--abt-action-text:' . ( $luminance > 0.179 ? '#000' : '#fff' ) . ';';
+			$style .= '--ashbte-action-text:' . ( $luminance > 0.179 ? '#000' : '#fff' ) . ';';
 		}
 
 		$html = sprintf(
@@ -299,21 +315,21 @@ class ABT_Render {
 			esc_attr( implode( ' ', $classes ) ),
 			esc_attr( $style ),
 			esc_attr( $layout['label'] ),
-			'slider' === $type ? ' data-abt-slider' : ''
+			'slider' === $type ? ' data-ashbte-slider' : ''
 		);
 		$html .= $layout['before'];
 
 		if ( 'slider' === $type ) {
-			$html .= '<div class="abt-slider__track" tabindex="0" role="group" aria-label="' . esc_attr__( 'Scrollable testimonials', 'ashbi-testimonials' ) . '">' . implode( '', array_map( static fn( $c ) => '<div class="abt-slider__slide">' . $c . '</div>', $cards ) ) . '</div>';
-			$html .= '<div class="abt-slider__nav" hidden><button type="button" class="abt-slider__prev" aria-label="' . esc_attr__( 'Previous testimonials', 'ashbi-testimonials' ) . '"><span aria-hidden="true">&larr;</span></button>';
-			$html .= '<button type="button" class="abt-slider__next" aria-label="' . esc_attr__( 'Next testimonials', 'ashbi-testimonials' ) . '"><span aria-hidden="true">&rarr;</span></button></div>';
+			$html .= '<div class="ashbte-slider__track" tabindex="0" role="group" aria-label="' . esc_attr__( 'Scrollable testimonials', 'ashbi-testimonials' ) . '">' . implode( '', array_map( static fn( $c ) => '<div class="ashbte-slider__slide">' . $c . '</div>', $cards ) ) . '</div>';
+			$html .= '<div class="ashbte-slider__nav" hidden><button type="button" class="ashbte-slider__prev" aria-label="' . esc_attr__( 'Previous testimonials', 'ashbi-testimonials' ) . '"><span aria-hidden="true">&larr;</span></button>';
+			$html .= '<button type="button" class="ashbte-slider__next" aria-label="' . esc_attr__( 'Next testimonials', 'ashbi-testimonials' ) . '"><span aria-hidden="true">&rarr;</span></button></div>';
 		} else {
-			$html .= '<div class="abt__items">' . implode( '', $cards ) . '</div>';
+			$html .= '<div class="ashbte__items">' . implode( '', $cards ) . '</div>';
 		}
 
 		if ( ! empty( $layout['more'] ) ) {
 			$html .= sprintf(
-				'<div class="abt__more" hidden><button type="button" class="abt-load-more" data-abt-more="%s">%s</button></div>',
+				'<div class="ashbte__more" hidden><button type="button" class="ashbte-load-more" data-ashbte-more="%s">%s</button></div>',
 				esc_attr( wp_json_encode( $layout['more'] ) ),
 				esc_html__( 'Load more reviews', 'ashbi-testimonials' )
 			);
@@ -338,7 +354,7 @@ class ABT_Render {
 	 * @param string $url     Item URL.
 	 */
 	public function queue_schema( $type, $name, array $stats, array $reviews = array(), $url = '' ) {
-		if ( '1' !== abt_settings()['schema'] || ( $stats['ineligible'] ?? $stats['rated'] ) || ! $stats['rated'] || '' === $name || ! in_array( $type, array( 'Product', 'SoftwareApplication' ), true ) ) {
+		if ( '1' !== ashbte_settings()['schema'] || ( $stats['ineligible'] ?? $stats['rated'] ) || ! $stats['rated'] || '' === $name || ! in_array( $type, array( 'Product', 'SoftwareApplication' ), true ) ) {
 			return;
 		}
 		// WooCommerce already prints Product markup on its product pages.
@@ -380,7 +396,7 @@ class ABT_Render {
 		// One entity per item: the first shortcode describing it on a page wins.
 		$key = md5( $url ?: $name );
 		if ( ! isset( $this->schema[ $key ] ) ) {
-			$this->schema[ $key ] = apply_filters( 'abt_schema', $data );
+			$this->schema[ $key ] = apply_filters( 'ashbte_schema', $data );
 		}
 	}
 

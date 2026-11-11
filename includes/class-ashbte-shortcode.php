@@ -2,9 +2,9 @@
 /**
  * Shortcodes and theme helpers.
  *
- *   [ashbi_testimonials collection="store-reviews" layout="slider"]
- *   [ashbi_testimonials product="current" summary="1" load_more="1"]
- *   [ashbi_rating collection="acme-crm"]
+ *   [ashbte_testimonials collection="store-reviews" layout="slider"]
+ *   [ashbte_testimonials product="current" summary="1" load_more="1"]
+ *   [ashbte_rating collection="acme-crm"]
  *
  * @package Ashbi_Testimonials
  */
@@ -13,15 +13,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class ABT_Shortcode {
+class ASHBTE_Shortcode {
 
 	/**
-	 * @var ABT_Shortcode|null
+	 * @var ASHBTE_Shortcode|null
 	 */
 	private static $instance = null;
 
 	/**
-	 * @return ABT_Shortcode
+	 * @return ASHBTE_Shortcode
 	 */
 	public static function instance() {
 		if ( null === self::$instance ) {
@@ -31,10 +31,10 @@ class ABT_Shortcode {
 	}
 
 	private function __construct() {
-		add_shortcode( 'ashbi_testimonials', array( $this, 'testimonials' ) );
-		add_shortcode( 'ashbi_rating', array( $this, 'rating' ) );
-		add_action( 'wp_ajax_abt_load_more', array( $this, 'ajax_load_more' ) );
-		add_action( 'wp_ajax_nopriv_abt_load_more', array( $this, 'ajax_load_more' ) );
+		add_shortcode( 'ashbte_testimonials', array( $this, 'testimonials' ) );
+		add_shortcode( 'ashbte_rating', array( $this, 'rating' ) );
+		add_action( 'wp_ajax_ashbte_load_more', array( $this, 'ajax_load_more' ) );
+		add_action( 'wp_ajax_nopriv_ashbte_load_more', array( $this, 'ajax_load_more' ) );
 	}
 
 	/** Every supported attribute and its default. */
@@ -53,7 +53,7 @@ class ABT_Shortcode {
 			'min_rating'  => '0',
 			'featured'    => '0',
 			'verified'    => '0',
-			'show'        => ABT_Render::DEFAULT_PARTS,
+			'show'        => ASHBTE_Render::DEFAULT_PARTS,
 			'words'       => '0',
 			'summary'     => '0',
 			'load_more'   => '0',
@@ -74,10 +74,10 @@ class ABT_Shortcode {
 	 * @return array{query: array, render: array, collections: WP_Term[], atts: array, invalid_scope: bool}
 	 */
 	public function parse( $atts ) {
-		$atts = ABT_Presets::apply( is_array( $atts ) ? $atts : array() );
-		$atts = shortcode_atts( self::defaults(), is_array( $atts ) ? $atts : array(), 'ashbi_testimonials' );
+		$atts = ASHBTE_Presets::apply( is_array( $atts ) ? $atts : array() );
+		$atts = shortcode_atts( self::defaults(), is_array( $atts ) ? $atts : array(), 'ashbte_testimonials' );
 		$atts = array_map( static fn( $v ) => is_scalar( $v ) ? trim( (string) $v ) : '', $atts );
-		$data = ABT_Data::instance();
+		$data = ASHBTE_Data::instance();
 
 		$collections = array();
 		foreach ( array_filter( array_map( 'trim', array_slice( explode( ',', $atts['collection'] ), 0, 20 ) ) ) as $ref ) {
@@ -101,7 +101,7 @@ class ABT_Shortcode {
 
 		$first  = $collections ? $data->collection_to_array( $collections[0] ) : null;
 		$layout = sanitize_key( $atts['layout'] ?: ( $first['layout'] ?? 'grid' ) );
-		if ( ! isset( ABT_Data::layouts()[ $layout ] ) ) {
+		if ( ! isset( ASHBTE_Data::layouts()[ $layout ] ) ) {
 			$layout = 'grid';
 		}
 		$orderby = in_array( $atts['orderby'], array( 'date', 'rating', 'featured', 'random' ), true ) ? $atts['orderby'] : 'date';
@@ -128,8 +128,8 @@ class ABT_Shortcode {
 			'status'     => 'publish',
 		);
 
-		$parts = array_values( array_intersect( array_map( 'trim', explode( ',', strtolower( $atts['show'] ) ) ), ABT_Render::PARTS ) );
-		$accent = (string) ( sanitize_hex_color( $atts['accent'] ) ?: ( $first['accent'] ?? '' ) ?: ( sanitize_hex_color( abt_settings()['accent'] ) ?: '' ) );
+		$parts = array_values( array_intersect( array_map( 'trim', explode( ',', strtolower( $atts['show'] ) ) ), ASHBTE_Render::PARTS ) );
+		$accent = (string) ( sanitize_hex_color( $atts['accent'] ) ?: ( $first['accent'] ?? '' ) ?: ( sanitize_hex_color( ashbte_settings()['accent'] ) ?: '' ) );
 
 		$render = array(
 			'layout'  => $layout,
@@ -147,7 +147,7 @@ class ABT_Shortcode {
 	}
 
 	/**
-	 * [ashbi_testimonials]
+	 * [ashbte_testimonials]
 	 *
 	 * @param array $atts Shortcode attributes.
 	 * @return string
@@ -155,11 +155,11 @@ class ABT_Shortcode {
 	public function testimonials( $atts ) {
 		$parsed = $this->parse( $atts );
 		$atts   = $parsed['atts'];
-		$data   = ABT_Data::instance();
-		$render = ABT_Render::instance();
+		$data   = ASHBTE_Data::instance();
+		$render = ASHBTE_Render::instance();
 
 		if ( '' !== $atts['collection'] && ! $parsed['collections'] ) {
-			return current_user_can( abt_capability() ) ? '<p class="abt-notice">' . esc_html__( 'Ashbi Testimonials: that collection was not found. Check the shortcode.', 'ashbi-testimonials' ) . '</p>' : '';
+			return current_user_can( ashbte_capability() ) ? '<p class="ashbte-notice">' . esc_html__( 'Ashbi Testimonials: that collection was not found. Check the shortcode.', 'ashbi-testimonials' ) . '</p>' : '';
 		}
 		if ( $parsed['invalid_scope'] ) {
 			return '';
@@ -193,7 +193,7 @@ class ABT_Shortcode {
 	}
 
 	/**
-	 * [ashbi_rating] — average stars, count and breakdown.
+	 * [ashbte_rating] — average stars, count and breakdown.
 	 *
 	 * @param array $atts Shortcode attributes; accepts the same filters plus breakdown="0".
 	 * @return string
@@ -206,33 +206,33 @@ class ABT_Shortcode {
 
 		$parsed = $this->parse( $atts );
 		if ( '' !== $parsed['atts']['collection'] && ! $parsed['collections'] ) {
-			return current_user_can( abt_capability() ) ? '<p class="abt-notice">' . esc_html__( 'Ashbi Testimonials: that collection was not found. Check the shortcode.', 'ashbi-testimonials' ) . '</p>' : '';
+			return current_user_can( ashbte_capability() ) ? '<p class="ashbte-notice">' . esc_html__( 'Ashbi Testimonials: that collection was not found. Check the shortcode.', 'ashbi-testimonials' ) . '</p>' : '';
 		}
 		if ( $parsed['invalid_scope'] ) {
 			return '';
 		}
-		$stats  = ABT_Data::instance()->stats( $parsed['query'] );
+		$stats  = ASHBTE_Data::instance()->stats( $parsed['query'] );
 		if ( ! $stats['rated'] ) {
 			return '';
 		}
-		$render = ABT_Render::instance();
+		$render = ASHBTE_Render::instance();
 		$render->enqueue();
 
 		if ( '0' !== $parsed['atts']['schema'] ) {
 			$this->schema( $parsed, $stats, array() );
 		}
 
-		$style = $parsed['render']['accent'] ? ' style="' . esc_attr( '--abt-accent:' . $parsed['render']['accent'] ) . '"' : '';
+		$style = $parsed['render']['accent'] ? ' style="' . esc_attr( '--ashbte-accent:' . $parsed['render']['accent'] ) . '"' : '';
 		if ( $compact ) {
 			return sprintf(
-				'<span class="abt abt-inline-rating"%s>%s <strong>%s</strong> <span>(%s)</span></span>',
+				'<span class="ashbte ashbte-inline-rating"%s>%s <strong>%s</strong> <span>(%s)</span></span>',
 				$style,
 				$render->stars( $stats['average'], 'sm' ),
 				esc_html( number_format_i18n( $stats['average'], 1 ) ),
 				esc_html( number_format_i18n( $stats['rated'] ) )
 			);
 		}
-		return '<div class="abt abt--theme-' . esc_attr( $parsed['render']['theme'] ) . '"' . $style . '>' . $render->summary( $stats, $breakdown ) . '</div>';
+		return '<div class="ashbte ashbte--theme-' . esc_attr( $parsed['render']['theme'] ) . '"' . $style . '>' . $render->summary( $stats, $breakdown ) . '</div>';
 	}
 
 	/** Queue structured data for products and software only. */
@@ -240,8 +240,8 @@ class ABT_Shortcode {
 		if ( ( $stats['ineligible'] ?? $stats['rated'] ) || $parsed['query']['ids'] || $parsed['query']['subject'] || $parsed['query']['min_rating'] || $parsed['query']['featured'] || $parsed['query']['verified'] || 'random' === $parsed['query']['orderby'] ) {
 			return;
 		}
-		$first = $parsed['collections'] ? ABT_Data::instance()->collection_to_array( $parsed['collections'][0] ) : null;
-		$type  = ABT_Data::types()[ $first['type'] ?? 'general' ]['schema'];
+		$first = $parsed['collections'] ? ASHBTE_Data::instance()->collection_to_array( $parsed['collections'][0] ) : null;
+		$type  = ASHBTE_Data::types()[ $first['type'] ?? 'general' ]['schema'];
 		$name  = $parsed['atts']['schema_name'];
 		$url   = '';
 
@@ -261,18 +261,18 @@ class ABT_Shortcode {
 		}
 
 		if ( $type ) {
-			ABT_Render::instance()->queue_schema( $type, sanitize_text_field( (string) $name ), $stats, $items, $url );
+			ASHBTE_Render::instance()->queue_schema( $type, sanitize_text_field( (string) $name ), $stats, $items, $url );
 		}
 	}
 
 	/**
-	 * Next page of cards for the Load more button. Read-only public data, so no
-	 * nonce: a nonce would break on cached pages. Status is always forced to
-	 * published and private fields such as email are never rendered.
+	 * Next page of cards for the Load more button. Requests carry the public nonce,
+	 * refreshed by the script so cached pages keep working. Status is always forced
+	 * to published and private fields such as email are never rendered.
 	 */
 	/** Validate a public request without allowing expensive unbounded offsets or random pagination. */
 	public function public_page( $raw, $page ) {
-		$error = new WP_Error( 'abt_page', __( 'This review page request is invalid or exceeds the public browsing limit.', 'ashbi-testimonials' ) );
+		$error = new WP_Error( 'ashbte_page', __( 'This review page request is invalid or exceeds the public browsing limit.', 'ashbi-testimonials' ) );
 		if ( ! is_string( $raw ) || strlen( $raw ) > 8192 || ! is_string( $page ) || ! preg_match( '/^[0-9]{1,4}$/D', $page ) || (int) $page < 2 || (int) $page > 1000 ) { return $error; }
 		$atts = json_decode( $raw, true );
 		if ( ! is_array( $atts ) || ! preg_match( '/^\s*\{/', $raw ) || array_diff( array_keys( $atts ), array_keys( self::defaults() ) ) ) { return $error; }
@@ -286,13 +286,16 @@ class ABT_Shortcode {
 	}
 
 	public function ajax_load_more() {
-		$raw = isset( $_POST['atts'] ) ? wp_unslash( $_POST['atts'] ) : null; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- Read-only published endpoint; strict validation in public_page before any query.
-		$page = isset( $_POST['page'] ) ? wp_unslash( $_POST['page'] ) : '2'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- Strict numeric bounds in public_page below.
+		if ( ! check_ajax_referer( ASHBTE_Render::NONCE, 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'This page has expired. Reload it and try again.', 'ashbi-testimonials' ) ), 403 );
+		}
+		$raw = isset( $_POST['atts'] ) && is_string( $_POST['atts'] ) ? wp_unslash( $_POST['atts'] ) : null; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded and strictly validated in public_page before any query.
+		$page = isset( $_POST['page'] ) && is_string( $_POST['page'] ) ? sanitize_text_field( wp_unslash( $_POST['page'] ) ) : '2';
 		$parsed = $this->public_page( $raw, $page );
 		if ( is_wp_error( $parsed ) ) { wp_send_json_error( array( 'message' => $parsed->get_error_message() ), 400 ); }
 		$page = $parsed['query']['page'];
-		$result = ABT_Data::instance()->query( $parsed['query'] );
-		$render = ABT_Render::instance();
+		$result = ASHBTE_Data::instance()->query( $parsed['query'] );
+		$render = ASHBTE_Render::instance();
 
 		wp_send_json_success(
 			array(
@@ -310,8 +313,8 @@ class ABT_Shortcode {
  * @param array $atts Shortcode attributes.
  * @return string
  */
-function abt_get_testimonials( $atts = array() ) {
-	return ABT_Shortcode::instance()->testimonials( $atts );
+function ashbte_get_testimonials( $atts = array() ) {
+	return ASHBTE_Shortcode::instance()->testimonials( $atts );
 }
 
 /**
@@ -319,7 +322,7 @@ function abt_get_testimonials( $atts = array() ) {
  *
  * @param array $atts Shortcode attributes.
  */
-function abt_render_testimonials( $atts = array() ) {
-	echo abt_get_testimonials( $atts ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+function ashbte_render_testimonials( $atts = array() ) {
+	echo ashbte_get_testimonials( $atts ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 }
 
