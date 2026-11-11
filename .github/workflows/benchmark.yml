@@ -2,9 +2,9 @@ name: Reproducible review benchmark
 on:
   push:
     branches: ['quality/scale-and-release']
-    paths: ['tests/wordpress-benchmark.php', '.github/workflows/benchmark.yml', 'includes/class-abt-data.php']
+    paths: ['tests/wordpress-benchmark.php', '.github/workflows/benchmark.yml', 'includes/class-ashbte-data.php']
   pull_request:
-    paths: ['tests/wordpress-benchmark.php', '.github/workflows/benchmark.yml', 'includes/class-abt-data.php']
+    paths: ['tests/wordpress-benchmark.php', '.github/workflows/benchmark.yml', 'includes/class-ashbte-data.php']
   workflow_dispatch:
 concurrency:
   group: benchmark-${{ github.ref }}
@@ -29,7 +29,7 @@ jobs:
       - name: Measure 1000, 10000 and 100000 synthetic reviews
         run: |
           set -o pipefail
-          wp-env run cli env ABT_DISPOSABLE_TEST=1 ABT_BENCH_REVISION=${{ github.sha }} wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-benchmark.php | tee benchmark.log
+          wp-env run cli env ASHBTE_DISPOSABLE_TEST=1 ASHBTE_BENCH_REVISION=${{ github.sha }} wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-benchmark.php | tee benchmark.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:

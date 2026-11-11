@@ -2,7 +2,7 @@
 /** Production summary filters agree with a fixed fictional review set. */
 if ( ! defined( 'ABSPATH' ) ) { exit( 1 ); }
 $check = static function( $ok, $message ) { if ( ! $ok ) { throw new RuntimeException( 'Aggregate: ' . $message ); } };
-$data = ABT_Data::instance();
+$data = ASHBTE_Data::instance();
 $a = $data->save_collection( array( 'name' => 'Aggregate A' ) ); $b = $data->save_collection( array( 'name' => 'Aggregate B' ) );
 $product = wp_insert_post( array( 'post_type' => 'page', 'post_title' => 'Aggregate product', 'post_status' => 'publish' ) );
 $ids = array();
@@ -22,13 +22,13 @@ foreach ( $cases as $i => $case ) { $r = $data->stats( $case[0] ); $check( $r['c
 fwrite( STDOUT, "OK: scoped aggregate filters, overlapping collections and unrated/provenance counts passed\n" );
 
 // A worker can retain the pre-change option value while another worker publishes.
-$stale_generation = get_option( ABT_CACHE_OPTION, 1 );
+$stale_generation = get_option( ASHBTE_CACHE_OPTION, 1 );
 $data->flush();
 $data->stats( array( 'collection' => $a['id'] ) );
 $data->save( array( 'author' => 'Concurrent publication', 'rating' => 5, 'origin' => 'direct', 'collections' => array( $a['id'] ) ) );
 $stale_worker = static fn() => $stale_generation;
-add_filter( 'pre_option_' . ABT_CACHE_OPTION, $stale_worker );
+add_filter( 'pre_option_' . ASHBTE_CACHE_OPTION, $stale_worker );
 $data->flush();
-remove_filter( 'pre_option_' . ABT_CACHE_OPTION, $stale_worker );
+remove_filter( 'pre_option_' . ASHBTE_CACHE_OPTION, $stale_worker );
 $check( 8 === $data->stats( array( 'collection' => $a['id'] ) )['count'], 'a stale worker cannot reuse a cached generation from before a concurrent publication' );
 fwrite( STDOUT, "OK: stale-worker cache invalidation cannot reuse an earlier summary\n" );

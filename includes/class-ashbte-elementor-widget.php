@@ -1,22 +1,22 @@
 <?php
 /** Free Elementor adapter. Loaded only after Elementor's widget registry is ready. @package Ashbi_Testimonials */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
-class ABT_Elementor_Widget extends \Elementor\Widget_Base {
+class ASHBTE_Elementor_Widget extends \Elementor\Widget_Base {
 	public function get_name() { return 'ashbi-testimonials'; }
 	public function get_title() { return __( 'Ashbi Reviews', 'ashbi-testimonials' ); }
 	public function get_icon() { return 'eicon-testimonial'; }
 	public function get_categories() { return array( 'general' ); }
-	public function get_style_depends() { return array( 'abt-frontend' ); }
-	public function get_script_depends() { return array( 'abt-frontend' ); }
+	public function get_style_depends() { return array( 'ashbte-frontend' ); }
+	public function get_script_depends() { return array( 'ashbte-frontend' ); }
 	protected function register_controls() {
 		$this->start_controls_section( 'reviews', array( 'label' => __( 'Reviews', 'ashbi-testimonials' ) ) );
 		$this->add_control( 'kind', array( 'label' => __( 'Display', 'ashbi-testimonials' ), 'type' => \Elementor\Controls_Manager::SELECT, 'default' => 'testimonials', 'options' => array( 'testimonials' => __( 'Testimonials', 'ashbi-testimonials' ), 'rating' => __( 'Rating summary', 'ashbi-testimonials' ), 'review-form' => __( 'Review form', 'ashbi-testimonials' ) ) ) );
 		$this->add_control( 'collection', array( 'label' => __( 'Collection slug or ID', 'ashbi-testimonials' ), 'type' => \Elementor\Controls_Manager::TEXT, 'default' => '' ) );
 		$this->add_control( 'product', array( 'label' => __( 'Product/page ID (or current)', 'ashbi-testimonials' ), 'type' => \Elementor\Controls_Manager::TEXT, 'default' => '' ) );
 		$presets = array( '' => __( 'No preset', 'ashbi-testimonials' ) );
-		foreach ( ABT_Presets::all() as $key => $preset ) { $presets[ $key ] = $preset['name']; }
+		foreach ( ASHBTE_Presets::all() as $key => $preset ) { $presets[ $key ] = $preset['name']; }
 		$this->add_control( 'preset', array( 'label' => __( 'Design preset', 'ashbi-testimonials' ), 'type' => \Elementor\Controls_Manager::SELECT, 'default' => '', 'options' => $presets, 'condition' => array( 'kind' => array( 'testimonials', 'rating' ) ), 'description' => __( 'Saved designs override layout, columns, theme and accent.', 'ashbi-testimonials' ) ) );
-		$this->add_control( 'layout', array( 'label' => __( 'Layout', 'ashbi-testimonials' ), 'type' => \Elementor\Controls_Manager::SELECT, 'default' => 'grid', 'options' => ABT_Data::layouts(), 'condition' => array( 'kind' => 'testimonials' ) ) );
+		$this->add_control( 'layout', array( 'label' => __( 'Layout', 'ashbi-testimonials' ), 'type' => \Elementor\Controls_Manager::SELECT, 'default' => 'grid', 'options' => ASHBTE_Data::layouts(), 'condition' => array( 'kind' => 'testimonials' ) ) );
 		$this->add_control( 'columns', array( 'label' => __( 'Columns', 'ashbi-testimonials' ), 'type' => \Elementor\Controls_Manager::NUMBER, 'default' => 3, 'min' => 1, 'max' => 4, 'condition' => array( 'kind' => 'testimonials', 'layout!' => array( 'list', 'spotlight', 'compact' ), 'preset' => '' ) ) );
 		$this->add_control( 'limit', array( 'label' => __( 'Reviews per page', 'ashbi-testimonials' ), 'type' => \Elementor\Controls_Manager::NUMBER, 'default' => 9, 'min' => 1, 'max' => 100, 'condition' => array( 'kind' => 'testimonials' ) ) );
 		$this->add_control( 'summary', array( 'label' => __( 'Rating summary', 'ashbi-testimonials' ), 'type' => \Elementor\Controls_Manager::SWITCHER, 'return_value' => '1', 'default' => '1', 'condition' => array( 'kind' => 'testimonials' ) ) );
@@ -31,7 +31,7 @@ class ABT_Elementor_Widget extends \Elementor\Widget_Base {
 		$settings = $this->get_settings_for_display();
 		$kind = $settings['kind'] ?? 'testimonials';
 		foreach ( array( 'summary', 'load_more' ) as $key ) { $settings[ $key ] = '1' === ( $settings[ $key ] ?? '' ) ? '1' : '0'; }
-		$html = ABT_Editors::render( $kind, $settings );
+		$html = ASHBTE_Editors::render( $kind, $settings );
 		if ( 'review-form' === $kind && ( \Elementor\Plugin::$instance->editor->is_edit_mode() || \Elementor\Plugin::$instance->preview->is_preview_mode() ) ) {
 			$html = '<div inert>' . $html . '</div>';
 		}

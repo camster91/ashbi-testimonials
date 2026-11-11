@@ -1,12 +1,12 @@
 /**
  * Ashbi Testimonials — admin editor.
  *
- * Plain JavaScript, no build step. Talks to admin-ajax with the abt_admin nonce.
+ * Plain JavaScript, no build step. Talks to admin-ajax with the ashbte_admin nonce.
  */
 ( function () {
 	'use strict';
 
-	const cfg = window.abtAdmin || {};
+	const cfg = window.ashbteAdmin || {};
 	const { __, _n, sprintf } = window.wp && window.wp.i18n ? window.wp.i18n : {
 		__: ( s ) => s,
 		_n: ( s, p, n ) => ( 1 === n ? s : p ),
@@ -21,7 +21,7 @@
 
 	async function request( action, data = {} ) {
 		const body = new FormData();
-		body.append( 'action', 'abt_' + action );
+		body.append( 'action', 'ashbte_' + action );
 		body.append( 'nonce', cfg.nonce );
 		Object.entries( data ).forEach( ( [ key, value ] ) => {
 			body.append( key, typeof value === 'object' && value !== null ? JSON.stringify( value ) : value );
@@ -40,7 +40,7 @@
 	}
 
 	function status( message, isError = false ) {
-		const el = $( '#abt-status' );
+		const el = $( '#ashbte-status' );
 		if ( ! el ) {
 			return;
 		}
@@ -55,11 +55,11 @@
 
 	function starsHtml( rating ) {
 		if ( ! rating ) {
-			return '<span class="abt-row__norating">' + esc( __( 'No rating', 'ashbi-testimonials' ) ) + '</span>';
+			return '<span class="ashbte-row__norating">' + esc( __( 'No rating', 'ashbi-testimonials' ) ) + '</span>';
 		}
 		/* translators: %d: rating out of 5 */
 		const label = sprintf( __( 'Rated %d out of 5', 'ashbi-testimonials' ), rating );
-		return '<span class="abt-mini-stars" role="img" aria-label="' + esc( label ) + '">' + '★'.repeat( rating ) + '<span>' + '★'.repeat( 5 - rating ) + '</span></span>';
+		return '<span class="ashbte-mini-stars" role="img" aria-label="' + esc( label ) + '">' + '★'.repeat( rating ) + '<span>' + '★'.repeat( 5 - rating ) + '</span></span>';
 	}
 
 	function initials( name ) {
@@ -73,9 +73,9 @@
 
 	function avatarHtml( item ) {
 		if ( item.avatar ) {
-			return '<img class="abt-row__avatar" src="' + esc( item.avatar ) + '" alt="" />';
+			return '<img class="ashbte-row__avatar" src="' + esc( item.avatar ) + '" alt="" />';
 		}
-		return '<span class="abt-row__avatar abt-row__avatar--initials" aria-hidden="true">' + esc( initials( item.author ) ) + '</span>';
+		return '<span class="ashbte-row__avatar ashbte-row__avatar--initials" aria-hidden="true">' + esc( initials( item.author ) ) + '</span>';
 	}
 
 	const copyFeedback = new WeakMap();
@@ -88,7 +88,7 @@
 			const area = document.createElement( 'textarea' );
 			area.value = text;
 			area.readOnly = true;
-			area.className = 'abt-copy-fallback';
+			area.className = 'ashbte-copy-fallback';
 			area.setAttribute( 'aria-label', __( 'Shortcode to copy manually', 'ashbi-testimonials' ) );
 			button.after( area );
 			area.focus();
@@ -136,7 +136,7 @@
 
 	function formSnapshot( form ) {
 		return JSON.stringify( Array.from( form.querySelectorAll( 'input, select, textarea' ) )
-			.filter( ( field ) => ! field.matches( '[data-abt-picker-input], [type="button"], [type="submit"]' ) )
+			.filter( ( field ) => ! field.matches( '[data-ashbte-picker-input], [type="button"], [type="submit"]' ) )
 			.map( ( field ) => [ field.name, field.value, field.checked ] ) );
 	}
 
@@ -163,21 +163,21 @@
 	}
 
 	document.addEventListener( 'click', ( e ) => {
-		const copyBtn = e.target.closest( '[data-abt-copy]' );
+		const copyBtn = e.target.closest( '[data-ashbte-copy]' );
 		if ( copyBtn ) {
-			copy( copyBtn.dataset.abtCopy, copyBtn );
+			copy( copyBtn.dataset.ashbteCopy, copyBtn );
 			return;
 		}
-		const opener = e.target.closest( '[data-abt-open]' );
+		const opener = e.target.closest( '[data-ashbte-open]' );
 		if ( opener ) {
-			openDialog( document.getElementById( opener.dataset.abtOpen ) );
+			openDialog( document.getElementById( opener.dataset.ashbteOpen ) );
 			const menu = opener.closest( 'details' );
 			if ( menu ) {
 				menu.open = false;
 			}
 			return;
 		}
-		if ( e.target.closest( '[data-abt-close]' ) ) {
+		if ( e.target.closest( '[data-ashbte-close]' ) ) {
 			const dialog = e.target.closest( 'dialog' );
 			if ( dialog && canDismiss( dialog ) ) { dialog.close(); }
 			return;
@@ -191,15 +191,15 @@
 		}
 	} );
 
-	const collectionDialog = $( '#abt-collection-dialog' );
+	const collectionDialog = $( '#ashbte-collection-dialog' );
 	if ( collectionDialog ) {
-		const form = $( '[data-abt-collection-form]', collectionDialog );
-		const title = $( '#abt-collection-dialog-title' );
-		const definitions = $( '[data-abt-field-definitions]', form );
+		const form = $( '[data-ashbte-collection-form]', collectionDialog );
+		const title = $( '#ashbte-collection-dialog-title' );
+		const definitions = $( '[data-ashbte-field-definitions]', form );
 		function addField( field = {} ) {
 			if ( definitions.children.length >= 10 ) { return; }
 			const row = document.createElement( 'fieldset' );
-			row.className = 'abt-custom-definition';
+			row.className = 'ashbte-custom-definition';
 			row.dataset.key = field.key || 'field_' + Date.now().toString( 36 ) + Math.random().toString( 36 ).slice( 2, 6 );
 			row.innerHTML = '<legend>' + esc( __( 'Review field', 'ashbi-testimonials' ) ) + '</legend>' +
 				'<label>' + esc( __( 'Label', 'ashbi-testimonials' ) ) + '<input data-field-label required maxlength="80" value="' + esc( field.label || '' ) + '" /></label>' +
@@ -215,11 +215,11 @@
 			const choices = () => { $( '[data-field-choices]', row ).hidden = $( '[data-field-type]', row ).value !== 'select'; };
 			$( '[data-field-type]', row ).addEventListener( 'change', choices );
 			choices();
-			$( '[data-field-remove]', row ).addEventListener( 'click', () => { row.remove(); $( '[data-abt-add-field]', form ).focus(); } );
+			$( '[data-field-remove]', row ).addEventListener( 'click', () => { row.remove(); $( '[data-ashbte-add-field]', form ).focus(); } );
 			definitions.append( row );
 			return row;
 		}
-		$( '[data-abt-add-field]', form ).addEventListener( 'click', () => { const row = addField(); if ( row ) { $( '[data-field-label]', row ).focus(); } } );
+		$( '[data-ashbte-add-field]', form ).addEventListener( 'click', () => { const row = addField(); if ( row ) { $( '[data-field-label]', row ).focus(); } } );
 
 
 		const fill = ( c ) => {
@@ -239,22 +239,22 @@
 				radio.checked = true;
 			}
 			title.textContent = editing ? title.dataset.edit : title.dataset.new;
-			$$( '[data-abt-edit-only]', form ).forEach( ( el ) => ( el.hidden = ! editing ) );
+			$$( '[data-ashbte-edit-only]', form ).forEach( ( el ) => ( el.hidden = ! editing ) );
 			rememberDialog( collectionDialog, form );
 			openDialog( collectionDialog );
 			form.elements.name.focus();
 		};
 
 		document.addEventListener( 'click', ( e ) => {
-			const create = e.target.closest( '[data-abt-new-collection]' );
+			const create = e.target.closest( '[data-ashbte-new-collection]' );
 			if ( create ) {
-				const type = create.dataset.abtNewCollection || 'general';
+				const type = create.dataset.ashbteNewCollection || 'general';
 				const layouts = { store: 'slider', product: 'list', software: 'grid', service: 'masonry', general: 'grid' };
 				fill( { type, layout: layouts[ type ] || 'grid' } );
 			}
-			const edit = e.target.closest( '[data-abt-edit-collection]' );
+			const edit = e.target.closest( '[data-ashbte-edit-collection]' );
 			if ( edit ) {
-				fill( JSON.parse( edit.dataset.abtEditCollection ) );
+				fill( JSON.parse( edit.dataset.ashbteEditCollection ) );
 			}
 		} );
 
@@ -298,7 +298,7 @@
 			}
 		} );
 
-		$( '[data-abt-delete-collection]', form ).addEventListener( 'click', async () => {
+		$( '[data-ashbte-delete-collection]', form ).addEventListener( 'click', async () => {
 			/* eslint-disable no-alert */
 			if ( ! window.confirm( __( 'Delete this collection? Shortcodes using it will stop showing reviews.', 'ashbi-testimonials' ) ) ) {
 				return;
@@ -314,11 +314,11 @@
 		} );
 	}
 
-	const pageLinks = $( '.abt-page-links' );
+	const pageLinks = $( '.ashbte-page-links' );
 	if ( pageLinks ) {
 		const revealPanel = ( hash ) => {
 			const panel = document.getElementById( hash.slice( 1 ) );
-			if ( panel && panel.matches( '.abt-settings' ) ) {
+			if ( panel && panel.matches( '.ashbte-settings' ) ) {
 				panel.open = true;
 			}
 		};
@@ -332,15 +332,15 @@
 		revealPanel( window.location.hash );
 	}
 
-	const cardFilter = $( '[data-abt-filter-cards]' );
+	const cardFilter = $( '[data-ashbte-filter-cards]' );
 	if ( cardFilter ) {
-		const cards = $$( '[data-abt-card-name]' );
-		const noCollections = $( '[data-abt-no-collections]' );
+		const cards = $$( '[data-ashbte-card-name]' );
+		const noCollections = $( '[data-ashbte-no-collections]' );
 		cardFilter.addEventListener( 'input', () => {
 			const query = cardFilter.value.trim().toLowerCase();
 			let found = false;
 			cards.forEach( ( card ) => {
-				card.hidden = ! card.dataset.abtCardName.toLowerCase().includes( query );
+				card.hidden = ! card.dataset.ashbteCardName.toLowerCase().includes( query );
 				found = found || ! card.hidden;
 			} );
 			noCollections.hidden = found;
@@ -351,7 +351,7 @@
 	   Collection screen
 	   ================================================================== */
 
-	const app = $( '[data-abt-app]' );
+	const app = $( '[data-ashbte-app]' );
 	if ( ! app ) {
 		return;
 	}
@@ -369,10 +369,10 @@
 		items: [],
 		selected: new Set(),
 	};
-	const rowsEl = $( '[data-abt-rows]', app );
-	const pagerEl = $( '[data-abt-pager]', app );
-	const statsEl = $( '[data-abt-stats]', app );
-	const bulkEl = $( '[data-abt-bulk]', app );
+	const rowsEl = $( '[data-ashbte-rows]', app );
+	const pagerEl = $( '[data-ashbte-pager]', app );
+	const statsEl = $( '[data-ashbte-stats]', app );
+	const bulkEl = $( '[data-ashbte-bulk]', app );
 
 	const statusLabels = {
 		publish: __( 'Published', 'ashbi-testimonials' ),
@@ -416,7 +416,7 @@
 			state.items = [];
 			state.selected.clear();
 			renderPager( { pages: 0, total: 0 } );
-			rowsEl.innerHTML = '<div class="abt-empty"><p>' + esc( err.message ) + '</p><button type="button" class="button" data-abt-retry-list>' + esc( __( 'Try again', 'ashbi-testimonials' ) ) + '</button></div>';
+			rowsEl.innerHTML = '<div class="ashbte-empty"><p>' + esc( err.message ) + '</p><button type="button" class="button" data-ashbte-retry-list>' + esc( __( 'Try again', 'ashbi-testimonials' ) ) + '</button></div>';
 		}
 		rowsEl.classList.remove( 'is-loading' );
 		rowsEl.setAttribute( 'aria-busy', 'false' );
@@ -427,15 +427,15 @@
 		if ( ! data.items.length ) {
 			const filtered = state.search || state.rating || state.product || 'any' !== state.status;
 			if ( 'trash' === state.status && ! state.search && ! state.rating && ! state.product ) {
-				rowsEl.innerHTML = '<div class="abt-empty"><span class="dashicons dashicons-trash" aria-hidden="true"></span><h3>' + esc( __( 'The trash is empty', 'ashbi-testimonials' ) ) + '</h3></div>';
+				rowsEl.innerHTML = '<div class="ashbte-empty"><span class="dashicons dashicons-trash" aria-hidden="true"></span><h3>' + esc( __( 'The trash is empty', 'ashbi-testimonials' ) ) + '</h3></div>';
 				return;
 			}
 			rowsEl.innerHTML =
-				'<div class="abt-empty">' +
+				'<div class="ashbte-empty">' +
 				'<span class="dashicons dashicons-format-quote" aria-hidden="true"></span>' +
 				'<h3>' + esc( filtered ? __( 'Nothing matches these filters', 'ashbi-testimonials' ) : __( 'No testimonials yet', 'ashbi-testimonials' ) ) + '</h3>' +
 				'<p>' + esc( filtered ? __( 'Try a different search or change your filters.', 'ashbi-testimonials' ) : __( 'Add your first one, import a CSV, or place a review form on your site.', 'ashbi-testimonials' ) ) + '</p>' +
-				( filtered ? '' : '<p><button type="button" class="button button-primary" data-abt-add>' + esc( __( 'Add testimonial', 'ashbi-testimonials' ) ) + '</button></p>' ) +
+				( filtered ? '' : '<p><button type="button" class="button button-primary" data-ashbte-add>' + esc( __( 'Add testimonial', 'ashbi-testimonials' ) ) + '</button></p>' ) +
 				'</div>';
 			return;
 		}
@@ -445,27 +445,27 @@
 				const about = item.product_title || item.subject;
 				const text = ( item.content || '' ).replace( /<[^>]+>/g, '' );
 				return (
-					'<article class="abt-row" data-id="' + item.id + '">' +
-					'<label class="abt-row__check"><span class="screen-reader-text">' + esc( sprintf( __( 'Select %s', 'ashbi-testimonials' ), item.author ) ) + '</span><input type="checkbox" data-abt-select value="' + item.id + '" /></label>' +
+					'<article class="ashbte-row" data-id="' + item.id + '">' +
+					'<label class="ashbte-row__check"><span class="screen-reader-text">' + esc( sprintf( __( 'Select %s', 'ashbi-testimonials' ), item.author ) ) + '</span><input type="checkbox" data-ashbte-select value="' + item.id + '" /></label>' +
 					avatarHtml( item ) +
-					'<div class="abt-row__main">' +
-					'<div class="abt-row__top"><button type="button" class="abt-row__name" data-abt-edit="' + item.id + '">' + esc( item.author ) + '</button>' +
-					( item.verified ? '<span class="abt-badge abt-badge--ok">' + esc( __( 'Verified', 'ashbi-testimonials' ) ) + '</span>' : '' ) +
-					( item.featured ? '<span class="abt-badge abt-badge--star">' + esc( __( 'Featured', 'ashbi-testimonials' ) ) + '</span>' : '' ) +
+					'<div class="ashbte-row__main">' +
+					'<div class="ashbte-row__top"><button type="button" class="ashbte-row__name" data-ashbte-edit="' + item.id + '">' + esc( item.author ) + '</button>' +
+					( item.verified ? '<span class="ashbte-badge ashbte-badge--ok">' + esc( __( 'Verified', 'ashbi-testimonials' ) ) + '</span>' : '' ) +
+					( item.featured ? '<span class="ashbte-badge ashbte-badge--star">' + esc( __( 'Featured', 'ashbi-testimonials' ) ) + '</span>' : '' ) +
 					'</div>' +
-					( meta ? '<div class="abt-row__meta">' + esc( meta ) + '</div>' : '' ) +
-					'<div class="abt-row__rating">' + starsHtml( item.rating ) + ( item.headline ? ' <strong>' + esc( item.headline ) + '</strong>' : '' ) + '</div>' +
-					'<p class="abt-row__text">' + esc( text.length > 220 ? text.slice( 0, 220 ) + '…' : text ) + '</p>' +
+					( meta ? '<div class="ashbte-row__meta">' + esc( meta ) + '</div>' : '' ) +
+					'<div class="ashbte-row__rating">' + starsHtml( item.rating ) + ( item.headline ? ' <strong>' + esc( item.headline ) + '</strong>' : '' ) + '</div>' +
+					'<p class="ashbte-row__text">' + esc( text.length > 220 ? text.slice( 0, 220 ) + '…' : text ) + '</p>' +
 					'</div>' +
-					'<div class="abt-row__side">' +
-					'<span class="abt-pill abt-pill--' + esc( item.status ) + '">' + esc( statusLabels[ item.status ] || item.status ) + '</span>' +
-					'<span class="abt-row__date">' + esc( item.date ) + ( item.source ? ' · ' + esc( item.source ) : '' ) + '</span>' +
-					( about ? '<span class="abt-row__about" title="' + esc( about ) + '"><span class="dashicons dashicons-tag" aria-hidden="true"></span>' + esc( about ) + '</span>' : '' ) +
-					'<span class="abt-row__actions">' +
+					'<div class="ashbte-row__side">' +
+					'<span class="ashbte-pill ashbte-pill--' + esc( item.status ) + '">' + esc( statusLabels[ item.status ] || item.status ) + '</span>' +
+					'<span class="ashbte-row__date">' + esc( item.date ) + ( item.source ? ' · ' + esc( item.source ) : '' ) + '</span>' +
+					( about ? '<span class="ashbte-row__about" title="' + esc( about ) + '"><span class="dashicons dashicons-tag" aria-hidden="true"></span>' + esc( about ) + '</span>' : '' ) +
+					'<span class="ashbte-row__actions">' +
 					( 'trash' === item.status
-						? '<button type="button" class="button button-small" data-abt-restore="' + item.id + '">' + esc( __( 'Restore', 'ashbi-testimonials' ) ) + '</button>'
-						: ( 'publish' !== item.status ? '<button type="button" class="button button-small" data-abt-approve="' + item.id + '">' + esc( __( 'Approve', 'ashbi-testimonials' ) ) + '</button>' : '' ) +
-						  '<button type="button" class="button button-small" data-abt-edit="' + item.id + '">' + esc( __( 'Edit', 'ashbi-testimonials' ) ) + '</button>' ) +
+						? '<button type="button" class="button button-small" data-ashbte-restore="' + item.id + '">' + esc( __( 'Restore', 'ashbi-testimonials' ) ) + '</button>'
+						: ( 'publish' !== item.status ? '<button type="button" class="button button-small" data-ashbte-approve="' + item.id + '">' + esc( __( 'Approve', 'ashbi-testimonials' ) ) + '</button>' : '' ) +
+						  '<button type="button" class="button button-small" data-ashbte-edit="' + item.id + '">' + esc( __( 'Edit', 'ashbi-testimonials' ) ) + '</button>' ) +
 					'</span>' +
 					'</div>' +
 					'</article>'
@@ -475,69 +475,69 @@
 	}
 
 	function renderCounts( counts ) {
-		$$( '[data-abt-count]', app ).forEach( ( el ) => {
-			const n = counts[ el.dataset.abtCount ] || 0;
+		$$( '[data-ashbte-count]', app ).forEach( ( el ) => {
+			const n = counts[ el.dataset.ashbteCount ] || 0;
 			el.textContent = n.toLocaleString();
 		} );
-		$$( '[data-abt-tab]', app ).forEach( ( tab ) => {
-			tab.setAttribute( 'aria-pressed', tab.dataset.abtTab === state.status ? 'true' : 'false' );
-			tab.classList.toggle( 'abt-tab--alert', 'pending' === tab.dataset.abtTab && counts.pending > 0 );
+		$$( '[data-ashbte-tab]', app ).forEach( ( tab ) => {
+			tab.setAttribute( 'aria-pressed', tab.dataset.ashbteTab === state.status ? 'true' : 'false' );
+			tab.classList.toggle( 'ashbte-tab--alert', 'pending' === tab.dataset.ashbteTab && counts.pending > 0 );
 		} );
 	}
 
 	function renderStats( stats, counts ) {
 		const pct = ( n ) => ( stats.rated ? Math.round( ( n / stats.rated ) * 100 ) : 0 );
 		statsEl.innerHTML =
-			'<div class="abt-stat"><span class="abt-stat__label">' + esc( __( 'Average rating', 'ashbi-testimonials' ) ) + '</span>' +
-			'<strong class="abt-stat__value">' + ( stats.rated ? esc( Number( stats.average ).toFixed( 1 ) ) : '—' ) + '</strong>' +
+			'<div class="ashbte-stat"><span class="ashbte-stat__label">' + esc( __( 'Average rating', 'ashbi-testimonials' ) ) + '</span>' +
+			'<strong class="ashbte-stat__value">' + ( stats.rated ? esc( Number( stats.average ).toFixed( 1 ) ) : '—' ) + '</strong>' +
 			( stats.rated ? starsHtml( Math.round( stats.average ) ) : '' ) + '</div>' +
-			'<div class="abt-stat"><span class="abt-stat__label">' + esc( __( 'Published', 'ashbi-testimonials' ) ) + '</span><strong class="abt-stat__value">' + esc( ( counts.publish || 0 ).toLocaleString() ) + '</strong></div>' +
-			'<div class="abt-stat' + ( counts.pending ? ' abt-stat--alert' : '' ) + '"><span class="abt-stat__label">' + esc( __( 'Waiting for approval', 'ashbi-testimonials' ) ) + '</span><strong class="abt-stat__value">' + esc( ( counts.pending || 0 ).toLocaleString() ) + '</strong></div>' +
-			'<div class="abt-stat abt-stat--bars"><ul class="abt-mini-bars">' +
+			'<div class="ashbte-stat"><span class="ashbte-stat__label">' + esc( __( 'Published', 'ashbi-testimonials' ) ) + '</span><strong class="ashbte-stat__value">' + esc( ( counts.publish || 0 ).toLocaleString() ) + '</strong></div>' +
+			'<div class="ashbte-stat' + ( counts.pending ? ' ashbte-stat--alert' : '' ) + '"><span class="ashbte-stat__label">' + esc( __( 'Waiting for approval', 'ashbi-testimonials' ) ) + '</span><strong class="ashbte-stat__value">' + esc( ( counts.pending || 0 ).toLocaleString() ) + '</strong></div>' +
+			'<div class="ashbte-stat ashbte-stat--bars"><ul class="ashbte-mini-bars">' +
 			[ 5, 4, 3, 2, 1 ]
-				.map( ( s ) => '<li><span>' + s + '★</span><span class="abt-mini-bars__bar"><span style="width:' + pct( stats.breakdown[ s ] || 0 ) + '%"></span></span><span>' + esc( ( stats.breakdown[ s ] || 0 ).toLocaleString() ) + '</span></li>' )
+				.map( ( s ) => '<li><span>' + s + '★</span><span class="ashbte-mini-bars__bar"><span style="width:' + pct( stats.breakdown[ s ] || 0 ) + '%"></span></span><span>' + esc( ( stats.breakdown[ s ] || 0 ).toLocaleString() ) + '</span></li>' )
 				.join( '' ) +
 			'</ul></div>';
 	}
 
 	function renderPager( data ) {
 		if ( data.pages <= 1 ) {
-			pagerEl.innerHTML = data.total ? '<span class="abt-pager__total">' + esc( sprintf( _n( '%s testimonial', '%s testimonials', data.total, 'ashbi-testimonials' ), data.total.toLocaleString() ) ) + '</span>' : '';
+			pagerEl.innerHTML = data.total ? '<span class="ashbte-pager__total">' + esc( sprintf( _n( '%s testimonial', '%s testimonials', data.total, 'ashbi-testimonials' ), data.total.toLocaleString() ) ) + '</span>' : '';
 			return;
 		}
 		pagerEl.innerHTML =
-			'<span class="abt-pager__total">' + esc( sprintf( _n( '%s testimonial', '%s testimonials', data.total, 'ashbi-testimonials' ), data.total.toLocaleString() ) ) + '</span>' +
-			'<button type="button" class="button" data-abt-page="' + ( state.page - 1 ) + '"' + ( state.page <= 1 ? ' disabled' : '' ) + '>&larr; ' + esc( __( 'Previous', 'ashbi-testimonials' ) ) + '</button>' +
-			'<span class="abt-pager__pos">' + esc( sprintf( __( 'Page %1$s of %2$s', 'ashbi-testimonials' ), state.page, data.pages ) ) + '</span>' +
-			'<button type="button" class="button" data-abt-page="' + ( state.page + 1 ) + '"' + ( state.page >= data.pages ? ' disabled' : '' ) + '>' + esc( __( 'Next', 'ashbi-testimonials' ) ) + ' &rarr;</button>';
+			'<span class="ashbte-pager__total">' + esc( sprintf( _n( '%s testimonial', '%s testimonials', data.total, 'ashbi-testimonials' ), data.total.toLocaleString() ) ) + '</span>' +
+			'<button type="button" class="button" data-ashbte-page="' + ( state.page - 1 ) + '"' + ( state.page <= 1 ? ' disabled' : '' ) + '>&larr; ' + esc( __( 'Previous', 'ashbi-testimonials' ) ) + '</button>' +
+			'<span class="ashbte-pager__pos">' + esc( sprintf( __( 'Page %1$s of %2$s', 'ashbi-testimonials' ), state.page, data.pages ) ) + '</span>' +
+			'<button type="button" class="button" data-ashbte-page="' + ( state.page + 1 ) + '"' + ( state.page >= data.pages ? ' disabled' : '' ) + '>' + esc( __( 'Next', 'ashbi-testimonials' ) ) + ' &rarr;</button>';
 	}
 
 	function updateBulk() {
 		const n = state.selected.size;
 		bulkEl.hidden = ! state.items.length;
 		bulkEl.classList.toggle( 'has-selection', n > 0 );
-		$( '[data-abt-selected-count]', bulkEl ).textContent = n ? sprintf( _n( '%s selected', '%s selected', n, 'ashbi-testimonials' ), n ) : __( 'Select all', 'ashbi-testimonials' );
-		$( '[data-abt-select-all]', bulkEl ).checked = n > 0 && n === state.items.length;
-		$$( '[data-abt-bulk-action],[data-abt-bulk-delete],[data-abt-bulk-purge],[data-abt-bulk-collection]', bulkEl ).forEach( ( b ) => ( b.disabled = ! n ) );
+		$( '[data-ashbte-selected-count]', bulkEl ).textContent = n ? sprintf( _n( '%s selected', '%s selected', n, 'ashbi-testimonials' ), n ) : __( 'Select all', 'ashbi-testimonials' );
+		$( '[data-ashbte-select-all]', bulkEl ).checked = n > 0 && n === state.items.length;
+		$$( '[data-ashbte-bulk-action],[data-ashbte-bulk-delete],[data-ashbte-bulk-purge],[data-ashbte-bulk-collection]', bulkEl ).forEach( ( b ) => ( b.disabled = ! n ) );
 		// The trash only offers restore and permanent deletion.
 		const inTrash = 'trash' === state.status;
 		$$( '.button, label', bulkEl ).forEach( ( el ) => {
-			if ( ! el.matches( '.abt-inline-check' ) ) {
-				el.hidden = el.hasAttribute( 'data-abt-trash-only' ) ? ! inTrash : inTrash;
+			if ( ! el.matches( '.ashbte-inline-check' ) ) {
+				el.hidden = el.hasAttribute( 'data-ashbte-trash-only' ) ? ! inTrash : inTrash;
 			}
 		} );
 	}
 
 	/* Filters */
-	$$( '[data-abt-tab]', app ).forEach( ( tab ) =>
+	$$( '[data-ashbte-tab]', app ).forEach( ( tab ) =>
 		tab.addEventListener( 'click', () => {
-			state.status = tab.dataset.abtTab;
-			$$( '[data-abt-tab]', app ).forEach( ( button ) => button.setAttribute( 'aria-pressed', String( button === tab ) ) );
+			state.status = tab.dataset.ashbteTab;
+			$$( '[data-ashbte-tab]', app ).forEach( ( button ) => button.setAttribute( 'aria-pressed', String( button === tab ) ) );
 			state.page = 1;
 			load();
 		} )
 	);
-	$( '[data-abt-search]', app ).addEventListener(
+	$( '[data-ashbte-search]', app ).addEventListener(
 		'input',
 		debounce( ( e ) => {
 			state.search = e.target.value;
@@ -545,7 +545,7 @@
 			load();
 		} )
 	);
-	$( '[data-abt-product-filter]', app ).addEventListener(
+	$( '[data-ashbte-product-filter]', app ).addEventListener(
 		'input',
 		debounce( ( e ) => {
 			state.product = e.target.value;
@@ -553,20 +553,20 @@
 			load();
 		} )
 	);
-	$( '[data-abt-rating]', app ).addEventListener( 'change', ( e ) => {
+	$( '[data-ashbte-rating]', app ).addEventListener( 'change', ( e ) => {
 		state.rating = parseInt( e.target.value, 10 );
 		state.page = 1;
 		load();
 	} );
-	$( '[data-abt-sort]', app ).addEventListener( 'change', ( e ) => {
+	$( '[data-ashbte-sort]', app ).addEventListener( 'change', ( e ) => {
 		[ state.orderby, state.order ] = e.target.value.split( ':' );
 		state.page = 1;
 		load();
 	} );
 	pagerEl.addEventListener( 'click', ( e ) => {
-		const btn = e.target.closest( '[data-abt-page]' );
+		const btn = e.target.closest( '[data-ashbte-page]' );
 		if ( btn && ! btn.disabled ) {
-			state.page = parseInt( btn.dataset.abtPage, 10 );
+			state.page = parseInt( btn.dataset.ashbtePage, 10 );
 			load();
 			app.scrollIntoView( { behavior: 'smooth' } );
 		}
@@ -574,17 +574,17 @@
 
 	/* Selection and bulk actions */
 	rowsEl.addEventListener( 'change', ( e ) => {
-		if ( e.target.matches( '[data-abt-select]' ) ) {
+		if ( e.target.matches( '[data-ashbte-select]' ) ) {
 			const id = parseInt( e.target.value, 10 );
 			e.target.checked ? state.selected.add( id ) : state.selected.delete( id );
-			e.target.closest( '.abt-row' ).classList.toggle( 'is-selected', e.target.checked );
+			e.target.closest( '.ashbte-row' ).classList.toggle( 'is-selected', e.target.checked );
 			updateBulk();
 		}
 	} );
-	$( '[data-abt-select-all]', bulkEl ).addEventListener( 'change', ( e ) => {
-		$$( '[data-abt-select]', rowsEl ).forEach( ( box ) => {
+	$( '[data-ashbte-select-all]', bulkEl ).addEventListener( 'change', ( e ) => {
+		$$( '[data-ashbte-select]', rowsEl ).forEach( ( box ) => {
 			box.checked = e.target.checked;
-			box.closest( '.abt-row' ).classList.toggle( 'is-selected', box.checked );
+			box.closest( '.ashbte-row' ).classList.toggle( 'is-selected', box.checked );
 			const id = parseInt( box.value, 10 );
 			box.checked ? state.selected.add( id ) : state.selected.delete( id );
 		} );
@@ -595,24 +595,24 @@
 		try {
 			const res = await request( 'bulk', { ids, bulk: action, value } );
 			status( sprintf( _n( '%s testimonial updated.', '%s testimonials updated.', res.updated, 'ashbi-testimonials' ), res.updated ) );
-			const index = trigger === document.activeElement ? $$( '[data-abt-approve]', rowsEl ).indexOf( trigger ) : -1;
+			const index = trigger === document.activeElement ? $$( '[data-ashbte-approve]', rowsEl ).indexOf( trigger ) : -1;
 			await load();
 			if ( index >= 0 && ( document.activeElement === document.body || document.activeElement === trigger ) ) {
-				const pending = $$( '[data-abt-approve]', rowsEl );
-				( pending[ Math.min( index, pending.length - 1 ) ] || $( '#abt-status' ) ).focus();
+				const pending = $$( '[data-ashbte-approve]', rowsEl );
+				( pending[ Math.min( index, pending.length - 1 ) ] || $( '#ashbte-status' ) ).focus();
 			}
 		} catch ( err ) {
 			status( err.message, true );
 		}
 	}
 
-	$$( '[data-abt-bulk-action]', bulkEl ).forEach( ( btn ) =>
+	$$( '[data-ashbte-bulk-action]', bulkEl ).forEach( ( btn ) =>
 		btn.addEventListener( 'click', () => {
-			const [ action, value ] = btn.dataset.abtBulkAction.split( ':' );
+			const [ action, value ] = btn.dataset.ashbteBulkAction.split( ':' );
 			bulk( action, value );
 		} )
 	);
-	const bulkCollection = $( '[data-abt-bulk-collection]', bulkEl );
+	const bulkCollection = $( '[data-ashbte-bulk-collection]', bulkEl );
 	( cfg.collections || [] ).forEach( ( c ) => bulkCollection.insertAdjacentHTML( 'beforeend', '<option value="' + c.id + '">' + esc( c.name ) + '</option>' ) );
 	bulkCollection.addEventListener( 'change', () => {
 		if ( bulkCollection.value ) {
@@ -620,7 +620,7 @@
 			bulkCollection.value = '';
 		}
 	} );
-	$( '[data-abt-bulk-delete]', bulkEl ).addEventListener( 'click', async () => {
+	$( '[data-ashbte-bulk-delete]', bulkEl ).addEventListener( 'click', async () => {
 		const ids = Array.from( state.selected );
 		// eslint-disable-next-line no-alert
 		if ( ! window.confirm( sprintf( _n( 'Move %s testimonial to the trash?', 'Move %s testimonials to the trash?', ids.length, 'ashbi-testimonials' ), ids.length ) ) ) {
@@ -635,7 +635,7 @@
 		}
 	} );
 
-	$( '[data-abt-bulk-purge]', bulkEl ).addEventListener( 'click', () => {
+	$( '[data-ashbte-bulk-purge]', bulkEl ).addEventListener( 'click', () => {
 		// eslint-disable-next-line no-alert
 		if ( window.confirm( __( 'Permanently delete the selected testimonials? This cannot be undone.', 'ashbi-testimonials' ) ) ) {
 			bulk( 'purge', '1' );
@@ -643,23 +643,23 @@
 	} );
 
 	rowsEl.addEventListener( 'click', ( e ) => {
-		if ( e.target.closest( '[data-abt-retry-list]' ) ) {
+		if ( e.target.closest( '[data-ashbte-retry-list]' ) ) {
 			load();
 			return;
 		}
-		const restore = e.target.closest( '[data-abt-restore]' );
+		const restore = e.target.closest( '[data-ashbte-restore]' );
 		if ( restore ) {
-			bulk( 'restore', '1', [ parseInt( restore.dataset.abtRestore, 10 ) ] );
+			bulk( 'restore', '1', [ parseInt( restore.dataset.ashbteRestore, 10 ) ] );
 			return;
 		}
-		const approve = e.target.closest( '[data-abt-approve]' );
+		const approve = e.target.closest( '[data-ashbte-approve]' );
 		if ( approve ) {
-			bulk( 'status', 'publish', [ parseInt( approve.dataset.abtApprove, 10 ) ], approve );
+			bulk( 'status', 'publish', [ parseInt( approve.dataset.ashbteApprove, 10 ) ], approve );
 			return;
 		}
-		const edit = e.target.closest( '[data-abt-edit]' );
+		const edit = e.target.closest( '[data-ashbte-edit]' );
 		if ( edit ) {
-			const item = state.items.find( ( i ) => i.id === parseInt( edit.dataset.abtEdit, 10 ) );
+			const item = state.items.find( ( i ) => i.id === parseInt( edit.dataset.ashbteEdit, 10 ) );
 			openEditor( item );
 		}
 	} );
@@ -668,18 +668,18 @@
 	   Editor
 	   ================================================================== */
 
-	const editor = $( '#abt-editor' );
-	const eform = $( '[data-abt-editor-form]', editor );
-	const etitle = $( '#abt-editor-title' );
-	const eerror = $( '[data-abt-editor-error]', editor );
-	const starInput = $( '[data-abt-star-input]', editor );
-	const collectionsBox = $( '[data-abt-collections]', editor );
-	const avatarPreview = $( '[data-abt-avatar-preview]', editor );
-	const avatarRemove = $( '[data-abt-avatar-remove]', editor );
+	const editor = $( '#ashbte-editor' );
+	const eform = $( '[data-ashbte-editor-form]', editor );
+	const etitle = $( '#ashbte-editor-title' );
+	const eerror = $( '[data-ashbte-editor-error]', editor );
+	const starInput = $( '[data-ashbte-star-input]', editor );
+	const collectionsBox = $( '[data-ashbte-collections]', editor );
+	const avatarPreview = $( '[data-ashbte-avatar-preview]', editor );
+	const avatarRemove = $( '[data-ashbte-avatar-remove]', editor );
 	let avatarSrc = '';
 	let customSnapshots = {};
 	let customSkipped = new Set();
-	const customBox = $( '[data-abt-custom-values]', editor );
+	const customBox = $( '[data-ashbte-custom-values]', editor );
 	function customValues() {
 		const next = JSON.parse( JSON.stringify( customSnapshots ) );
 		$$( '[data-custom-key]', customBox ).forEach( ( input ) => {
@@ -712,7 +712,7 @@
 			} else {
 				control = '<input' + attr + ' type="' + ( field.type === 'checkbox' ? 'checkbox' : field.type === 'url' ? 'url' : 'text' ) + '" maxlength="500" value="' + esc( field.value ) + '"' + ( field.type === 'checkbox' && field.value === '1' ? ' checked' : '' ) + ' />';
 			}
-			return '<div class="abt-field"><label>' + label + control + '</label>' + '<button type="button" class="button-link" data-custom-remove="' + esc( key ) + '">' + esc( __( 'Remove stored answer', 'ashbi-testimonials' ) ) + '</button>' + '</div>';
+			return '<div class="ashbte-field"><label>' + label + control + '</label>' + '<button type="button" class="button-link" data-custom-remove="' + esc( key ) + '">' + esc( __( 'Remove stored answer', 'ashbi-testimonials' ) ) + '</button>' + '</div>';
 		} ).join( '' );
 		const missing = Object.entries( defs ).filter( ( [ key ] ) => ! customSnapshots[ key ] );
 		customBox.insertAdjacentHTML( 'beforeend', '<p class="description">' + esc( sprintf( __( '%s of 10 stored answers. Remove an answer to make room for another question.', 'ashbi-testimonials' ), Object.keys( customSnapshots ).length ) ) + '</p>' );
@@ -734,7 +734,7 @@
 
 
 	collectionsBox.innerHTML = ( cfg.collections || [] ).length
-		? cfg.collections.map( ( c ) => '<label class="abt-inline-check"><input type="checkbox" name="collections" value="' + c.id + '" /> ' + esc( c.name ) + '</label>' ).join( '' )
+		? cfg.collections.map( ( c ) => '<label class="ashbte-inline-check"><input type="checkbox" name="collections" value="' + c.id + '" /> ' + esc( c.name ) + '</label>' ).join( '' )
 		: '<p class="description">' + esc( __( 'Create a collection on the dashboard to group testimonials.', 'ashbi-testimonials' ) ) + '</p>';
 
 	function setRating( value ) {
@@ -771,7 +771,7 @@
 		setAvatar( '' );
 	} );
 	let mediaFrame;
-	$( '[data-abt-avatar-pick]', editor ).addEventListener( 'click', () => {
+	$( '[data-ashbte-avatar-pick]', editor ).addEventListener( 'click', () => {
 		if ( ! window.wp || ! window.wp.media ) {
 			return;
 		}
@@ -788,16 +788,16 @@
 	} );
 
 	/* Product picker */
-	const picker = $( '[data-abt-picker]', editor );
-	const pickInput = $( '[data-abt-picker-input]', picker );
-	const pickResults = $( '[data-abt-picker-results]', picker );
-	const pickChip = $( '[data-abt-picker-chip]', picker );
+	const picker = $( '[data-ashbte-picker]', editor );
+	const pickInput = $( '[data-ashbte-picker-input]', picker );
+	const pickResults = $( '[data-ashbte-picker-results]', picker );
+	const pickChip = $( '[data-ashbte-picker-chip]', picker );
 	let pickRequest = 0;
 
 	function setProduct( id, label ) {
 		++pickRequest;
 		eform.elements.product_id.value = id || 0;
-		$( '[data-abt-picker-label]', picker ).textContent = label || '';
+		$( '[data-ashbte-picker-label]', picker ).textContent = label || '';
 		pickChip.hidden = ! id;
 		pickInput.hidden = !! id;
 		pickResults.hidden = true;
@@ -832,7 +832,7 @@
 		const li = e.target.closest( 'li[data-id]' );
 		if ( li ) {
 			setProduct( li.dataset.id, li.dataset.label );
-			$( '[data-abt-picker-clear]', picker ).focus();
+			$( '[data-ashbte-picker-clear]', picker ).focus();
 		}
 	} );
 	pickInput.addEventListener( 'keydown', ( e ) => {
@@ -860,7 +860,7 @@
 			( li.previousElementSibling || pickInput ).focus();
 		}
 	} );
-	$( '[data-abt-picker-clear]', picker ).addEventListener( 'click', () => {
+	$( '[data-ashbte-picker-clear]', picker ).addEventListener( 'click', () => {
 		setProduct( 0, '' );
 		pickInput.focus();
 	} );
@@ -872,7 +872,7 @@
 			? ( editing ? __( 'Update published testimonial', 'ashbi-testimonials' ) : __( 'Publish testimonial', 'ashbi-testimonials' ) )
 			: ( status === 'pending' ? __( 'Save for approval', 'ashbi-testimonials' ) : __( 'Save draft', 'ashbi-testimonials' ) );
 		$( 'button[type="submit"]', eform ).textContent = label;
-		$( '[data-abt-save-new]', editor ).textContent = status === 'publish'
+		$( '[data-ashbte-save-new]', editor ).textContent = status === 'publish'
 			? __( 'Publish & add another', 'ashbi-testimonials' )
 			: __( 'Save & add another', 'ashbi-testimonials' );
 	}
@@ -882,7 +882,7 @@
 		const data = item || {};
 		const els = eform.elements;
 		eform.reset();
-		$( '[data-abt-review-details]', editor ).open = false;
+		$( '[data-ashbte-review-details]', editor ).open = false;
 		eerror.hidden = true;
 		els.id.value = data.id || 0;
 		[ 'author', 'headline', 'role', 'company', 'location', 'email', 'subject', 'source', 'source_url', 'avatar_url' ].forEach( ( k ) => ( els[ k ].value = data[ k ] || '' ) );
@@ -905,8 +905,8 @@
 
 		renderCustom();
 		etitle.textContent = editing ? etitle.dataset.edit : etitle.dataset.new;
-		$( '[data-abt-editor-delete]', editor ).hidden = ! editing;
-		$( '[data-abt-save-new]', editor ).hidden = editing;
+		$( '[data-ashbte-editor-delete]', editor ).hidden = ! editing;
+		$( '[data-ashbte-save-new]', editor ).hidden = editing;
 		updateSaveLabels();
 		rememberDialog( editor, eform );
 		openDialog( editor );
@@ -945,7 +945,7 @@
 			custom_fields: customValues(),
 			collections: $$( 'input[name="collections"]:checked', collectionsBox ).map( ( b ) => parseInt( b.value, 10 ) ),
 		};
-		const buttons = $$( '.abt-dialog__foot button', editor );
+		const buttons = $$( '.ashbte-dialog__foot button', editor );
 		buttons.forEach( ( b ) => ( b.disabled = true ) );
 		try {
 			await request( 'save', { item } );
@@ -964,7 +964,7 @@
 	}
 
 	eform.addEventListener( 'invalid', ( e ) => {
-		const details = e.target.closest( '[data-abt-review-details]' );
+		const details = e.target.closest( '[data-ashbte-review-details]' );
 		if ( details ) { details.open = true; }
 	}, true );
 	eform.elements.status.addEventListener( 'change', updateSaveLabels );
@@ -972,8 +972,8 @@
 		e.preventDefault();
 		saveEditor( false );
 	} );
-	$( '[data-abt-save-new]', editor ).addEventListener( 'click', () => saveEditor( true ) );
-	$( '[data-abt-editor-delete]', editor ).addEventListener( 'click', async () => {
+	$( '[data-ashbte-save-new]', editor ).addEventListener( 'click', () => saveEditor( true ) );
+	$( '[data-ashbte-editor-delete]', editor ).addEventListener( 'click', async () => {
 		// eslint-disable-next-line no-alert
 		if ( ! window.confirm( __( 'Move this testimonial to the trash?', 'ashbi-testimonials' ) ) ) {
 			return;
@@ -989,7 +989,7 @@
 		}
 	} );
 	document.addEventListener( 'click', ( e ) => {
-		if ( e.target.closest( '[data-abt-add]' ) ) {
+		if ( e.target.closest( '[data-ashbte-add]' ) ) {
 			openEditor( null );
 		}
 	} );
@@ -998,9 +998,9 @@
 	   Shortcode builder
 	   ================================================================== */
 
-	const builder = $( '[data-abt-builder]' );
-	const builderCode = $( '[data-abt-builder-code]', builder );
-	const builderPreview = $( '[data-abt-builder-preview]', builder );
+	const builder = $( '[data-ashbte-builder]' );
+	const builderCode = $( '[data-ashbte-builder-code]', builder );
+	const builderPreview = $( '[data-ashbte-builder-preview]', builder );
 	const partLabels = {
 		avatar: __( 'Photo', 'ashbi-testimonials' ),
 		rating: __( 'Stars', 'ashbi-testimonials' ),
@@ -1014,8 +1014,8 @@
 		location: __( 'Location', 'ashbi-testimonials' ),
 	};
 	const defaultParts = ( cfg.defaultShow || '' ).split( ',' );
-	$( '[data-abt-builder-parts]', builder ).innerHTML = ( cfg.parts || [] )
-		.map( ( p ) => '<label class="abt-inline-check"><input type="checkbox" name="show" value="' + p + '"' + ( defaultParts.includes( p ) ? ' checked' : '' ) + ' /> ' + esc( partLabels[ p ] || p ) + '</label>' )
+	$( '[data-ashbte-builder-parts]', builder ).innerHTML = ( cfg.parts || [] )
+		.map( ( p ) => '<label class="ashbte-inline-check"><input type="checkbox" name="show" value="' + p + '"' + ( defaultParts.includes( p ) ? ' checked' : '' ) + ' /> ' + esc( partLabels[ p ] || p ) + '</label>' )
 		.join( '' );
 
 	function builderAtts() {
@@ -1074,7 +1074,7 @@
 			if ( revision !== previewRevision ) {
 				return;
 			}
-			builderPreview.innerHTML = '<p class="abt-preview-empty">' + esc( err.message ) + '</p>';
+			builderPreview.innerHTML = '<p class="ashbte-preview-empty">' + esc( err.message ) + '</p>';
 		}
 		builderPreview.classList.remove( 'is-loading' );
 		builderPreview.setAttribute( 'aria-busy', 'false' );
@@ -1082,8 +1082,8 @@
 
 	function refreshBuilder() {
 		const atts = builderAtts();
-		builderCode.textContent = '[ashbi_testimonials' + Object.entries( atts ).map( ( [ k, v ] ) => ' ' + k + '="' + v + '"' ).join( '' ) + ']';
-		$( '[data-abt-builder-note]', builder ).hidden = ! atts.product;
+		builderCode.textContent = '[ashbte_testimonials' + Object.entries( atts ).map( ( [ k, v ] ) => ' ' + k + '="' + v + '"' ).join( '' ) + ']';
+		$( '[data-ashbte-builder-note]', builder ).hidden = ! atts.product;
 		builderPreview.classList.add( 'is-loading' );
 		builderPreview.setAttribute( 'aria-busy', 'true' );
 		refreshPreview( atts, ++previewRevision );
@@ -1091,17 +1091,17 @@
 	builder.addEventListener( 'input', refreshBuilder );
 	builder.addEventListener( 'change', refreshBuilder );
 	builder.addEventListener( 'submit', ( e ) => e.preventDefault() );
-	$( '[data-abt-builder-copy]', builder ).addEventListener( 'click', ( e ) => copy( builderCode.textContent, e.currentTarget ) );
+	$( '[data-ashbte-builder-copy]', builder ).addEventListener( 'click', ( e ) => copy( builderCode.textContent, e.currentTarget ) );
 	document.addEventListener( 'click', ( e ) => {
-		if ( e.target.closest( '[data-abt-open="abt-builder-dialog"]' ) ) {
+		if ( e.target.closest( '[data-ashbte-open="ashbte-builder-dialog"]' ) ) {
 			refreshBuilder();
 		}
 	} );
 
 	// The preview uses the real frontend markup; wire its sliders and Read more buttons.
 	function initFrontend( root ) {
-		if ( window.abtInitFrontend ) {
-			window.abtInitFrontend( root );
+		if ( window.ashbteInitFrontend ) {
+			window.ashbteInitFrontend( root );
 		}
 	}
 
@@ -1162,8 +1162,8 @@
 		return hash.toString( 16 ).padStart( 16, '0' );
 	}
 
-	const importForm = $( '[data-abt-import]' );
-	const importCollection = $( '[data-abt-import-collection]', importForm );
+	const importForm = $( '[data-ashbte-import]' );
+	const importCollection = $( '[data-ashbte-import-collection]', importForm );
 	if ( importCollection ) {
 		importCollection.innerHTML =
 			'<option value="0">' + esc( __( 'None', 'ashbi-testimonials' ) ) + '</option>' +
@@ -1172,9 +1172,9 @@
 
 	importForm.addEventListener( 'submit', async ( e ) => {
 		e.preventDefault();
-		const file = $( '#abt-i-file', importForm ).files[ 0 ];
-		const result = $( '[data-abt-import-result]', importForm );
-		const progress = $( '[data-abt-import-progress]', importForm );
+		const file = $( '#ashbte-i-file', importForm ).files[ 0 ];
+		const result = $( '[data-ashbte-import-result]', importForm );
+		const progress = $( '[data-ashbte-import-progress]', importForm );
 		const submit = $( '[type="submit"]', importForm );
 		if ( ! file ) {
 			result.textContent = __( 'Choose a CSV file first.', 'ashbi-testimonials' );

@@ -3,18 +3,20 @@
  * @package Ashbi_Testimonials
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
-class ABT_Purchase {
-	const META = '_abt_purchase_evidence';
+class ASHBTE_Purchase {
+	const META = '_ashbte_purchase_evidence';
 	public static function init() {
-		add_action( 'wp_ajax_abt_purchase_nonce', array( __CLASS__, 'nonce' ) );
-		add_action( 'abt_submitted', array( __CLASS__, 'capture' ) );
+		add_action( 'wp_ajax_ashbte_purchase_nonce', array( __CLASS__, 'nonce' ) );
+		add_action( 'ashbte_submitted', array( __CLASS__, 'capture' ) );
 	}
 	/** Same-origin authenticated read: never cached in a public form. */
 	public static function nonce() {
 		nocache_headers();
-		$id = isset( $_POST['product_id'] ) && is_string( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This endpoint issues a user-bound nonce; it changes no state.
+		check_ajax_referer( ASHBTE_Render::NONCE, 'nonce' );
+		if ( ! is_user_logged_in() ) { wp_send_json_error( null, 403 ); }
+		$id = isset( $_POST['product_id'] ) && is_string( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 		if ( ! is_user_logged_in() || ! function_exists( 'wc_get_product' ) || ! $id || ! is_post_publicly_viewable( $id ) || post_password_required( $id ) || ! wc_get_product( $id ) ) { wp_send_json_error( null, 400 ); }
-		wp_send_json_success( array( 'nonce' => wp_create_nonce( 'abt_purchase_' . $id ) ) );
+		wp_send_json_success( array( 'nonce' => wp_create_nonce( 'ashbte_purchase_' . $id ) ) );
 	}
 	private static function valid_line( $order, $line_id, $product_id ) {
 		if ( ! $order instanceof WC_Order || ! $order->is_paid() || ! $order->get_date_paid() ) { return false; }
@@ -24,10 +26,14 @@ class ABT_Purchase {
 	/** Called only after a fresh public submission. Raw posted order/customer IDs are ignored. */
 	public static function capture( $id ) {
 		if ( ! function_exists( 'wc_get_orders' ) || ! is_user_logged_in() ) { return; }
-		$item = ABT_Data::instance()->get( $id );
+		$item = ASHBTE_Data::instance()->get( $id );
+		if ( ! $item || ! $item['product_id'] ) { return; }
+		// The product-bound nonce is checked on its own before anything else is trusted.
+		$nonce = isset( $_POST['ashbte_purchase_nonce'] ) && is_string( $_POST['ashbte_purchase_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['ashbte_purchase_nonce'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, 'ashbte_purchase_' . $item['product_id'] ) ) { return; }
+		// Evidence is only recorded for the signed-in customer who wrote the review.
 		$user = wp_get_current_user();
-		$nonce = isset( $_POST['abt_purchase_nonce'] ) && is_string( $_POST['abt_purchase_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['abt_purchase_nonce'] ) ) : '';
-		if ( ! $item || ! $item['product_id'] || ! wp_verify_nonce( $nonce, 'abt_purchase_' . $item['product_id'] ) || strtolower( $user->user_email ) !== strtolower( $item['email'] ) ) { return; }
+		if ( strtolower( $user->user_email ) !== strtolower( $item['email'] ) ) { return; }
 		$orders = wc_get_orders( array( 'customer_id' => $user->ID, 'status' => wc_get_is_paid_statuses(), 'limit' => 50, 'orderby' => 'date', 'order' => 'DESC' ) );
 		foreach ( $orders as $order ) {
 			if ( (int) $order->get_customer_id() !== (int) $user->ID ) { continue; }

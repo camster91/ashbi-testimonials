@@ -1,12 +1,12 @@
 <?php
 /** Disposable WordPress integration regression for public form input/retries. */
-if ( ! defined( 'ABSPATH' ) || ! class_exists( 'ABT_Form' ) ) {
+if ( ! defined( 'ABSPATH' ) || ! class_exists( 'ASHBTE_Form' ) ) {
 	exit( 1 );
 }
-class ABT_Form_Test_Redirect extends RuntimeException {}
+class ASHBTE_Form_Test_Redirect extends RuntimeException {}
 $redirect = static function ( $url ) {
 	parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $query );
-	throw new ABT_Form_Test_Redirect( $query['abt_status'] ?? 'missing' );
+	throw new ASHBTE_Form_Test_Redirect( $query['ashbte_status'] ?? 'missing' );
 };
 add_filter( 'wp_redirect', $redirect, 1 );
 $check = static function ( $ok, $message ) {
@@ -14,25 +14,28 @@ $check = static function ( $ok, $message ) {
 		throw new RuntimeException( 'Form safety: ' . $message );
 	}
 };
-$old_settings = get_option( ABT_SETTINGS_OPTION );
-update_option( ABT_SETTINGS_OPTION, array( 'notify_email' => '' ) );
-$data = ABT_Data::instance();
+$old_settings = get_option( ASHBTE_SETTINGS_OPTION );
+update_option( ASHBTE_SETTINGS_OPTION, array( 'notify_email' => '' ) );
+$data = ASHBTE_Data::instance();
 $col = $data->save_collection( array( 'name' => 'Safe submissions' ) );
 $target = $col['id'] . ':0';
 $time = time();
-$base = array( 'abt_target' => $target, 'abt_token' => $time . '.' . substr( wp_hash( 'abt_form|' . $time . '|' . $target ), 0, 20 ), 'author' => 'Safety reviewer', 'email' => 'safe@example.test', 'content' => 'A valid personal review.', 'rating' => '5', 'consent' => '1' );
+$base = array( 'ashbte_nonce' => wp_create_nonce( ASHBTE_Render::NONCE ), 'ashbte_target' => $target, 'ashbte_token' => $time . '.' . substr( wp_hash( 'ashbte_form|' . $time . '|' . $target ), 0, 20 ), 'author' => 'Safety reviewer', 'email' => 'safe@example.test', 'content' => 'A valid personal review.', 'rating' => '5', 'consent' => '1' );
 $send = static function ( $fields, $ip = '192.0.2.201' ) use ( $base ) {
 	$_POST = array_merge( $base, $fields );
 	$_SERVER['REMOTE_ADDR'] = $ip;
 	try {
-		ABT_Form::instance()->handle();
-	} catch ( ABT_Form_Test_Redirect $result ) {
+		ASHBTE_Form::instance()->handle();
+	} catch ( ASHBTE_Form_Test_Redirect $result ) {
 		return $result->getMessage();
 	}
 	throw new RuntimeException( 'Missing form response' );
 };
 try {
-	foreach ( array( 'abt_form', 'abt_target', 'abt_token', 'author', 'email', 'content', 'rating', 'consent', 'company' ) as $field ) {
+	$check( 'expired' === $send( array( 'ashbte_nonce' => '' ) ), 'missing nonce is rejected' );
+	$check( 'expired' === $send( array( 'ashbte_nonce' => 'not-a-nonce' ) ), 'invalid nonce is rejected' );
+	$check( 'expired' === $send( array( 'ashbte_nonce' => wp_create_nonce( 'ashbte_other_action' ) ) ), 'nonce for another action is rejected' );
+	foreach ( array( 'ashbte_form', 'ashbte_target', 'ashbte_token', 'author', 'email', 'content', 'rating', 'consent', 'company' ) as $field ) {
 		$check( 'invalid' === $send( array( $field => array( 'malformed' ) ) ), 'array rejected for ' . $field );
 	}
 	foreach ( array( 'author' => 120, 'email' => 190, 'role' => 120, 'company' => 120, 'location' => 120, 'headline' => 160, 'content' => 5000 ) as $field => $limit ) {
@@ -53,7 +56,7 @@ try {
 	$check( 'thanks' === $send( array() ), 'retry stays successful after rate budget is exhausted' );
 	$check( 5 === $data->query( array( 'collection' => $col['id'], 'status' => 'pending' ) )['total'], 'only five distinct reviews were stored' );
 	$ip = '192.0.2.202';
-	$lock = 'abt_submit_lock_' . substr( wp_hash( $ip ), 0, 16 );
+	$lock = 'ashbte_submit_lock_' . substr( wp_hash( $ip ), 0, 16 );
 	add_option( $lock, ( time() + 30 ) . ':another-worker', '', false );
 	// A second worker may have cached absence before another worker acquired the lease.
 	wp_cache_set( 'notoptions', array( $lock => true ), 'options' );
@@ -70,7 +73,7 @@ try {
 	$check( 'thanks' === $send( array( 'content' => 'Temporarily failed review' ), $ip ), 'failed save can be retried successfully' );
 } finally {
 	remove_filter( 'wp_redirect', $redirect, 1 );
-	update_option( ABT_SETTINGS_OPTION, $old_settings );
+	update_option( ASHBTE_SETTINGS_OPTION, $old_settings );
 	$_POST = array();
 }
 fwrite( STDOUT, "OK: public form validation and retries passed\n" );

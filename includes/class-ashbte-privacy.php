@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class ABT_Privacy {
+class ASHBTE_Privacy {
 	const BATCH_SIZE = 100;
 	private static $instance = null;
 
@@ -47,14 +47,14 @@ class ABT_Privacy {
 			return array();
 		}
 		return get_posts( array(
-			'post_type' => ABT_Data::POST_TYPE,
+			'post_type' => ASHBTE_Data::POST_TYPE,
 			'post_status' => array_values( get_post_stati() ),
 			'fields' => 'ids',
 			'posts_per_page' => self::BATCH_SIZE,
 			'paged' => max( 1, (int) $page ),
 			'orderby' => 'ID',
 			'order' => 'ASC',
-			'meta_key' => ABT_Data::META['email'], // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Bounded batches for verified administrative privacy requests.
+			'meta_key' => ASHBTE_Data::META['email'], // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Bounded batches for verified administrative privacy requests.
 			'meta_value' => $email, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Bounded batches for verified administrative privacy requests.
 		) );
 	}
@@ -89,31 +89,31 @@ class ABT_Privacy {
 				array( 'name' => __( 'Date', 'ashbi-testimonials' ), 'value' => $post->post_date ),
 			);
 			foreach ( $labels as $field => $label ) {
-				$value = get_post_meta( $id, ABT_Data::META[ $field ], true );
+				$value = get_post_meta( $id, ASHBTE_Data::META[ $field ], true );
 				if ( is_scalar( $value ) && '' !== (string) $value ) {
 					$data[] = array( 'name' => $label, 'value' => (string) $value );
 				}
 			}
-			$proof = get_post_meta( $id, ABT_Purchase::META, true );
+			$proof = get_post_meta( $id, ASHBTE_Purchase::META, true );
 			$customer = is_array( $proof ) && ! empty( $proof['customer_id'] ) ? get_userdata( (int) $proof['customer_id'] ) : false;
 			if ( $customer && 0 === strcasecmp( $customer->user_email, $email_address ) ) {
 				$data[] = array( 'name' => __( 'Purchase evidence', 'ashbi-testimonials' ), 'value' => wp_json_encode( $proof ) );
 			}
-			$custom = ABT_Fields::snapshots( get_post_meta( $id, ABT_Data::META['custom_fields'], true ) ?: array() );
+			$custom = ASHBTE_Fields::snapshots( get_post_meta( $id, ASHBTE_Data::META['custom_fields'], true ) ?: array() );
 			if ( ! is_wp_error( $custom ) ) {
 				foreach ( $custom as $field ) {
 					$data[] = array( 'name' => $field['label'], 'value' => $field['value'] );
 				}
 			}
 			// Legacy revisions have no reviewer identity. Leave them for manual privacy review.
-			$terms = wp_get_object_terms( $id, ABT_Data::TAXONOMY, array( 'fields' => 'names' ) );
+			$terms = wp_get_object_terms( $id, ASHBTE_Data::TAXONOMY, array( 'fields' => 'names' ) );
 			if ( ! is_wp_error( $terms ) && $terms ) {
 				$data[] = array( 'name' => __( 'Collections', 'ashbi-testimonials' ), 'value' => implode( ', ', $terms ) );
 			}
 			$items[] = array(
 				'group_id' => 'ashbi-testimonials',
 				'group_label' => __( 'Testimonials', 'ashbi-testimonials' ),
-				'item_id' => 'abt-testimonial-' . $id,
+				'item_id' => 'ashbte-testimonial-' . $id,
 				'data' => $data,
 			);
 		}
@@ -127,7 +127,7 @@ class ABT_Privacy {
 		$failed = false;
 		$media_retained = false;
 		foreach ( $ids as $id ) {
-			$media_retained = $media_retained || (int) get_post_meta( $id, ABT_Data::META['avatar_id'], true ) > 0;
+			$media_retained = $media_retained || (int) get_post_meta( $id, ASHBTE_Data::META['avatar_id'], true ) > 0;
 			if ( wp_delete_post( $id, true ) && ! get_post( $id ) ) {
 				$result['items_removed'] = true;
 			} else {

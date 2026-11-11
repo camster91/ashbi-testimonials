@@ -12,43 +12,43 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class ABT_Data {
+class ASHBTE_Data {
 
-	const POST_TYPE = 'abt_testimonial';
-	const TAXONOMY  = 'abt_collection';
+	const POST_TYPE = 'ashbte_testimonial';
+	const TAXONOMY  = 'ashbte_collection';
 
 	/**
 	 * Testimonial meta: field => meta key. Every key is always stored so
 	 * ordering and filtering never miss posts that lack a value.
 	 */
 	const META = array(
-		'custom_fields' => '_abt_custom_fields',
-		'headline'   => '_abt_headline',
-		'rating'     => '_abt_rating',
-		'role'       => '_abt_role',
-		'company'    => '_abt_company',
-		'location'   => '_abt_location',
-		'email'      => '_abt_email',
-		'avatar_id'  => '_abt_avatar_id',
-		'avatar_url' => '_abt_avatar_url',
-		'product_id' => '_abt_product_id',
-		'subject'    => '_abt_subject',
-		'origin'     => '_abt_origin',
-		'source'     => '_abt_source',
-		'source_url' => '_abt_source_url',
-		'verified'   => '_abt_verified',
-		'featured'   => '_abt_featured',
+		'custom_fields' => '_ashbte_custom_fields',
+		'headline'   => '_ashbte_headline',
+		'rating'     => '_ashbte_rating',
+		'role'       => '_ashbte_role',
+		'company'    => '_ashbte_company',
+		'location'   => '_ashbte_location',
+		'email'      => '_ashbte_email',
+		'avatar_id'  => '_ashbte_avatar_id',
+		'avatar_url' => '_ashbte_avatar_url',
+		'product_id' => '_ashbte_product_id',
+		'subject'    => '_ashbte_subject',
+		'origin'     => '_ashbte_origin',
+		'source'     => '_ashbte_source',
+		'source_url' => '_ashbte_source_url',
+		'verified'   => '_ashbte_verified',
+		'featured'   => '_ashbte_featured',
 	);
 
 	const STATUSES = array( 'publish', 'pending', 'draft' );
 
 	/**
-	 * @var ABT_Data|null
+	 * @var ASHBTE_Data|null
 	 */
 	private static $instance = null;
 
 	/**
-	 * @return ABT_Data
+	 * @return ASHBTE_Data
 	 */
 	public static function instance() {
 		if ( null === self::$instance ) {
@@ -118,7 +118,7 @@ class ABT_Data {
 	/** Invalidate cached rating summaries after any change. */
 	public function flush() {
 		// A fresh token cannot reuse a cached generation when another worker held an old option value.
-		update_option( ABT_CACHE_OPTION, wp_generate_uuid4() );
+		update_option( ASHBTE_CACHE_OPTION, wp_generate_uuid4() );
 	}
 
 	/* ==================================================================
@@ -220,16 +220,16 @@ class ABT_Data {
 	}
 
 	public function collection_to_array( WP_Term $term ) {
-		$type = (string) get_term_meta( $term->term_id, 'abt_type', true );
+		$type = (string) get_term_meta( $term->term_id, 'ashbte_type', true );
 		return array(
 			'id'     => (int) $term->term_id,
 			'name'   => $term->name,
 			'slug'   => $term->slug,
 			'type'   => isset( self::types()[ $type ] ) ? $type : 'general',
-			'layout' => $this->clean_layout( get_term_meta( $term->term_id, 'abt_layout', true ) ),
-			'accent' => (string) ( sanitize_hex_color( (string) get_term_meta( $term->term_id, 'abt_accent', true ) ) ?: '' ),
+			'layout' => $this->clean_layout( get_term_meta( $term->term_id, 'ashbte_layout', true ) ),
+			'accent' => (string) ( sanitize_hex_color( (string) get_term_meta( $term->term_id, 'ashbte_accent', true ) ) ?: '' ),
 			'count'  => (int) $term->count,
-			'fields' => ABT_Fields::for_collection( $term->term_id ),
+			'fields' => ASHBTE_Fields::for_collection( $term->term_id ),
 		);
 	}
 
@@ -241,11 +241,11 @@ class ABT_Data {
 	 * @return array|WP_Error
 	 */
 	public function save_collection( array $data, $id = 0 ) {
-		$fields = ABT_Fields::definitions( $data['fields'] ?? ( $id ? ABT_Fields::for_collection( $id ) : array() ) );
+		$fields = ASHBTE_Fields::definitions( $data['fields'] ?? ( $id ? ASHBTE_Fields::for_collection( $id ) : array() ) );
 		if ( is_wp_error( $fields ) ) { return $fields; }
 		$name = sanitize_text_field( (string) ( $data['name'] ?? '' ) );
 		if ( '' === $name ) {
-			return new WP_Error( 'abt_collection_name', __( 'Give the collection a name.', 'ashbi-testimonials' ) );
+			return new WP_Error( 'ashbte_collection_name', __( 'Give the collection a name.', 'ashbi-testimonials' ) );
 		}
 		$args = array();
 		if ( ! empty( $data['slug'] ) ) {
@@ -263,11 +263,11 @@ class ABT_Data {
 		}
 
 		$term_id = (int) $result['term_id'];
-		update_term_meta( $term_id, 'abt_fields', wp_slash( $fields ) );
+		update_term_meta( $term_id, 'ashbte_fields', wp_slash( $fields ) );
 		$type    = sanitize_key( (string) ( $data['type'] ?? 'general' ) );
-		update_term_meta( $term_id, 'abt_type', isset( self::types()[ $type ] ) ? $type : 'general' );
-		update_term_meta( $term_id, 'abt_layout', $this->clean_layout( $data['layout'] ?? '' ) );
-		update_term_meta( $term_id, 'abt_accent', (string) ( sanitize_hex_color( (string) ( $data['accent'] ?? '' ) ) ?: '' ) );
+		update_term_meta( $term_id, 'ashbte_type', isset( self::types()[ $type ] ) ? $type : 'general' );
+		update_term_meta( $term_id, 'ashbte_layout', $this->clean_layout( $data['layout'] ?? '' ) );
+		update_term_meta( $term_id, 'ashbte_accent', (string) ( sanitize_hex_color( (string) ( $data['accent'] ?? '' ) ) ?: '' ) );
 		$this->flush();
 
 		return $this->collection_to_array( get_term( $term_id, self::TAXONOMY ) );
@@ -282,7 +282,7 @@ class ABT_Data {
 	 */
 	public function delete_collection( $id, $trash_items = false ) {
 		if ( $trash_items && ! EMPTY_TRASH_DAYS ) {
-			return new WP_Error( 'abt_trash_disabled', __( 'Trash is disabled on this site. Deselect the option to trash testimonials and try again.', 'ashbi-testimonials' ) );
+			return new WP_Error( 'ashbte_trash_disabled', __( 'Trash is disabled on this site. Deselect the option to trash testimonials and try again.', 'ashbi-testimonials' ) );
 		}
 		if ( $trash_items ) {
 			$ids = get_posts(
@@ -385,22 +385,22 @@ class ABT_Data {
 		if ( $id && ! array_key_exists( 'origin', $raw ) ) {
 			$raw['origin'] = get_post_meta( $id, self::META['origin'], true );
 		}
-		$custom = ABT_Fields::snapshots( $raw['custom_fields'] ?? ( $id ? get_post_meta( $id, self::META['custom_fields'], true ) ?: array() : array() ) );
+		$custom = ASHBTE_Fields::snapshots( $raw['custom_fields'] ?? ( $id ? get_post_meta( $id, self::META['custom_fields'], true ) ?: array() : array() ) );
 		if ( is_wp_error( $custom ) ) { return $custom; }
 		$data = $this->sanitize( $raw );
 		$data['custom_fields'] = $custom;
 		if ( '' === $data['author'] ) {
-			return new WP_Error( 'abt_author', __( 'Add the reviewer’s name.', 'ashbi-testimonials' ) );
+			return new WP_Error( 'ashbte_author', __( 'Add the reviewer’s name.', 'ashbi-testimonials' ) );
 		}
 		if ( '' === trim( wp_strip_all_tags( $data['content'] ) ) && 0 === $data['rating'] ) {
-			return new WP_Error( 'abt_content', __( 'Add the testimonial text or a star rating.', 'ashbi-testimonials' ) );
+			return new WP_Error( 'ashbte_content', __( 'Add the testimonial text or a star rating.', 'ashbi-testimonials' ) );
 		}
 		if ( $id && self::POST_TYPE !== get_post_type( $id ) ) {
-			return new WP_Error( 'abt_missing', __( 'That testimonial no longer exists.', 'ashbi-testimonials' ) );
+			return new WP_Error( 'ashbte_missing', __( 'That testimonial no longer exists.', 'ashbi-testimonials' ) );
 		}
 
 		if ( $data['date'] && ( ! wp_checkdate( (int) substr( $data['date'], 5, 2 ), (int) substr( $data['date'], 8, 2 ), (int) substr( $data['date'], 0, 4 ), $data['date'] ) || $data['date'] > current_time( 'Y-m-d' ) ) ) {
-			return new WP_Error( 'abt_date', __( 'Choose a valid review date that is today or earlier.', 'ashbi-testimonials' ) );
+			return new WP_Error( 'ashbte_date', __( 'Choose a valid review date that is today or earlier.', 'ashbi-testimonials' ) );
 		}
 
 		$post = array(
@@ -455,7 +455,7 @@ class ABT_Data {
 		foreach ( self::META as $field => $key ) {
 			$item[ $field ] = get_post_meta( $post->ID, $key, true );
 		}
-		$custom = ABT_Fields::snapshots( $item['custom_fields'] ?: array() );
+		$custom = ASHBTE_Fields::snapshots( $item['custom_fields'] ?: array() );
 		$item['custom_fields'] = is_wp_error( $custom ) ? array() : $custom;
 		foreach ( array( 'rating', 'avatar_id', 'product_id', 'verified', 'featured' ) as $int_field ) {
 			$item[ $int_field ] = (int) $item[ $int_field ];
@@ -555,12 +555,12 @@ class ABT_Data {
 
 		switch ( $args['orderby'] ) {
 			case 'rating':
-				$q['meta_query']['abt_rating'] = array( 'key' => self::META['rating'], 'type' => 'NUMERIC' );
-				$q['orderby']                  = array( 'abt_rating' => $order, 'date' => 'DESC', 'ID' => 'DESC' );
+				$q['meta_query']['ashbte_rating'] = array( 'key' => self::META['rating'], 'type' => 'NUMERIC' );
+				$q['orderby']                  = array( 'ashbte_rating' => $order, 'date' => 'DESC', 'ID' => 'DESC' );
 				break;
 			case 'featured':
-				$q['meta_query']['abt_featured'] = array( 'key' => self::META['featured'], 'type' => 'NUMERIC' );
-				$q['orderby']                    = array( 'abt_featured' => 'DESC', 'date' => $order, 'ID' => $order );
+				$q['meta_query']['ashbte_featured'] = array( 'key' => self::META['featured'], 'type' => 'NUMERIC' );
+				$q['orderby']                    = array( 'ashbte_featured' => 'DESC', 'date' => $order, 'ID' => $order );
 				break;
 			case 'random':
 				$q['orderby'] = 'rand';
@@ -611,7 +611,7 @@ class ABT_Data {
 		$ids        = array_map( 'absint', (array) ( $args['ids'] ?? array() ) );
 		sort( $ids );
 
-		$key    = 'abt_stats_' . md5( wp_json_encode( array( 'eligibility-pivot-v2', $collections, $product_id, $subject, $rating, $min_rating, $featured, $verified, $ids, get_option( ABT_CACHE_OPTION, 1 ) ) ) );
+		$key    = 'ashbte_stats_' . md5( wp_json_encode( array( 'eligibility-pivot-v2', $collections, $product_id, $subject, $rating, $min_rating, $featured, $verified, $ids, get_option( ASHBTE_CACHE_OPTION, 1 ) ) ) );
 		$cached = get_transient( $key );
 		if ( is_array( $cached ) ) {
 			return $cached;

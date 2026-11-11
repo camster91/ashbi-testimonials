@@ -1,15 +1,15 @@
 <?php
 /**
  * Uninstall test. Destructive: only for a disposable site.
- *   ABT_DISPOSABLE_TEST=1 wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-uninstall.php
+ *   ASHBTE_DISPOSABLE_TEST=1 wp eval-file wp-content/plugins/ashbi-testimonials/tests/wordpress-uninstall.php
  *
  * Checks default retention, site-specific cleanup and complete opt-in cleanup.
  *
  * @package Ashbi_Testimonials
  */
 
-if ( ! defined( 'ABSPATH' ) || '1' !== getenv( 'ABT_DISPOSABLE_TEST' ) ) {
-	fwrite( STDERR, "Set ABT_DISPOSABLE_TEST=1 and run with wp eval-file on a disposable site.\n" );
+if ( ! defined( 'ABSPATH' ) || '1' !== getenv( 'ASHBTE_DISPOSABLE_TEST' ) ) {
+	fwrite( STDERR, "Set ASHBTE_DISPOSABLE_TEST=1 and run with wp eval-file on a disposable site.\n" );
 	exit( 1 );
 }
 
@@ -25,19 +25,19 @@ if ( is_multisite() ) {
 $sites = is_multisite() ? get_sites( array( 'fields' => 'ids' ) ) : array( 0 );
 
 $seed = static function () {
-	ABT_Data::instance()->register();
-	$col = ABT_Data::instance()->save_collection( array( 'name' => 'Uninstall me', 'type' => 'store' ) );
-	ABT_Data::instance()->save( array( 'author' => 'A', 'content' => 'b', 'rating' => 5, 'collections' => array( $col['id'] ) ) );
-	ABT_Data::instance()->stats( array( 'collection' => $col['id'] ) );
-	update_option( ABT_SETTINGS_OPTION, array( 'schema' => '0' ) );
+	ASHBTE_Data::instance()->register();
+	$col = ASHBTE_Data::instance()->save_collection( array( 'name' => 'Uninstall me', 'type' => 'store' ) );
+	ASHBTE_Data::instance()->save( array( 'author' => 'A', 'content' => 'b', 'rating' => 5, 'collections' => array( $col['id'] ) ) );
+	ASHBTE_Data::instance()->stats( array( 'collection' => $col['id'] ) );
+	update_option( ASHBTE_SETTINGS_OPTION, array( 'schema' => '0' ) );
 };
 $state = static function () {
 	global $wpdb;
 	return array(
-		'posts'      => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = %s", 'abt_testimonial' ) ),
-		'meta'       => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key LIKE '\\_abt\\_%'" ),
-		'terms'      => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE taxonomy = %s", 'abt_collection' ) ),
-		'options'    => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE 'abt\\_%' OR option_name LIKE '\\_transient\\_abt\\_%' OR option_name LIKE '\\_transient\\_timeout\\_abt\\_%'" ),
+		'posts'      => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = %s", 'ashbte_testimonial' ) ),
+		'meta'       => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key LIKE '\\_ashbte\\_%'" ),
+		'terms'      => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE taxonomy = %s", 'ashbte_collection' ) ),
+		'options'    => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE 'ashbte\\_%' OR option_name LIKE '\\_transient\\_ashbte\\_%' OR option_name LIKE '\\_transient\\_timeout\\_ashbte\\_%'" ),
 	);
 };
 
@@ -56,7 +56,7 @@ foreach ( $sites as $site ) {
 }
 
 define( 'WP_UNINSTALL_PLUGIN', 'ashbi-testimonials/ashbi-testimonials.php' );
-include ABT_PLUGIN_DIR . 'uninstall.php';
+include ASHBTE_PLUGIN_DIR . 'uninstall.php';
 
 // Existing sites without a deletion preference must retain all plugin data.
 foreach ( $sites as $site ) {
@@ -67,14 +67,14 @@ foreach ( $sites as $site ) {
 	if ( ! $kept['posts'] || ! $kept['meta'] || ! $kept['terms'] || ! $kept['options'] ) {
 		throw new RuntimeException( 'FAILED: default uninstall removed data on site ' . $site );
 	}
-	$settings = get_option( ABT_SETTINGS_OPTION, array() );
+	$settings = get_option( ASHBTE_SETTINGS_OPTION, array() );
 	$settings['delete_on_uninstall'] = $site === $sites[0] ? '1' : '0';
-	update_option( ABT_SETTINGS_OPTION, $settings );
+	update_option( ASHBTE_SETTINGS_OPTION, $settings );
 	if ( $site ) {
 		restore_current_blog();
 	}
 }
-include ABT_PLUGIN_DIR . 'uninstall.php';
+include ASHBTE_PLUGIN_DIR . 'uninstall.php';
 
 // One site's opt-in must not authorize deleting another site's data.
 foreach ( $sites as $site ) {
@@ -85,12 +85,12 @@ foreach ( $sites as $site ) {
 	if ( $site === $sites[0] ? (bool) array_sum( $actual ) : ( ! $actual['posts'] || ! $actual['meta'] || ! $actual['terms'] || ! $actual['options'] ) ) {
 		throw new RuntimeException( 'FAILED: site-specific cleanup preference on site ' . $site );
 	}
-	update_option( ABT_SETTINGS_OPTION, array( 'delete_on_uninstall' => '1' ) );
+	update_option( ASHBTE_SETTINGS_OPTION, array( 'delete_on_uninstall' => '1' ) );
 	if ( $site ) {
 		restore_current_blog();
 	}
 }
-include ABT_PLUGIN_DIR . 'uninstall.php';
+include ASHBTE_PLUGIN_DIR . 'uninstall.php';
 
 foreach ( $sites as $site ) {
 	if ( $site ) {

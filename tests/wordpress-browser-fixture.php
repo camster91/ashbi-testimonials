@@ -1,25 +1,25 @@
 <?php
 /** Fictional local/CI browser fixture only. */
-if ( ! defined( 'ABSPATH' ) || '1' !== getenv( 'ABT_DISPOSABLE_TEST' ) ) { exit( 1 ); }
+if ( ! defined( 'ABSPATH' ) || '1' !== getenv( 'ASHBTE_DISPOSABLE_TEST' ) ) { exit( 1 ); }
 $admin = get_users( array( 'role' => 'administrator', 'number' => 1 ) )[0];
-wp_set_password( 'abt-ci-only-password', $admin->ID );
-$data = ABT_Data::instance();
+wp_set_password( 'ashbte-ci-only-password', $admin->ID );
+$data = ASHBTE_Data::instance();
 $col = $data->save_collection( array( 'name' => 'Fictional browser demo', 'fields' => array( array( 'key' => 'project', 'label' => 'Project', 'type' => 'text', 'required' => true, 'public' => true ), array( 'key' => 'private_note', 'label' => 'Private note', 'type' => 'textarea', 'required' => false, 'public' => false ) ) ) );
 foreach ( range( 1, 8 ) as $i ) {
 	$data->save( array( 'author' => 'Demo reviewer ' . $i, 'content' => 'Fictional demonstration feedback. ' . str_repeat( 'Readable review content for testing layouts. ', 15 ), 'company' => 'Example Studio', 'date' => '2025-01-01', 'rating' => $i % 2 ? 5 : 4, 'origin' => 'direct', 'collections' => array( $col['id'] ) ) );
 }
 $content = '<!-- wp:paragraph --><p>Fictional demonstration reviews for automated testing.</p><!-- /wp:paragraph -->';
-foreach ( ABT_Data::layouts() as $layout => $label ) {
+foreach ( ASHBTE_Data::layouts() as $layout => $label ) {
 	$content .= '<!-- wp:heading --><h2>' . esc_html( $label ) . '</h2><!-- /wp:heading -->';
 	if ( 'grid' === $layout ) {
-		$content .= sprintf( '<!-- wp:shortcode -->[ashbi_testimonials collection="%d" layout="grid" limit="3" summary="1" load_more="1" schema="0" words="9"]<!-- /wp:shortcode -->', $col['id'] );
+		$content .= sprintf( '<!-- wp:shortcode -->[ashbte_testimonials collection="%d" layout="grid" limit="3" summary="1" load_more="1" schema="0" words="9"]<!-- /wp:shortcode -->', $col['id'] );
 		continue;
 	}
-	$content .= serialize_block( array( 'blockName' => 'ashbi/testimonials', 'attrs' => array( 'collection' => (string) $col['id'], 'layout' => $layout, 'limit' => 'slider' === $layout ? '8' : '3', 'summary' => '1', 'load_more' => '1', 'schema' => '0' ), 'innerBlocks' => array(), 'innerHTML' => '', 'innerContent' => array() ) );
+	$content .= serialize_block( array( 'blockName' => 'ashbte/testimonials', 'attrs' => array( 'collection' => (string) $col['id'], 'layout' => $layout, 'limit' => 'slider' === $layout ? '8' : '3', 'summary' => '1', 'load_more' => '1', 'schema' => '0' ), 'innerBlocks' => array(), 'innerHTML' => '', 'innerContent' => array() ) );
 }
 foreach ( range( 1, 2 ) as $form ) {
-	$content .= serialize_block( array( 'blockName' => 'ashbi/review-form', 'attrs' => array( 'collection' => (string) $col['id'] ), 'innerBlocks' => array(), 'innerHTML' => '', 'innerContent' => array() ) );
+	$content .= serialize_block( array( 'blockName' => 'ashbte/review-form', 'attrs' => array( 'collection' => (string) $col['id'] ), 'innerBlocks' => array(), 'innerHTML' => '', 'innerContent' => array() ) );
 }
 $page = wp_insert_post( array( 'post_type' => 'page', 'post_title' => 'Ashbi review browser fixture', 'post_status' => 'publish', 'post_content' => $content ) );
-update_option( ABT_SETTINGS_OPTION, array( 'notify_email' => '' ), false );
-fwrite( STDOUT, 'ABT_BROWSER_FIXTURE=' . wp_json_encode( array( 'url' => get_permalink( $page ), 'login' => wp_login_url(), 'admin' => admin_url( 'admin.php?page=ashbi-testimonials&collection=' . $col['id'] ), 'username' => $admin->user_login ) ) . "\n" );
+update_option( ASHBTE_SETTINGS_OPTION, array( 'notify_email' => '' ), false );
+fwrite( STDOUT, 'ASHBTE_BROWSER_FIXTURE=' . wp_json_encode( array( 'url' => get_permalink( $page ), 'login' => wp_login_url(), 'admin' => admin_url( 'admin.php?page=ashbi-testimonials&collection=' . $col['id'] ), 'username' => $admin->user_login ) ) . "\n" );

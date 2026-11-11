@@ -1,8 +1,8 @@
 {
   "$schema": "https://schemas.wp.org/trunk/block.json",
   "apiVersion": 3,
-  "name": "ashbi/testimonials",
-  "version": "1.1.2",
+  "name": "ashbte/testimonials",
+  "version": "1.2.0",
   "title": "Testimonials",
   "category": "widgets",
   "icon": "format-quote",
@@ -77,6 +77,6 @@
       "full"
     ]
   },
-  "editorScript": "abt-block-editor",
-  "editorStyle": "abt-frontend"
+  "editorScript": "ashbte-block-editor",
+  "editorStyle": "ashbte-frontend"
 }

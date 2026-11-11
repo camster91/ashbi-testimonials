@@ -14,7 +14,7 @@
   { label: __('Spotlight', 'ashbi-testimonials'), value: 'spotlight' },
   { label: __('Compact', 'ashbi-testimonials'), value: 'compact' },
  ];
- for (const block of abtBlocks.blocks) {
+ for (const block of ashbteBlocks.blocks) {
   wp.blocks.registerBlockType(block.name, {
    apiVersion: 3, title: block.title, description: block.description, category: 'widgets', icon: 'format-quote',
    attributes: block.attributes, supports: block.supports,
@@ -23,7 +23,7 @@
     const isForm = kind === 'review-form';
     const hasSource = a.collection || (!isForm && a.product);
     const set = key => value => setAttributes({ [key]: String(value) });
-    const collections = abtBlocks.collections;
+    const collections = ashbteBlocks.collections;
     const selectedCollection = collections.find(option => option.value === a.collection || option.slug === a.collection);
     const collectionOptions = [{ label: __('Choose a collection', 'ashbi-testimonials'), value: '' }, ...collections];
     if (a.collection && !selectedCollection) collectionOptions.push({ label: a.collection, value: a.collection });
@@ -32,8 +32,8 @@
      : el(TextControl, { key: 'collection', label: __('Collection slug or ID', 'ashbi-testimonials'), value: a.collection, onChange: set('collection'), help: __('Ask a testimonial manager for the collection slug.', 'ashbi-testimonials') });
     const scopeControls = [collectionControl, el(TextControl, { key: 'product', label: __('Product or page ID', 'ashbi-testimonials'), value: a.product, onChange: set('product'), help: __('Optional. Enter a post ID or use “current” for the page or product displaying this block.', 'ashbi-testimonials') })];
     const controls = [];
-    if (kind !== 'review-form') controls.push(el(SelectControl, { key: 'preset', label: __('Design preset', 'ashbi-testimonials'), value: a.preset || '', options: [{ label: __('No preset', 'ashbi-testimonials'), value: '' }, ...(abtBlocks.presets || []).map(({label,value}) => ({label,value}))], onChange: value => setAttributes({preset:value,...((abtBlocks.presets || []).find(p => p.value === value)?.settings || {})}), help: __('Saved designs override layout, columns, theme and accent.', 'ashbi-testimonials') }));
-    const effectiveLayout = (abtBlocks.presets || []).find(p => p.value === a.preset)?.settings?.layout || a.layout;
+    if (kind !== 'review-form') controls.push(el(SelectControl, { key: 'preset', label: __('Design preset', 'ashbi-testimonials'), value: a.preset || '', options: [{ label: __('No preset', 'ashbi-testimonials'), value: '' }, ...(ashbteBlocks.presets || []).map(({label,value}) => ({label,value}))], onChange: value => setAttributes({preset:value,...((ashbteBlocks.presets || []).find(p => p.value === value)?.settings || {})}), help: __('Saved designs override layout, columns, theme and accent.', 'ashbi-testimonials') }));
+    const effectiveLayout = (ashbteBlocks.presets || []).find(p => p.value === a.preset)?.settings?.layout || a.layout;
     if (kind === 'testimonials') controls.push(
      el(SelectControl, { key: 'layout', disabled: !!a.preset, label: __('Layout', 'ashbi-testimonials'), value: a.layout, options: layouts, onChange: set('layout') }),
      ...(!a.preset && !['list', 'spotlight', 'compact'].includes(effectiveLayout) ? [el(RangeControl, { key: 'columns', label: __('Columns', 'ashbi-testimonials'), value: Number(a.columns), min: 1, max: 4, onChange: set('columns') })] : []),

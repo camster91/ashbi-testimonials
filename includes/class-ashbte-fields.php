@@ -3,9 +3,9 @@
  * @package Ashbi_Testimonials
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
-class ABT_Fields {
+class ASHBTE_Fields {
 	const TYPES = array( 'text', 'textarea', 'select', 'checkbox', 'url' );
-	private static function error() { return new WP_Error( 'abt_fields', __( 'Check custom fields: use at most ten named fields, supported types and valid values.', 'ashbi-testimonials' ) ); }
+	private static function error() { return new WP_Error( 'ashbte_fields', __( 'Check custom fields: use at most ten named fields, supported types and valid values.', 'ashbi-testimonials' ) ); }
 	private static function text( $value, $max ) {
 		return is_string( $value ) && strlen( $value ) <= $max * 4 && wp_check_invalid_utf8( $value, true ) === $value && preg_match_all( '/./us', $value ) <= $max;
 	}
@@ -26,7 +26,7 @@ class ABT_Fields {
 		return $out;
 	}
 	public static function for_collection( $id ) {
-		$fields = get_term_meta( $id, 'abt_fields', true );
+		$fields = get_term_meta( $id, 'ashbte_fields', true );
 		$fields = self::definitions( is_array( $fields ) ? $fields : array() );
 		return is_wp_error( $fields ) ? array() : $fields;
 	}
@@ -79,12 +79,12 @@ class ABT_Fields {
 			$value = 'checkbox' === $field['type'] ? ( '1' === $field['value'] ? __( 'Yes', 'ashbi-testimonials' ) : __( 'No', 'ashbi-testimonials' ) ) : $field['value'];
 			$html .= '<div><dt>' . esc_html( $field['label'] ) . '</dt><dd>' . esc_html( $value ) . '</dd></div>';
 		}
-		return $html ? '<dl class="abt-card__fields">' . $html . '</dl>' : '';
+		return $html ? '<dl class="ashbte-card__fields">' . $html . '</dl>' : '';
 	}
 	public static function form( $collection ) {
 		$html = '';
 		foreach ( self::for_collection( $collection ) as $key => $field ) {
-			$name = 'abt_custom[' . $key . ']';
+			$name = 'ashbte_custom[' . $key . ']';
 			$required = $field['required'] ? ' required' : '';
 			$html .= '<p><label>' . esc_html( $field['label'] ) . ' (' . esc_html( $field['public'] ? __( 'public', 'ashbi-testimonials' ) : __( 'not published', 'ashbi-testimonials' ) ) . ')';
 			if ( 'select' === $field['type'] ) {
