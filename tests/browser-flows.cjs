@@ -102,7 +102,9 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   }
   // Collection screens only honour signed links, so open the collection from the dashboard.
   await page.goto(dashboardUrl.href,{waitUntil:'networkidle'});
-  await Promise.all([page.waitForURL(/[?&]_ashbte_nav=/,{waitUntil:'networkidle'}),page.locator('a.ashbte-ccard__link[href*="collection='+new URL(fixture.admin).searchParams.get('collection')+'&"]').first().click()]);
+  const collectionHref=await page.locator('a.ashbte-ccard__link[href*="collection='+new URL(fixture.admin).searchParams.get('collection')+'&"]').first().getAttribute('href');
+  assert.match(collectionHref,/[?&]_ashbte_nav=/,'dashboard collection links carry the navigation nonce');
+  await page.goto(new URL(collectionHref,page.url()).href,{waitUntil:'networkidle'});
   assert.ok((await page.locator('body').innerText()).includes('Demo reviewer'));
   const place=page.getByRole('button',{name:'Place on site',exact:true});
   const placement=page.getByRole('dialog',{name:'Place on site',exact:true});
