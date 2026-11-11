@@ -179,7 +179,9 @@ jobs:
           if grep -iE 'ashbi-testimonials|ashbte_' debug.log; then echo 'Plugin logged PHP notices'; exit 1; fi
 
   browser:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to 26.04, where Playwright 1.61 cannot install its
+    # dependencies and headed Chromium under xvfb stops painting frames.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -193,7 +193,7 @@ const fixture = JSON.parse(fs.readFileSync('browser-fixture.log','utf8').match(/
   const importer=page.locator('#ashbte-import-dialog');
   await importer.locator('#ashbte-i-file').setInputFiles({name:'fictional-review.csv',mimeType:'text/csv',buffer:Buffer.from('author,content,rating\nCSV browser reviewer,Imported fictional feedback,4\n')});
   const loseImportResponse = async route => {
-   if (!/name="action"\r?\n\r?\nabt_import\r?\n/.test(route.request().postData() || '')) return route.continue();
+   if (!/name="action"\r?\n\r?\nashbte_import\r?\n/.test(route.request().postData() || '')) return route.continue();
    const response = await route.fetch();
    assert.equal(response.ok(),true,'WordPress processed the batch before losing the response');
    await route.abort();
