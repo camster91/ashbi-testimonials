@@ -51,7 +51,7 @@ Theme developers can call `ashbte_render_testimonials( array( 'collection' => 's
 Yes. Attach each review to its product, then use product="current" on your product template or product="123" anywhere. Reviews without a page can use a label: subject="SKU-1042".
 
 = Does the form work on cached pages? =
-Yes. Each submission is checked with a WordPress nonce, which the form refreshes in the background before sending so long-cached pages keep working. A signed target-bound token, a hidden honeypot field and a limit of five submissions per hour per visitor add further protection. Every submission is held as pending.
+Yes. Each submission is checked with a WordPress nonce, which the form refreshes in the background before sending so long-cached pages keep working. A signed target-bound token, a hidden honeypot field and a limit of five submissions per hour per connection address add further protection. Visitors on a shared connection may share this limit. Every submission is held as pending.
 
 = Will it add star ratings in search results? =
 For directly collected product/software reviews, it can add AggregateRating structured data when the aggregate is visible and the view is not curated. Existing/manual/CSV reviews stay visible but require a manager to confirm direct provenance. External source links/platform reviews are excluded; a mixed-provenance view adds no Ashbi aggregate. It never adds review markup for your own business, which search engines ignore. When the WooCommerce testimonials tab is enabled, eligible directly collected ratings are combined with native ratings in the existing Product schema. Whether stars appear is decided by the search engine.

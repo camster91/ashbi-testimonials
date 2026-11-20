@@ -78,8 +78,18 @@ class ASHBTE_Form {
 		ASHBTE_Render::instance()->enqueue();
 
 		$status = '';
-		if ( isset( $_GET['ashbte_notice'], $_GET['ashbte_status'], $_GET['ashbte_form'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['ashbte_notice'] ) ), 'ashbte_form_status' ) && $form_id === sanitize_key( wp_unslash( $_GET['ashbte_form'] ) ) ) {
-			$status = sanitize_key( wp_unslash( $_GET['ashbte_status'] ) );
+		if (
+			isset( $_GET['ashbte_notice'], $_GET['ashbte_status'], $_GET['ashbte_form'] )
+			&& is_string( $_GET['ashbte_notice'] )
+			&& is_string( $_GET['ashbte_status'] )
+			&& is_string( $_GET['ashbte_form'] )
+			&& wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['ashbte_notice'] ) ), 'ashbte_form_status' )
+			&& $form_id === sanitize_key( wp_unslash( $_GET['ashbte_form'] ) )
+		) {
+			$requested_status = sanitize_key( wp_unslash( $_GET['ashbte_status'] ) );
+			if ( 'thanks' === $requested_status || '' !== $this->message( $requested_status ) ) {
+				$status = $requested_status;
+			}
 		}
 
 		ob_start();
@@ -151,7 +161,7 @@ class ASHBTE_Form {
 			'busy'    => __( 'Another review is being processed from your connection. Please try again in a moment.', 'ashbi-testimonials' ),
 			'error'   => __( 'Your review could not be saved. Please try again.', 'ashbi-testimonials' ),
 		);
-		return $messages[ $code ] ?? $messages['error'];
+		return $messages[ $code ] ?? '';
 	}
 
 	/** Remove only our own lease, including when another worker has replaced an expired lease. */
@@ -251,7 +261,14 @@ class ASHBTE_Form {
 			$go( 'expired' );
 		}
 
-		$ip_key = 'ashbte_rate_' . substr( wp_hash( (string) ( $_SERVER['REMOTE_ADDR'] ?? '' ) ), 0, 16 ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Hashed only, never stored raw.
+		$ip_address = isset( $_SERVER['REMOTE_ADDR'] ) && is_string( $_SERVER['REMOTE_ADDR'] )
+			? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
+			: '';
+		if ( false === filter_var( $ip_address, FILTER_VALIDATE_IP ) ) {
+			// Preserve the shared rate-limit bucket when no valid address is available.
+			$ip_address = '';
+		}
+		$ip_key = 'ashbte_rate_' . substr( wp_hash( $ip_address ), 0, 16 );
 
 		list( $term_id, $product_id ) = array_map( 'intval', explode( ':', $target ) );
 		$term = get_term( $term_id, ASHBTE_Data::TAXONOMY );
