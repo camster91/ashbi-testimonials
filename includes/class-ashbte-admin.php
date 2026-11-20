@@ -248,7 +248,7 @@ class ASHBTE_Admin {
 	 * @return string Sanitized key.
 	 */
 	public static function nav_arg( $key ) {
-		if ( ! isset( $_GET['_ashbte_nav'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_ashbte_nav'] ) ), self::NAV_NONCE ) ) {
+		if ( ! isset( $_GET['_ashbte_nav'] ) || ! is_string( $_GET['_ashbte_nav'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_ashbte_nav'] ) ), self::NAV_NONCE ) ) {
 			return '';
 		}
 		if ( ! current_user_can( ashbte_capability() ) || ! isset( $_GET[ $key ] ) || ! is_string( $_GET[ $key ] ) ) {
@@ -618,9 +618,24 @@ class ASHBTE_Admin {
 			wp_die( esc_html__( 'You do not have permission to export testimonials.', 'ashbi-testimonials' ) );
 		}
 		check_admin_referer( 'ashbte_export' );
-		$collection = isset( $_GET['collection'] ) ? absint( $_GET['collection'] ) : 0;
-		$term       = $collection ? get_term( $collection, ASHBTE_Data::TAXONOMY ) : null;
-		$name       = $term instanceof WP_Term ? $term->slug : 'all';
+		$collection = 0;
+		$name       = 'all';
+		if ( isset( $_GET['collection'] ) ) {
+			$requested_collection = is_string( $_GET['collection'] ) ? sanitize_text_field( wp_unslash( $_GET['collection'] ) ) : '';
+			$collection = preg_match( '/\A(?:0|[1-9][0-9]*)\z/', $requested_collection )
+				? filter_var( $requested_collection, FILTER_VALIDATE_INT )
+				: false;
+			if ( false === $collection ) {
+				wp_die( esc_html__( 'Invalid collection filter.', 'ashbi-testimonials' ), '', array( 'response' => 400 ) );
+			}
+			if ( $collection > 0 ) {
+				$term = get_term( $collection, ASHBTE_Data::TAXONOMY );
+				if ( ! $term instanceof WP_Term ) {
+					wp_die( esc_html__( 'Collection not found.', 'ashbi-testimonials' ), '', array( 'response' => 404 ) );
+				}
+				$name = $term->slug;
+			}
+		}
 
 		nocache_headers();
 		header( 'Content-Type: text/csv; charset=utf-8' );
