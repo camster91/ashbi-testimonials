@@ -502,3 +502,67 @@
 .ashbte-card__fields dd { margin:0; white-space:pre-wrap; }
 
 .ashbte-card__purchase { font-size:.85em; font-weight:600; margin-block:.75em; }
+
+/* ---- Looks: the shared Ashbi presets (look="minimal|editorial|bold|glass") ----
+ * Shape and depth only. Fonts come from the theme; no look set keeps the
+ * original card style.
+ */
+.ashbte[data-ashbte-look="minimal"] {
+	--ashbte-card-bg: transparent;
+	--ashbte-card-border: color-mix(in srgb, currentColor 14%, transparent);
+	--ashbte-card-shadow: none;
+	--ashbte-radius: 12px;
+}
+.ashbte[data-ashbte-look="editorial"] {
+	--ashbte-card-bg: transparent;
+	--ashbte-card-border: transparent;
+	--ashbte-card-shadow: none;
+	--ashbte-radius: 0;
+}
+.ashbte[data-ashbte-look="editorial"] .ashbte-card {
+	border-top: 2px solid var(--ashbte-accent);
+	padding-inline: 0;
+	padding-block-end: 0;
+}
+.ashbte[data-ashbte-look="editorial"] .ashbte-card__quote {
+	font-size: 1.2em;
+	line-height: 1.45;
+}
+.ashbte[data-ashbte-look="bold"] {
+	--ashbte-card-bg: var(--ashbte-accent);
+	--ashbte-card-border: transparent;
+	--ashbte-card-shadow: none;
+	--ashbte-radius: 18px;
+}
+.ashbte[data-ashbte-look="bold"] .ashbte-card {
+	--ashbte-text: var(--ashbte-action-text);
+	--ashbte-muted: color-mix(in srgb, var(--ashbte-action-text) 78%, transparent);
+	--ashbte-verified: var(--ashbte-action-text);
+	--ashbte-star: var(--ashbte-action-text);
+	--ashbte-star-empty: color-mix(in srgb, var(--ashbte-action-text) 35%, transparent);
+	color: var(--ashbte-action-text);
+}
+.ashbte[data-ashbte-look="bold"] .ashbte-card a {
+	color: inherit;
+}
+.ashbte[data-ashbte-look="glass"] {
+	--ashbte-card-bg: color-mix(in srgb, Canvas 78%, transparent);
+	--ashbte-card-border: color-mix(in srgb, Canvas 92%, transparent);
+	--ashbte-card-shadow: 0 1px 2px rgb(0 0 0 / .04), 0 10px 30px rgb(0 0 0 / .08);
+	--ashbte-radius: 18px;
+}
+.ashbte--theme-dark[data-ashbte-look="glass"] {
+	--ashbte-card-bg: rgb(255 255 255 / .07);
+	--ashbte-card-border: rgb(255 255 255 / .14);
+	--ashbte-card-shadow: 0 10px 30px rgb(0 0 0 / .3);
+}
+@media (prefers-color-scheme: dark) {
+	.ashbte--theme-auto[data-ashbte-look="glass"] {
+		--ashbte-card-bg: rgb(255 255 255 / .07);
+		--ashbte-card-border: rgb(255 255 255 / .14);
+		--ashbte-card-shadow: 0 10px 30px rgb(0 0 0 / .3);
+	}
+}
+@media (forced-colors: active) {
+	.ashbte[data-ashbte-look] .ashbte-card { border: 1px solid CanvasText; }
+}

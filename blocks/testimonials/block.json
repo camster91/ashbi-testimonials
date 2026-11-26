@@ -29,6 +29,10 @@
       "type": "string",
       "default": "light"
     },
+    "look": {
+      "type": "string",
+      "default": ""
+    },
     "accent": {
       "type": "string",
       "default": ""

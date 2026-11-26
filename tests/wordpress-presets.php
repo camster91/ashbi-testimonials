@@ -32,5 +32,13 @@ try {
 	ASHBTE_Data::instance()->save( array( 'author' => 'Preset reviewer', 'rating' => 5, 'collections' => array( $col['id'] ) ) );
 	$html = ASHBTE_Editors::render( 'testimonials', array( 'collection' => (string) $col['id'], 'preset' => 'clean' ) );
 	$check( false !== strpos( $html, 'ashbte--grid' ) && false !== strpos( $html, '--ashbte-cols:2' ) && false !== strpos( $html, '#123456' ), 'native adapters use the saved design' );
+	$check( false === strpos( $html, 'data-ashbte-look' ), 'presets without a look keep the classic cards' );
+	$look_html = ASHBTE_Editors::render( 'testimonials', array( 'collection' => (string) $col['id'], 'look' => 'bold' ) );
+	$check( false !== strpos( $look_html, 'data-ashbte-look="bold"' ), 'look attribute reaches the wrapper' );
+	$bad_look = ASHBTE_Editors::render( 'testimonials', array( 'collection' => (string) $col['id'], 'look' => 'neon"><script>' ) );
+	$check( false === strpos( $bad_look, 'data-ashbte-look' ) && false === strpos( $bad_look, '<script>' ), 'unknown looks are ignored' );
+	$with_look = array( 'version' => 1, 'presets' => array( 'glassy' => array( 'name' => 'Glassy', 'layout' => 'grid', 'columns' => '3', 'theme' => 'dark', 'look' => 'glass', 'accent' => '' ) ) );
+	$check( true === ASHBTE_Presets::import_json( wp_json_encode( $with_look ) ) && 'glass' === ASHBTE_Presets::all()['glassy']['look'], 'presets can save a look' );
+	$check( is_wp_error( ASHBTE_Presets::import_json( wp_json_encode( array( 'version' => 1, 'presets' => array( 'x' => array( 'name' => 'X', 'look' => 'neon' ) ) ) ) ) ), 'unknown looks in presets are rejected' );
 } finally { update_option( 'ashbte_design_presets', $before, false ); }
 fwrite( STDOUT, "OK: preset validation, portability and rendering passed\n" );

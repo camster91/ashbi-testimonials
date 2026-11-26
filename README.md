@@ -36,7 +36,9 @@ Deleting or deactivating the plugin keeps data by default, including for existin
 
 ## Reusable designs
 
-Administrators can save, edit and transfer up to 30 designs in **Testimonials → Reusable designs**. Choose a preset in blocks or Elementor, or add `preset="your-key"` to a review shortcode. A selected preset overrides layout, columns, theme and accent. JSON transfers contain only validated design values; import adds designs and updates matching keys. Export a backup before import.
+Administrators can save, edit and transfer up to 30 designs in **Testimonials → Reusable designs**. Choose a preset in blocks or Elementor, or add `preset="your-key"` to a review shortcode. A selected preset overrides layout, columns, theme, look and accent.
+
+**Looks** are the shared Ashbi styles: add `look="minimal"`, `"editorial"`, `"bold"` or `"glass"`, or pick one in the builder, block or Elementor widget. They change shape and depth only, so fonts still come from your theme. No look keeps the classic cards. JSON transfers contain only validated design values; import adds designs and updates matching keys. Export a backup before import.
 
 ## Native editing
 

@@ -308,6 +308,23 @@ $ashbte_sources = array( 'Google', 'Trustpilot', 'G2', 'Capterra', 'Facebook', '
 							<?php endforeach; ?>
 						</div>
 					</fieldset>
+					<fieldset class="ashbte-field">
+						<legend><?php esc_html_e( 'Look', 'ashbi-testimonials' ); ?></legend>
+						<div class="ashbte-look-picker">
+							<?php
+							$ashbte_looks = array(
+								''          => array( __( 'Classic', 'ashbi-testimonials' ), __( 'Soft cards', 'ashbi-testimonials' ) ),
+								'minimal'   => array( __( 'Minimal', 'ashbi-testimonials' ), __( 'Hairlines, no shadow', 'ashbi-testimonials' ) ),
+								'editorial' => array( __( 'Editorial', 'ashbi-testimonials' ), __( 'Big quotes, rules', 'ashbi-testimonials' ) ),
+								'bold'      => array( __( 'Bold', 'ashbi-testimonials' ), __( 'Accent cards', 'ashbi-testimonials' ) ),
+								'glass'     => array( __( 'Glass', 'ashbi-testimonials' ), __( 'Soft, layered', 'ashbi-testimonials' ) ),
+							);
+							foreach ( $ashbte_looks as $ashbte_key => $ashbte_look ) :
+								?>
+								<label class="ashbte-look-opt ashbte-look-opt--<?php echo esc_attr( $ashbte_key ? $ashbte_key : 'classic' ); ?>"><input type="radio" name="look" value="<?php echo esc_attr( $ashbte_key ); ?>" <?php checked( '', $ashbte_key ); ?> /><i aria-hidden="true"></i><strong><?php echo esc_html( $ashbte_look[0] ); ?></strong><span><?php echo esc_html( $ashbte_look[1] ); ?></span></label>
+							<?php endforeach; ?>
+						</div>
+					</fieldset>
 					<div class="ashbte-field-row">
 						<div class="ashbte-field"><label for="ashbte-b-columns"><?php esc_html_e( 'Columns', 'ashbi-testimonials' ); ?></label><select id="ashbte-b-columns" name="columns"><option>1</option><option>2</option><option selected>3</option><option>4</option></select></div>
 						<div class="ashbte-field"><label for="ashbte-b-limit"><?php esc_html_e( 'Show', 'ashbi-testimonials' ); ?></label><input type="number" id="ashbte-b-limit" name="limit" min="1" max="100" value="9" /></div>
