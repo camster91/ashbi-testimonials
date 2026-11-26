@@ -1041,6 +1041,10 @@
 		if ( 'light' !== els.theme.value ) {
 			atts.theme = els.theme.value;
 		}
+		const look = ( $( 'input[name="look"]:checked', builder ) || {} ).value || '';
+		if ( look ) {
+			atts.look = look;
+		}
 		if ( parseInt( els.words.value, 10 ) > 0 ) {
 			atts.words = els.words.value;
 		}

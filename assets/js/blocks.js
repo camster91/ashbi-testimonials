@@ -45,6 +45,7 @@
      el(TextControl, { key: 'button', label: __('Button text', 'ashbi-testimonials'), value: a.button, onChange: set('button') })
     );
     if (kind !== 'review-form') controls.push(
+     kind === 'testimonials' && el(SelectControl, { key: 'look', label: __('Look', 'ashbi-testimonials'), value: a.look || '', options: [{ label: __('Classic', 'ashbi-testimonials'), value: '' }, { label: __('Minimal', 'ashbi-testimonials'), value: 'minimal' }, { label: __('Editorial', 'ashbi-testimonials'), value: 'editorial' }, { label: __('Bold', 'ashbi-testimonials'), value: 'bold' }, { label: __('Glass', 'ashbi-testimonials'), value: 'glass' }], onChange: set('look'), help: __('Shape and depth only. Fonts come from your theme.', 'ashbi-testimonials') }),
      el(SelectControl, { key: 'theme', disabled: !!a.preset, label: __('Theme', 'ashbi-testimonials'), value: a.theme, options: [{ label: __('Light', 'ashbi-testimonials'), value: 'light' }, { label: __('Dark', 'ashbi-testimonials'), value: 'dark' }, { label: __('Automatic', 'ashbi-testimonials'), value: 'auto' }], onChange: set('theme') }),
      el(TextControl, { key: 'accent', disabled: !!a.preset, label: __('Accent colour', 'ashbi-testimonials'), value: a.accent, onChange: set('accent'), placeholder: '#2457ff', help: __('Use a hex colour; leave blank for the collection default.', 'ashbi-testimonials') })
     );

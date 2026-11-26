@@ -21,7 +21,7 @@ class ASHBTE_Presets {
 		if ( ! is_array( $presets ) || count( $presets ) > 30 ) { return new WP_Error( 'ashbte_presets', __( 'Use no more than 30 design presets.', 'ashbi-testimonials' ) ); }
 		$clean = array();
 		foreach ( $presets as $key => $preset ) {
-			if ( ! is_string( $key ) || ! preg_match( '/^[a-z0-9][a-z0-9-]{0,39}$/', $key ) || ! is_array( $preset ) || array_diff( array_keys( $preset ), array( 'name', 'layout', 'columns', 'theme', 'accent' ) ) ) {
+			if ( ! is_string( $key ) || ! preg_match( '/^[a-z0-9][a-z0-9-]{0,39}$/', $key ) || ! is_array( $preset ) || array_diff( array_keys( $preset ), array( 'name', 'layout', 'columns', 'theme', 'look', 'accent' ) ) ) {
 				return new WP_Error( 'ashbte_presets', __( 'The preset file contains an unsupported field or key.', 'ashbi-testimonials' ) );
 			}
 			foreach ( $preset as $value ) { if ( ! is_scalar( $value ) || strlen( (string) $value ) > 320 ) { return new WP_Error( 'ashbte_presets', __( 'Preset values must be short text values.', 'ashbi-testimonials' ) ); } }
@@ -30,10 +30,17 @@ class ASHBTE_Presets {
 			$theme = $preset['theme'] ?? 'light';
 			$columns = (string) ( $preset['columns'] ?? '3' );
 			$accent = (string) ( $preset['accent'] ?? '' );
+			$look = (string) ( $preset['look'] ?? '' );
+			if ( '' !== $look && ! in_array( $look, ASHBTE_Shortcode::looks(), true ) ) {
+				return new WP_Error( 'ashbte_presets', __( 'Choose a look: minimal, editorial, bold or glass.', 'ashbi-testimonials' ) );
+			}
 			if ( '' === $name || ! isset( ASHBTE_Data::layouts()[ $layout ] ) || ! in_array( $theme, array( 'light', 'dark', 'auto' ), true ) || ! preg_match( '/^[1-4]$/', $columns ) || ( '' !== $accent && ! sanitize_hex_color( $accent ) ) ) {
 				return new WP_Error( 'ashbte_presets', __( 'Check the preset name, layout, columns, theme and hex colour.', 'ashbi-testimonials' ) );
 			}
 			$clean[ $key ] = array( 'name' => $name, 'layout' => $layout, 'columns' => $columns, 'theme' => $theme, 'accent' => $accent );
+			if ( '' !== $look ) {
+				$clean[ $key ]['look'] = $look;
+			}
 		}
 		return $clean;
 	}
@@ -73,7 +80,7 @@ class ASHBTE_Presets {
 			if ( 'delete' === $operation ) { unset( $presets[ $key ] ); $result = $presets; }
 			elseif ( 'save' === $operation ) {
 				$preset = array();
-				foreach ( array( 'name', 'layout', 'columns', 'theme', 'accent' ) as $field ) {
+				foreach ( array( 'name', 'layout', 'columns', 'theme', 'look', 'accent' ) as $field ) {
 					$preset[ $field ] = isset( $_POST[ $field ] ) && is_string( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Full allowlist/type/value validation in validate() before any write.
 				}
 				if ( '' === $key ) { $key = sanitize_title( $preset['name'] ); if ( ! preg_match( '/^[a-z0-9][a-z0-9-]{0,39}$/', $key ) ) { $key = 'preset-' . substr( md5( $preset['name'] ), 0, 12 ); } }

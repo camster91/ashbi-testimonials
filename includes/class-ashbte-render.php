@@ -310,12 +310,14 @@ class ASHBTE_Render {
 			$style .= '--ashbte-action-text:' . ( $luminance > 0.179 ? '#000' : '#fff' ) . ';';
 		}
 
+		$look = isset( $layout['look'] ) && in_array( $layout['look'], ASHBTE_Shortcode::looks(), true ) ? $layout['look'] : '';
 		$html = sprintf(
-			'<section class="%s" style="%s" aria-label="%s"%s>',
+			'<section class="%s" style="%s" aria-label="%s"%s%s>',
 			esc_attr( implode( ' ', $classes ) ),
 			esc_attr( $style ),
 			esc_attr( $layout['label'] ),
-			'slider' === $type ? ' data-ashbte-slider' : ''
+			'slider' === $type ? ' data-ashbte-slider' : '',
+			$look ? ' data-ashbte-look="' . esc_attr( $look ) . '"' : ''
 		);
 		$html .= $layout['before'];
 

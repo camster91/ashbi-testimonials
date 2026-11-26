@@ -18,6 +18,7 @@ Ashbi Testimonials collects, organises and displays directly collected reviews i
 * Attach any review to a WooCommerce product, page or post, or to a free-text label such as a plan name or SKU.
 * A clean editor with search, rating and status filters, bulk approve, feature, trash and restore, and a slide-in form.
 * Six layouts: grid, masonry, slider, list, spotlight and compact. Light, dark or automatic themes and an accent colour.
+* Five looks: Classic, Minimal, Editorial, Bold and Glass. The same looks as every Ashbi plugin, and they use your theme's fonts.
 * A visual shortcode builder with a live preview.
 * Rating summaries with average stars, review count and a five-to-one star breakdown.
 * A public review form. Submissions wait for your approval and can email you.
@@ -34,7 +35,7 @@ Testimonials are stored as a private post type, so large collections use the Wor
 `[ashbte_rating collection="acme-crm" style="inline"]`
 `[ashbte_form collection="store-reviews"]`
 
-Attributes for ashbte_testimonials: collection, product (ID or current), subject, ids, layout, columns, limit, orderby (date, rating, featured, random), order, min_rating, featured, verified, show, words, summary, load_more, theme (light, dark, auto), accent, heading, schema, schema_name, class, label.
+Attributes for ashbte_testimonials: collection, product (ID or current), subject, ids, layout, columns, limit, orderby (date, rating, featured, random), order, min_rating, featured, verified, show, words, summary, load_more, theme (light, dark, auto), look (minimal, editorial, bold, glass), accent, heading, schema, schema_name, class, label.
 
 Theme developers can call `ashbte_render_testimonials( array( 'collection' => 'store-reviews' ) )`.
 

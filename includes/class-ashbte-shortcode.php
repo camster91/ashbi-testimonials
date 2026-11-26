@@ -37,6 +37,15 @@ class ASHBTE_Shortcode {
 		add_action( 'wp_ajax_nopriv_ashbte_load_more', array( $this, 'ajax_load_more' ) );
 	}
 
+	/**
+	 * Shared Ashbi looks. An empty look keeps the original card style.
+	 *
+	 * @return string[]
+	 */
+	public static function looks() {
+		return array( 'minimal', 'editorial', 'bold', 'glass' );
+	}
+
 	/** Every supported attribute and its default. */
 	public static function defaults() {
 		return array(
@@ -58,6 +67,7 @@ class ASHBTE_Shortcode {
 			'summary'     => '0',
 			'load_more'   => '0',
 			'theme'       => 'light',
+			'look'        => '',
 			'accent'      => '',
 			'heading'     => 'h3',
 			'schema'      => '1',
@@ -135,6 +145,7 @@ class ASHBTE_Shortcode {
 			'layout'  => $layout,
 			'columns' => max( 1, min( 4, (int) $atts['columns'] ) ),
 			'theme'   => in_array( $atts['theme'], array( 'light', 'dark', 'auto' ), true ) ? $atts['theme'] : 'light',
+			'look'    => in_array( $atts['look'], self::looks(), true ) ? $atts['look'] : '',
 			'accent'  => $accent,
 			'class'   => implode( ' ', array_map( 'sanitize_html_class', array_filter( explode( ' ', $atts['class'] ) ) ) ),
 			'label'   => '' !== $atts['label'] ? sanitize_text_field( $atts['label'] ) : ( $first['name'] ?? __( 'Testimonials', 'ashbi-testimonials' ) ),
